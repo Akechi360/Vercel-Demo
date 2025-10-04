@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* UroVital Light Theme */
+    --background: 220 40% 98%;
+    --foreground: 222 84% 4.9%;
+    --card: 220 30% 96%;
+    --card-foreground: 222 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 84% 4.9%;
+    
+    --primary: 222 83% 53%; /* UroVital Blue: ~#2563eb */
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 84% 4.9%;
+
+    --muted: 220 14% 93%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 222 83% 53%; /* UroVital Blue: ~#2563eb */
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 222 83% 53%; /* Ring color from primary */
+
+    --radius: 1rem;
+
+    /* Sidebar (Light) */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 84% 4.9%;
+    --sidebar-primary: 222 83% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 96%;
+    --sidebar-accent-foreground: 222 84% 4.9%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 222 83% 53%;
+  }
+
+  .dark {
+    /* UroVital Dark Theme */
+    --background: 220 13% 11%;
+    --foreground: 210 20% 98%;
+    --card: 220 13% 15%;
+    --card-foreground: 210 20% 98%;
+    --popover: 220 13% 11%;
+    --popover-foreground: 210 20% 98%;
+
+    --primary: 222 78% 61%; /* UroVital Blue (Dark) */
+    --primary-foreground: 210 20% 98%;
+
+    --secondary: 215 14% 24%;
+    --secondary-foreground: 210 20% 98%;
+
+    --muted: 215 14% 24%;
+    --muted-foreground: 215 10% 65%;
+
+    --accent: 222 78% 61%; /* UroVital Blue (Dark) */
+    --accent-foreground: 210 20% 98%;
+
+    --destructive: 0 63% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 215 14% 24%;
+    --input: 215 14% 24%;
+    --ring: 222 78% 61%; /* Ring color from primary (Dark) */
+
+    /* Sidebar (Dark) */
+    --sidebar-background: 220 13% 15%;
+    --sidebar-foreground: 210 20% 98%;
+    --sidebar-primary: 222 78% 61%;
+    --sidebar-primary-foreground: 210 20% 98%;
+    --sidebar-accent: 215 14% 24%;
+    --sidebar-accent-foreground: 210 20% 98%;
+    --sidebar-border: 215 14% 24%;
+    --sidebar-ring: 222 78% 61%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}

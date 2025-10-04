@@ -1,0 +1,1189 @@
+'use server';
+
+import type { Patient, Appointment, Consultation, User, LabResult, IpssScore, Report, Company, Supply, Provider, PaymentMethod, PaymentType, Payment, Doctor, Estudio, AffiliateLead } from './types';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import bcrypt from 'bcryptjs';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient({
+  log: ['query', 'info', 'warn', 'error'],
+});
+
+// Simulate network delay
+const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+// Test database connection
+export async function testDatabaseConnection(): Promise<boolean> {
+  try {
+    await prisma.$connect();
+    console.log('Database connection test successful');
+    return true;
+  } catch (error) {
+    console.error('Database connection test failed:', error);
+    return false;
+  }
+}
+
+// PATIENT ACTIONS
+export async function getPatients(): Promise<Patient[]> {
+  try {
+    const patients = await prisma.patient.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+    return patients.map(patient => {
+      const age = Math.floor((Date.now() - patient.fechaNacimiento.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+      return {
+        id: patient.id,
+        name: `${patient.nombre} ${patient.apellido}`,
+        age,
+        gender: 'Masculino' as const, // Default value
+        bloodType: 'O+' as const, // Default value
+        status: 'Activo' as const,
+        lastVisit: patient.updatedAt.toISOString(),
+        contact: {
+          phone: patient.telefono || '',
+          email: patient.email || '',
+        },
+        companyId: undefined,
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching patients:', error);
+  return [];
+  }
+}
+
+export async function addPatient(patientData: {
+  name: string;
+  age: number;
+  gender: 'Masculino' | 'Femenino' | 'Otro';
+  bloodType?: string;
+  contact: {
+    phone: string;
+    email: string;
+  };
+  companyId?: string;
+}): Promise<Patient> {
+  try {
+    console.log('addPatient called with data:', JSON.stringify(patientData, null, 2));
+    
+    // Test database connection
+    await prisma.$connect();
+    console.log('Database connection successful');
+    
+    // Validate required fields
+    if (!patientData.name || patientData.name.trim().length === 0) {
+      throw new Error('El nombre es requerido');
+    }
+    if (!patientData.age || patientData.age <= 0) {
+      throw new Error('La edad debe ser mayor a 0');
+    }
+    if (!patientData.gender) {
+      throw new Error('El género es requerido');
+    }
+    
+    const [nombre, apellido] = patientData.name.split(' ', 2);
+    const fechaNacimiento = new Date(Date.now() - patientData.age * 365.25 * 24 * 60 * 60 * 1000);
+    
+    console.log('Creating patient with data:', {
+      nombre: nombre || patientData.name,
+      apellido: apellido || '',
+      cedula: `V-${Date.now()}`,
+      fechaNacimiento,
+      telefono: patientData.contact.phone,
+      email: patientData.contact.email,
+      direccion: '',
+    });
+    
+    const patient = await prisma.patient.create({
+      data: {
+        nombre: nombre || patientData.name,
+        apellido: apellido || '',
+        cedula: `V-${Date.now()}`, // Generate temporary ID
+        fechaNacimiento,
+        telefono: patientData.contact.phone,
+        email: patientData.contact.email,
+        direccion: '', // Default empty address
+      },
+    });
+    
+    console.log('Patient created successfully:', patient);
+
+    return {
+      id: patient.id,
+      name: `${patient.nombre} ${patient.apellido}`,
+      age: patientData.age,
+      gender: patientData.gender,
+      bloodType: patientData.bloodType ?? 'O+', // Default blood type
+      status: 'Activo' as const,
+      lastVisit: patient.createdAt.toISOString(),
+      contact: {
+        phone: patient.telefono || '',
+        email: patient.email || '',
+      },
+      companyId: patientData.companyId,
+    };
+  } catch (error) {
+    console.error('Error adding patient:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
+    
+    // Handle specific Prisma errors
+    if (error instanceof Error) {
+      if (error.message.includes('connect')) {
+        throw new Error('Error de conexión a la base de datos. Verifique la configuración.');
+      } else if (error.message.includes('unique constraint')) {
+        throw new Error('Ya existe un paciente con esta cédula.');
+      } else if (error.message.includes('foreign key')) {
+        throw new Error('Error de referencia en la base de datos.');
+      } else {
+        throw new Error(`Error al agregar paciente: ${error.message}`);
+      }
+    }
+    
+    throw new Error('Error desconocido al agregar paciente');
+  }
+}
+
+export async function deletePatient(patientId: string): Promise<void> {
+  try {
+    await prisma.patient.delete({
+      where: { id: patientId },
+    });
+  } catch (error) {
+    console.error('Error deleting patient:', error);
+    throw new Error('Error al eliminar paciente');
+  }
+}
+
+// APPOINTMENT ACTIONS
+export async function getAppointments(): Promise<Appointment[]> {
+  try {
+    const appointments = await prisma.appointment.findMany({
+      include: {
+        paciente: true,
+        doctor: true,
+        provider: true,
+        user: true,
+      },
+      orderBy: { fecha: 'desc' },
+    });
+
+    return appointments.map(appointment => ({
+      id: appointment.id,
+      patientId: appointment.paciente.id,
+      doctorId: appointment.doctor?.id || '',
+      date: appointment.fecha.toISOString(),
+      reason: appointment.notas || 'Consulta médica',
+      status: appointment.estado === 'COMPLETADA' ? 'Completada' as const : 
+              appointment.estado === 'CANCELADA' ? 'Cancelada' as const : 'Programada' as const,
+    }));
+  } catch (error) {
+    console.error('Error fetching appointments:', error);
+  return [];
+  }
+}
+
+// USER ACTIONS
+export async function getUsers(): Promise<User[]> {
+  try {
+    const users = await prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return users.map(user => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role.toLowerCase() === 'user' ? 'secretaria' as const : 
+            user.role.toLowerCase() === 'promotora' ? 'promotora' as const :
+            user.role.toLowerCase() as 'admin' | 'doctor' | 'patient',
+      patientId: undefined,
+    }));
+  } catch (error) {
+    console.error('Error fetching users:', error);
+  return [];
+  }
+}
+
+// DOCTOR ACTIONS
+export async function getDoctors(): Promise<Doctor[]> {
+  try {
+    const doctors = await prisma.doctor.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return doctors.map(doctor => ({
+      nombre: `${doctor.nombre} ${doctor.apellido}`,
+      especialidad: doctor.especialidad,
+      area: doctor.area || '',
+      contacto: doctor.contacto || '',
+    }));
+  } catch (error) {
+    console.error('Error fetching doctors:', error);
+  return [];
+  }
+}
+
+// COMPANY ACTIONS
+export async function getCompanies(): Promise<Company[]> {
+  try {
+    const companies = await prisma.company.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return companies.map(company => ({
+      id: company.id,
+      name: company.nombre,
+      ruc: company.rif,
+      phone: company.telefono || '',
+      email: company.email || '',
+      status: 'Activo' as const,
+    }));
+  } catch (error) {
+    console.error('Error fetching companies:', error);
+  return [];
+  }
+}
+
+// ESTUDIO ACTIONS
+export async function getEstudios(): Promise<Estudio[]> {
+  try {
+    const estudios = await prisma.estudio.findMany({
+      where: { activo: true },
+      orderBy: { nombre: 'asc' },
+    });
+
+    return estudios.map(estudio => ({
+      id: estudio.id,
+      categoria: estudio.tipo,
+      nombre: estudio.nombre,
+    }));
+  } catch (error) {
+    console.error('Error fetching estudios:', error);
+  return [];
+  }
+}
+
+// CONSULTATION ACTIONS
+export async function getConsultations(): Promise<Consultation[]> {
+  try {
+    const consultations = await prisma.consultation.findMany({
+      include: {
+        paciente: true,
+        doctor: true,
+        user: true,
+      },
+      orderBy: { fecha: 'desc' },
+    });
+
+    return consultations.map(consultation => ({
+      id: consultation.id,
+      patientId: consultation.paciente.id,
+      date: consultation.fecha.toISOString(),
+      doctor: consultation.doctor ? `${consultation.doctor.nombre} ${consultation.doctor.apellido}` : 'No especificado',
+      type: 'Inicial' as const,
+      notes: consultation.observaciones || '',
+      prescriptions: [],
+      labResults: [],
+      reports: [],
+    }));
+  } catch (error) {
+    console.error('Error fetching consultations:', error);
+  return [];
+  }
+}
+
+// LAB RESULT ACTIONS
+export async function getLabResults(): Promise<LabResult[]> {
+  try {
+    const labResults = await prisma.labResult.findMany({
+      include: {
+        paciente: true,
+        consultation: true,
+      },
+      orderBy: { fecha: 'desc' },
+    });
+
+    return labResults.map(result => ({
+      id: result.id,
+      patientId: result.paciente.id,
+      testName: result.nombre,
+      value: result.resultado,
+      referenceRange: result.tipo,
+      date: result.fecha.toISOString(),
+    }));
+  } catch (error) {
+    console.error('Error fetching lab results:', error);
+  return [];
+  }
+}
+
+// REPORT ACTIONS
+export async function getReports(): Promise<Report[]> {
+  try {
+    const reports = await prisma.report.findMany({
+      orderBy: { fecha: 'desc' },
+    });
+
+    return reports.map(report => ({
+      id: report.id,
+      patientId: 'default-patient', // Default since we don't have patient relationship in schema
+      title: report.titulo,
+      date: report.fecha.toISOString(),
+      type: report.tipo,
+      notes: report.descripcion || '',
+      fileUrl: '',
+      attachments: [],
+    }));
+  } catch (error) {
+    console.error('Error fetching reports:', error);
+  return [];
+  }
+}
+
+// SUPPLY ACTIONS
+export async function getSupplies(): Promise<Supply[]> {
+  try {
+    const supplies = await prisma.supply.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return supplies.map(supply => ({
+      id: supply.id,
+      name: supply.nombre,
+      category: supply.descripcion || '',
+      stock: supply.cantidad,
+      unit: supply.unidad,
+      expiryDate: supply.fechaVencimiento?.toISOString() || '',
+    }));
+  } catch (error) {
+    console.error('Error fetching supplies:', error);
+  return [];
+  }
+}
+
+// PROVIDER ACTIONS
+export async function getProviders(): Promise<Provider[]> {
+  try {
+    const providers = await prisma.provider.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return providers.map(provider => ({
+      id: provider.id,
+      name: provider.nombre,
+      specialty: provider.especialidad,
+      phone: provider.telefono || '',
+      email: provider.email || '',
+      address: provider.direccion || '',
+      createdAt: provider.createdAt.toISOString(),
+      updatedAt: provider.updatedAt.toISOString(),
+    }));
+  } catch (error) {
+    console.error('Error fetching providers:', error);
+  return [];
+  }
+}
+
+// PAYMENT ACTIONS
+export async function getPayments(): Promise<Payment[]> {
+  try {
+    const payments = await prisma.payment.findMany({
+      include: {
+        paciente: true,
+        user: true,
+      },
+      orderBy: { fecha: 'desc' },
+    });
+
+    return payments.map(payment => ({
+      id: payment.id,
+      patientId: payment.paciente.id,
+      doctorId: undefined,
+      paymentTypeId: 'default-type',
+      paymentMethodId: 'default-method',
+      date: payment.fecha.toISOString(),
+      monto: payment.monto.toNumber(),
+      status: payment.estado === 'PAGADO' ? 'Pagado' as const : 
+              payment.estado === 'CANCELADO' ? 'Anulado' as const : 'Pendiente' as const,
+    }));
+  } catch (error) {
+    console.error('Error fetching payments:', error);
+  return [];
+  }
+}
+
+// AUTHENTICATION ACTIONS
+export async function login(credentials: { email: string; password: string }) {
+  try {
+    // Check for master admin first (hardcoded for security)
+  if (credentials.email === 'master@urovital.com' && credentials.password === 'M4st3r36048@') {
+    return {
+      success: true,
+      user: {
+        id: 'master-admin',
+        name: 'Master Administrator',
+        email: 'master@urovital.com',
+        role: 'admin',
+      },
+    };
+  }
+  
+    // Check database users
+    const user = await prisma.user.findUnique({
+      where: { email: credentials.email },
+    });
+
+    if (!user) {
+      return { success: false, error: 'Usuario no encontrado' };
+    }
+
+    const isValidPassword = await bcrypt.compare(credentials.password, user.password);
+    
+    if (!isValidPassword) {
+      return { success: false, error: 'Contraseña incorrecta' };
+    }
+
+    return {
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role.toLowerCase() as 'admin' | 'doctor' | 'user',
+      },
+    };
+  } catch (error) {
+    console.error('Error during login:', error);
+    return { success: false, error: 'Error interno del servidor' };
+  }
+}
+
+// AFFILIATE LEAD ACTIONS
+export async function submitAffiliateLead(data: AffiliateLead) {
+  try {
+    // Here you would typically save to database or send to external service
+    console.log('Affiliate lead submitted:', data);
+    
+    // Simulate processing time
+    await delay(1000);
+    
+    return { success: true, message: 'Solicitud enviada exitosamente' };
+  } catch (error) {
+    console.error('Error submitting affiliate lead:', error);
+    return { success: false, error: 'Error al enviar la solicitud' };
+  }
+}
+
+// SYSTEM CONFIG ACTIONS
+export async function getSystemConfig() {
+  try {
+    const config = await prisma.systemConfig.findFirst();
+    
+    if (!config) {
+      // Return default config if none exists
+  return {
+    id: 'default-config',
+    clinicName: 'UroVital',
+    clinicAddress: 'Valencia, Edo. Carabobo',
+    clinicPhone: '+58 412-177 2206',
+    clinicEmail: 'info@urovital.com',
+    workingHours: 'Lun - Vie: 9am - 5pm',
+    notifications: true,
+    emailNotifications: true,
+    smsNotifications: false,
+    maintenanceMode: false,
+    autoBackup: true,
+    dataRetention: '2 años',
+  };
+    }
+
+    return {
+      id: config.id,
+      clinicName: config.clinicName,
+      clinicAddress: config.clinicAddress || '',
+      clinicPhone: config.clinicPhone || '',
+      clinicEmail: config.clinicEmail || '',
+      workingHours: config.workingHours || '',
+      notifications: config.notifications,
+      emailNotifications: config.emailNotifications,
+      smsNotifications: config.smsNotifications,
+      maintenanceMode: config.maintenanceMode,
+      autoBackup: config.autoBackup,
+      dataRetention: config.dataRetention,
+    };
+  } catch (error) {
+    console.error('Error fetching system config:', error);
+    // Return default config on error
+    return {
+      id: 'default-config',
+      clinicName: 'UroVital',
+      clinicAddress: 'Valencia, Edo. Carabobo',
+      clinicPhone: '+58 412-177 2206',
+      clinicEmail: 'info@urovital.com',
+      workingHours: 'Lun - Vie: 9am - 5pm',
+      notifications: true,
+      emailNotifications: true,
+      smsNotifications: false,
+      maintenanceMode: false,
+      autoBackup: true,
+      dataRetention: '2 años',
+    };
+  }
+}
+
+export async function updateSystemConfig(configData: any) {
+  try {
+    const config = await prisma.systemConfig.upsert({
+      where: { id: configData.id || 'default-config' },
+      update: {
+        clinicName: configData.clinicName,
+        clinicAddress: configData.clinicAddress,
+        clinicPhone: configData.clinicPhone,
+        clinicEmail: configData.clinicEmail,
+        workingHours: configData.workingHours,
+        notifications: configData.notifications,
+        emailNotifications: configData.emailNotifications,
+        smsNotifications: configData.smsNotifications,
+        maintenanceMode: configData.maintenanceMode,
+        autoBackup: configData.autoBackup,
+        dataRetention: configData.dataRetention,
+      },
+      create: {
+        id: configData.id || 'default-config',
+        clinicName: configData.clinicName || 'UroVital',
+        clinicAddress: configData.clinicAddress,
+        clinicPhone: configData.clinicPhone,
+        clinicEmail: configData.clinicEmail,
+        workingHours: configData.workingHours,
+        notifications: configData.notifications ?? true,
+        emailNotifications: configData.emailNotifications ?? true,
+        smsNotifications: configData.smsNotifications ?? false,
+        maintenanceMode: configData.maintenanceMode ?? false,
+        autoBackup: configData.autoBackup ?? true,
+        dataRetention: configData.dataRetention || '2 años',
+      },
+    });
+
+    return {
+      id: config.id,
+      clinicName: config.clinicName,
+      clinicAddress: config.clinicAddress || '',
+      clinicPhone: config.clinicPhone || '',
+      clinicEmail: config.clinicEmail || '',
+      workingHours: config.workingHours || '',
+      notifications: config.notifications,
+      emailNotifications: config.emailNotifications,
+      smsNotifications: config.smsNotifications,
+      maintenanceMode: config.maintenanceMode,
+      autoBackup: config.autoBackup,
+      dataRetention: config.dataRetention,
+    };
+  } catch (error) {
+    console.error('Error updating system config:', error);
+    throw new Error('Error al actualizar la configuración del sistema');
+  }
+}
+
+// USER MANAGEMENT ACTIONS
+export async function createUser(userData: {
+  name: string;
+  email: string;
+  password: string;
+  role: 'admin' | 'doctor' | 'secretaria' | 'patient' | 'promotora';
+}) {
+  try {
+    const hashedPassword = await bcrypt.hash(userData.password, 12);
+    
+    const user = await prisma.user.create({
+      data: {
+        name: userData.name,
+        email: userData.email,
+        password: hashedPassword,
+        role: (() => {
+          const roleUpper = userData.role.toUpperCase();
+          if (roleUpper === 'PATIENT' || roleUpper === 'SECRETARIA') {
+            return 'USER';
+          } else if (roleUpper === 'PROMOTORA') {
+            return 'PROMOTORA';
+          } else {
+            return roleUpper as 'ADMIN' | 'DOCTOR';
+          }
+        })(),
+      },
+    });
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role.toLowerCase() === 'user' ? 'secretaria' as const : 
+            user.role.toLowerCase() === 'promotora' ? 'promotora' as const :
+            user.role.toLowerCase() as 'admin' | 'doctor' | 'patient',
+      patientId: undefined,
+    };
+  } catch (error) {
+    console.error('Error creating user:', error);
+    throw new Error('Error al crear usuario');
+  }
+}
+
+export async function updateUser(userId: string, userData: {
+  name?: string;
+  email?: string;
+  role?: 'admin' | 'doctor' | 'secretaria' | 'patient' | 'promotora';
+  status?: 'ACTIVE' | 'INACTIVE';
+}) {
+  try {
+    const updateData: any = {};
+    
+    if (userData.name) updateData.name = userData.name;
+    if (userData.email) updateData.email = userData.email;
+    if (userData.status) updateData.status = userData.status;
+    if (userData.role) {
+      const roleUpper = userData.role.toUpperCase();
+      if (roleUpper === 'PATIENT' || roleUpper === 'SECRETARIA') {
+        updateData.role = 'USER';
+      } else if (roleUpper === 'PROMOTORA') {
+        updateData.role = 'PROMOTORA';
+      } else {
+        updateData.role = roleUpper as 'ADMIN' | 'DOCTOR';
+      }
+    }
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+    });
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role === 'USER' ? 'secretaria' as const : 
+            user.role === 'PROMOTORA' ? 'promotora' as const :
+            user.role === 'ADMIN' ? 'admin' as const :
+            user.role === 'DOCTOR' ? 'doctor' as const :
+            'secretaria' as const, // fallback
+      status: user.status,
+      lastLogin: user.lastLogin?.toISOString(),
+      createdAt: user.createdAt.toISOString(),
+      phone: user.phone || undefined,
+    };
+  } catch (error) {
+    console.error('Error updating user:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+    const errorCode = (error as any)?.code;
+    const errorMeta = (error as any)?.meta;
+    
+    console.error('Error details:', {
+      message: errorMessage,
+      code: errorCode,
+      meta: errorMeta,
+      userId,
+      userData
+    });
+    throw new Error(`Error al actualizar usuario: ${errorMessage}`);
+  }
+}
+
+export async function deleteUser(userId: string) {
+  try {
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    throw new Error('Error al eliminar usuario');
+  }
+}
+
+// PLACEHOLDER FUNCTIONS (to maintain compatibility)
+export async function getIpssScores(): Promise<IpssScore[]> {
+  return [];
+}
+
+export async function getPaymentMethods(): Promise<PaymentMethod[]> {
+  return [];
+}
+
+export async function getPaymentTypes(): Promise<PaymentType[]> {
+  return [];
+}
+
+export async function addProvider(providerData: Omit<Provider, 'id'>): Promise<Provider> {
+  throw new Error('Not implemented');
+}
+
+export async function addPaymentMethod(data: Omit<PaymentMethod, 'id'>): Promise<PaymentMethod> {
+  throw new Error('Not implemented');
+}
+
+export async function addPaymentType(data: Omit<PaymentType, 'id'>): Promise<PaymentType> {
+  throw new Error('Not implemented');
+}
+
+// MISSING FUNCTIONS - Added to fix build errors
+export async function getIpssScoresByPatientId(patientId: string): Promise<IpssScore[]> {
+  try {
+    // IPSS scores are not in the current schema, return empty array for now
+    // This would need to be added to the schema if needed
+    return [];
+  } catch (error) {
+    console.error('Error fetching IPSS scores:', error);
+  return [];
+  }
+}
+
+export async function getLabResultsByPatientId(patientId: string): Promise<LabResult[]> {
+  try {
+    const labResults = await prisma.labResult.findMany({
+      where: { pacienteId: patientId },
+      include: {
+        paciente: true,
+        consultation: true,
+      },
+      orderBy: { fecha: 'desc' },
+    });
+
+    return labResults.map(result => ({
+      id: result.id,
+      patientId: result.paciente.id,
+      testName: result.nombre,
+      value: result.resultado,
+      referenceRange: result.tipo,
+      date: result.fecha.toISOString(),
+    }));
+  } catch (error) {
+    console.error('Error fetching lab results by patient:', error);
+  return [];
+  }
+}
+
+export async function getConsultationsByPatientId(patientId: string): Promise<Consultation[]> {
+  try {
+    const consultations = await prisma.consultation.findMany({
+      where: { pacienteId: patientId },
+      include: {
+        paciente: true,
+        doctor: true,
+        user: true,
+      },
+      orderBy: { fecha: 'desc' },
+    });
+
+    return consultations.map(consultation => ({
+      id: consultation.id,
+      patientId: consultation.paciente.id,
+      date: consultation.fecha.toISOString(),
+      doctor: consultation.doctor ? `${consultation.doctor.nombre} ${consultation.doctor.apellido}` : 'No especificado',
+      type: 'Inicial' as const,
+      notes: consultation.observaciones || '',
+      prescriptions: [],
+      labResults: [],
+      reports: [],
+    }));
+  } catch (error) {
+    console.error('Error fetching consultations by patient:', error);
+  return [];
+  }
+}
+
+export async function getPatientById(patientId: string): Promise<Patient | null> {
+  try {
+    const patient = await prisma.patient.findUnique({
+      where: { id: patientId },
+    });
+
+    if (!patient) return null;
+
+    const age = Math.floor((Date.now() - patient.fechaNacimiento.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+    return {
+      id: patient.id,
+      name: `${patient.nombre} ${patient.apellido}`,
+      age,
+      gender: 'Masculino' as const, // Default value
+      bloodType: 'O+' as const,
+      status: 'Activo' as const,
+      lastVisit: patient.updatedAt.toISOString(),
+      contact: {
+        phone: patient.telefono || '',
+        email: patient.email || '',
+      },
+      companyId: undefined,
+    };
+  } catch (error) {
+    console.error('Error fetching patient by ID:', error);
+  return null;
+  }
+}
+
+export async function getCompanyById(companyId: string): Promise<Company | null> {
+  try {
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+    });
+
+    if (!company) return null;
+
+    return {
+      id: company.id,
+      name: company.nombre,
+      ruc: company.rif,
+      phone: company.telefono || '',
+      email: company.email || '',
+      status: 'Activo' as const,
+    };
+  } catch (error) {
+    console.error('Error fetching company by ID:', error);
+  return null;
+  }
+}
+
+export async function addCompany(companyData: {
+  name: string;
+  ruc: string;
+  phone?: string;
+  email?: string;
+}): Promise<Company> {
+  try {
+    const company = await prisma.company.create({
+      data: {
+        nombre: companyData.name,
+        rif: companyData.ruc,
+        direccion: '',
+        telefono: companyData.phone || '',
+        email: companyData.email || '',
+        contacto: '',
+      },
+    });
+
+    return {
+      id: company.id,
+      name: company.nombre,
+      ruc: company.rif,
+      phone: company.telefono || '',
+      email: company.email || '',
+      status: 'Activo' as const,
+    };
+  } catch (error) {
+    console.error('Error adding company:', error);
+    throw new Error('Error al agregar empresa');
+  }
+}
+
+export async function addSupply(supplyData: {
+  name: string;
+  category: string;
+  stock: number;
+  unit: string;
+  expiryDate: string;
+}): Promise<Supply> {
+  try {
+    const supply = await prisma.supply.create({
+      data: {
+        nombre: supplyData.name,
+        descripcion: supplyData.category,
+        cantidad: supplyData.stock,
+        unidad: supplyData.unit,
+        precio: 0, // Default price
+        proveedor: '',
+        fechaVencimiento: supplyData.expiryDate ? new Date(supplyData.expiryDate) : null,
+        estado: 'DISPONIBLE',
+      },
+    });
+
+    return {
+      id: supply.id,
+      name: supply.nombre,
+      category: supply.descripcion || '',
+      stock: supply.cantidad,
+      unit: supply.unidad,
+      expiryDate: supply.fechaVencimiento?.toISOString() || '',
+    };
+  } catch (error) {
+    console.error('Error adding supply:', error);
+    throw new Error('Error al agregar suministro');
+  }
+}
+
+export async function addAppointment(appointmentData: {
+  patientId: string;
+  doctorId: string;
+  date: string;
+  reason: string;
+}): Promise<Appointment> {
+  try {
+    const appointment = await prisma.appointment.create({
+      data: {
+        fecha: new Date(appointmentData.date),
+        hora: '09:00', // Default time
+        tipo: 'CONSULTA',
+        estado: 'PROGRAMADA',
+        notas: appointmentData.reason,
+        pacienteId: appointmentData.patientId,
+        doctorId: appointmentData.doctorId,
+        userId: 'master-admin', // Default to master admin for now
+      },
+    });
+
+    return {
+      id: appointment.id,
+      patientId: appointment.pacienteId,
+      doctorId: appointment.doctorId || '',
+      date: appointment.fecha.toISOString(),
+      reason: appointment.notas || 'Consulta médica',
+      status: 'Programada' as const,
+    };
+  } catch (error) {
+    console.error('Error adding appointment:', error);
+    throw new Error('Error al agregar cita');
+  }
+}
+
+// DASHBOARD STATISTICS FUNCTIONS
+export async function getAppointmentsWeeklyStats(): Promise<number[]> {
+  try {
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        fecha: {
+          gte: weekAgo,
+          lte: now,
+        },
+      },
+      select: {
+        fecha: true,
+      },
+    });
+
+    // Group by day of week (0 = Sunday, 1 = Monday, etc.)
+    const dailyCounts = [0, 0, 0, 0, 0, 0, 0]; // [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
+    
+    appointments.forEach(appointment => {
+      const dayOfWeek = appointment.fecha.getDay();
+      dailyCounts[dayOfWeek]++;
+    });
+
+    // Return last 7 days starting from Friday (as per the original chart)
+    return [
+      dailyCounts[5], // Friday
+      dailyCounts[6], // Saturday
+      dailyCounts[0], // Sunday
+      dailyCounts[1], // Monday
+      dailyCounts[2], // Tuesday
+      dailyCounts[3], // Wednesday
+      dailyCounts[4], // Thursday
+    ];
+  } catch (error) {
+    console.error('Error fetching weekly appointment stats:', error);
+    return [0, 0, 0, 0, 0, 0, 0];
+  }
+}
+
+export async function getLabResultsStats(): Promise<{ completed: number; pending: number }> {
+  try {
+    const now = new Date();
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    
+    const labResults = await prisma.labResult.findMany({
+      where: {
+        fecha: {
+          gte: monthAgo,
+          lte: now,
+        },
+      },
+    });
+
+    // For now, we'll consider all lab results as "completed"
+    // In a real scenario, you might have a status field
+    const completed = labResults.length;
+    const pending = 0; // This would need to be calculated based on pending lab orders
+
+    return { completed, pending };
+  } catch (error) {
+    console.error('Error fetching lab results stats:', error);
+    return { completed: 0, pending: 0 };
+  }
+}
+
+export async function getPsaTrends(): Promise<{ dates: string[]; values: number[] }> {
+  try {
+    const psaResults = await prisma.labResult.findMany({
+      where: {
+        tipo: 'PSA',
+        nombre: {
+          contains: 'PSA',
+          mode: 'insensitive',
+        },
+      },
+      orderBy: {
+        fecha: 'asc',
+      },
+      take: 6, // Last 6 PSA tests
+    });
+
+    const dates = psaResults.map(result => result.fecha.toISOString().split('T')[0]);
+    const values = psaResults.map(result => {
+      // Extract numeric value from result string
+      const match = result.resultado.match(/(\d+\.?\d*)/);
+      return match ? parseFloat(match[1]) : 0;
+    });
+
+    return { dates, values };
+  } catch (error) {
+    console.error('Error fetching PSA trends:', error);
+    return { dates: [], values: [] };
+  }
+}
+
+// ADDITIONAL MISSING FUNCTIONS
+export async function getReportsByPatientId(patientId: string): Promise<Report[]> {
+  try {
+    // For now, return all reports since we don't have patient-specific reports in schema
+    const reports = await prisma.report.findMany({
+      orderBy: { fecha: 'desc' },
+    });
+
+    return reports.map(report => ({
+      id: report.id,
+      patientId: patientId,
+      title: report.titulo,
+      date: report.fecha.toISOString(),
+      type: report.tipo,
+      notes: report.descripcion || '',
+      fileUrl: '',
+      attachments: [],
+    }));
+  } catch (error) {
+    console.error('Error fetching reports by patient ID:', error);
+    return [];
+  }
+}
+
+export async function getPatientMedicalHistoryAsString(patientId: string): Promise<string> {
+  try {
+    const patient = await prisma.patient.findUnique({
+      where: { id: patientId },
+      include: {
+        consultations: {
+          include: {
+            doctor: true,
+            labResults: true,
+            prescriptions: true,
+          },
+          orderBy: { fecha: 'desc' },
+        },
+        labResults: {
+          orderBy: { fecha: 'desc' },
+        },
+        appointments: {
+          include: {
+            doctor: true,
+          },
+          orderBy: { fecha: 'desc' },
+        },
+      },
+    });
+
+    if (!patient) {
+      return 'Paciente no encontrado';
+    }
+
+    let history = `HISTORIA MÉDICA - ${patient.nombre} ${patient.apellido}\n`;
+    history += `Cédula: ${patient.cedula}\n`;
+    history += `Fecha de Nacimiento: ${patient.fechaNacimiento.toLocaleDateString()}\n`;
+    history += `Teléfono: ${patient.telefono || 'No disponible'}\n`;
+    history += `Email: ${patient.email || 'No disponible'}\n`;
+    history += `Dirección: ${patient.direccion || 'No disponible'}\n\n`;
+
+    // Consultas
+    if (patient.consultations.length > 0) {
+      history += 'CONSULTAS MÉDICAS:\n';
+      history += '='.repeat(50) + '\n';
+      patient.consultations.forEach((consultation, index) => {
+        history += `${index + 1}. Fecha: ${consultation.fecha.toLocaleDateString()}\n`;
+        history += `   Doctor: ${consultation.doctor ? `${consultation.doctor.nombre} ${consultation.doctor.apellido}` : 'No especificado'}\n`;
+        history += `   Motivo: ${consultation.motivo}\n`;
+        if (consultation.sintomas) history += `   Síntomas: ${consultation.sintomas}\n`;
+        if (consultation.diagnostico) history += `   Diagnóstico: ${consultation.diagnostico}\n`;
+        if (consultation.tratamiento) history += `   Tratamiento: ${consultation.tratamiento}\n`;
+        if (consultation.observaciones) history += `   Observaciones: ${consultation.observaciones}\n`;
+        history += '\n';
+      });
+    }
+
+    // Resultados de Laboratorio
+    if (patient.labResults.length > 0) {
+      history += 'RESULTADOS DE LABORATORIO:\n';
+      history += '='.repeat(50) + '\n';
+      patient.labResults.forEach((result, index) => {
+        history += `${index + 1}. Fecha: ${result.fecha.toLocaleDateString()}\n`;
+        history += `   Estudio: ${result.nombre}\n`;
+        history += `   Tipo: ${result.tipo}\n`;
+        history += `   Resultado: ${result.resultado}\n`;
+        history += '\n';
+      });
+    }
+
+    // Citas
+    if (patient.appointments.length > 0) {
+      history += 'CITAS MÉDICAS:\n';
+      history += '='.repeat(50) + '\n';
+      patient.appointments.forEach((appointment, index) => {
+        history += `${index + 1}. Fecha: ${appointment.fecha.toLocaleDateString()}\n`;
+        history += `   Hora: ${appointment.hora}\n`;
+        history += `   Tipo: ${appointment.tipo}\n`;
+        history += `   Estado: ${appointment.estado}\n`;
+        if (appointment.doctor) {
+          history += `   Doctor: ${appointment.doctor.nombre} ${appointment.doctor.apellido}\n`;
+        }
+        if (appointment.notas) history += `   Notas: ${appointment.notas}\n`;
+        history += '\n';
+      });
+    }
+
+    return history;
+  } catch (error) {
+    console.error('Error generating patient medical history:', error);
+    return 'Error al generar la historia médica del paciente';
+  }
+}
+
+export async function getPatientsByCompanyId(companyId: string): Promise<Patient[]> {
+  try {
+    // Since we don't have a direct relationship between patients and companies in the schema,
+    // we'll return all patients for now. This would need to be updated when the schema is modified.
+    const patients = await prisma.patient.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return patients.map(patient => {
+      const age = Math.floor((Date.now() - patient.fechaNacimiento.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+      return {
+        id: patient.id,
+        name: `${patient.nombre} ${patient.apellido}`,
+        age,
+        gender: 'Masculino' as const, // Default value
+        bloodType: 'O+' as const,
+        status: 'Activo' as const,
+        lastVisit: patient.updatedAt.toISOString(),
+        contact: {
+          phone: patient.telefono || '',
+          email: patient.email || '',
+        },
+        companyId: undefined,
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching patients by company ID:', error);
+    return [];
+  }
+}

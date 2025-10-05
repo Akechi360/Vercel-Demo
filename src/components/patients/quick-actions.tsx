@@ -171,7 +171,7 @@ export function QuickActions({ patient, upcomingAppointments, latestConsultation
                         <DialogTitle>Añadir Nueva Consulta</DialogTitle>
                         <DialogDescription>Rellena los detalles para el nuevo registro de consulta para {patient.name}.</DialogDescription>
                     </DialogHeader>
-                    <ConsultationForm onFormSubmit={handleAddHistory} />
+                    <ConsultationForm patientId={patient.id} onFormSubmit={handleAddHistory} />
                 </DialogContent>
             </Dialog>
 

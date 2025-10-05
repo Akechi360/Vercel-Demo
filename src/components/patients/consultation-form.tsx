@@ -50,10 +50,11 @@ export type ConsultationFormValues = Omit<Consultation, 'id' | 'patientId'>;
 
 
 interface ConsultationFormProps {
+    patientId: string;
     onFormSubmit: (values: ConsultationFormValues) => void;
 }
 
-export function ConsultationForm({ onFormSubmit }: ConsultationFormProps) {
+export function ConsultationForm({ patientId, onFormSubmit }: ConsultationFormProps) {
   const { toast } = useToast()
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,6 +111,7 @@ export function ConsultationForm({ onFormSubmit }: ConsultationFormProps) {
         prescriptions: (values.prescriptions || []).map(p => ({ ...p, id: p.id || `rx-${Date.now()}-${Math.random()}` })),
         reports: (values.reports || []).map(r => ({
             id: r.id || `rep-${Date.now()}`,
+            patientId: patientId,
             title: r.title,
             date: new Date().toISOString(), 
             fileUrl: r.file?.name || '#',
@@ -117,7 +119,10 @@ export function ConsultationForm({ onFormSubmit }: ConsultationFormProps) {
             notes: '',
             attachments: [],
         })), // Mock data
-        labResults: values.labResults || [],
+        labResults: (values.labResults || []).map(lr => ({
+          ...lr,
+          id: lr.id || `lab-${Date.now()}-${Math.random()}`
+        })),
     }
     onFormSubmit(formattedValues);
     toast({

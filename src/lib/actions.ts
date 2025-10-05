@@ -1,6 +1,7 @@
 'use server';
 
-import type { Patient, Appointment, Consultation, User, LabResult, IpssScore, Report, Company, Supply, Provider, PaymentMethod, PaymentType, Payment, Doctor, Estudio, AffiliateLead } from './types';
+import type { Patient, Appointment, Consultation, LabResult, IpssScore, Report, Company, Supply, Provider, PaymentMethod, PaymentType, Payment, Doctor, Estudio, AffiliateLead } from './types';
+import { User } from '@prisma/client';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import bcrypt from 'bcryptjs';
@@ -232,22 +233,12 @@ export async function getUsers(): Promise<User[]> {
       return [];
     }
     const prisma = getPrisma();
-    const users = await prisma.user.findMany({
+    return await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
     });
-
-    return users.map(user => ({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role.toLowerCase() === 'user' ? 'secretaria' as const : 
-            user.role.toLowerCase() === 'promotora' ? 'promotora' as const :
-            user.role.toLowerCase() as 'admin' | 'doctor' | 'patient',
-      patientId: undefined,
-    }));
   } catch (error) {
     console.error('Error fetching users:', error);
-  return [];
+    return [];
   }
 }
 
@@ -660,112 +651,40 @@ export async function updateSystemConfig(configData: any) {
 }
 
 // USER MANAGEMENT ACTIONS
-export async function createUser(userData: {
-  name: string;
-  email: string;
-  password: string;
-  role: 'admin' | 'doctor' | 'secretaria' | 'patient' | 'promotora';
-}) {
+export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<User> {
   try {
-    const hashedPassword = await bcrypt.hash(userData.password, 12);
+    const hashedPassword = await bcrypt.hash(data.password, 12);
     
-    const user = await withDatabase(async (prisma) => {
+    return await withDatabase(async (prisma) => {
       return await prisma.user.create({
-      data: {
-        name: userData.name,
-        email: userData.email,
-        password: hashedPassword,
-        role: (() => {
-          const roleUpper = userData.role.toUpperCase();
-          if (roleUpper === 'PATIENT' || roleUpper === 'SECRETARIA') {
-            return 'USER';
-          } else if (roleUpper === 'PROMOTORA') {
-            return 'PROMOTORA';
-          } else {
-            return roleUpper as 'ADMIN' | 'DOCTOR';
-          }
-        })(),
-      },
+        data: {
+          ...data,
+          password: hashedPassword,
+        },
       });
     });
-
-    return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role.toLowerCase() === 'user' ? 'secretaria' as const : 
-            user.role.toLowerCase() === 'promotora' ? 'promotora' as const :
-            user.role.toLowerCase() as 'admin' | 'doctor' | 'patient',
-      patientId: undefined,
-    };
   } catch (error) {
     console.error('Error creating user:', error);
     throw new Error('Error al crear usuario');
   }
 }
 
-export async function updateUser(userId: string, userData: {
-  name?: string;
-  email?: string;
-  role?: 'admin' | 'doctor' | 'secretaria' | 'patient' | 'promotora';
-  status?: 'ACTIVE' | 'INACTIVE';
-}) {
+export async function updateUser(userId: string, data: Partial<Omit<User, "id" | "createdAt">>): Promise<User> {
   try {
-    const updateData: any = {};
-    
-    if (userData.name) updateData.name = userData.name;
-    if (userData.email) updateData.email = userData.email;
-    if (userData.status) updateData.status = userData.status;
-    if (userData.role) {
-      const roleUpper = userData.role.toUpperCase();
-      if (roleUpper === 'PATIENT' || roleUpper === 'SECRETARIA') {
-        updateData.role = 'USER';
-      } else if (roleUpper === 'PROMOTORA') {
-        updateData.role = 'PROMOTORA';
-      } else {
-        updateData.role = roleUpper as 'ADMIN' | 'DOCTOR';
-      }
-    }
-
-    const user = await withDatabase(async (prisma) => {
+    return await withDatabase(async (prisma) => {
       return await prisma.user.update({
         where: { id: userId },
-      data: updateData,
+        data,
       });
     });
-
-    return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role === 'USER' ? 'secretaria' as const : 
-            user.role === 'PROMOTORA' ? 'promotora' as const :
-            user.role === 'ADMIN' ? 'admin' as const :
-            user.role === 'DOCTOR' ? 'doctor' as const :
-            'secretaria' as const, // fallback
-      status: user.status,
-      lastLogin: user.lastLogin?.toISOString(),
-      createdAt: user.createdAt.toISOString(),
-      phone: user.phone || undefined,
-    };
   } catch (error) {
     console.error('Error updating user:', error);
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-    const errorCode = (error as any)?.code;
-    const errorMeta = (error as any)?.meta;
-    
-    console.error('Error details:', {
-      message: errorMessage,
-      code: errorCode,
-      meta: errorMeta,
-      userId,
-      userData
-    });
     throw new Error(`Error al actualizar usuario: ${errorMessage}`);
   }
 }
 
-export async function deleteUser(userId: string) {
+export async function deleteUser(userId: string): Promise<void> {
   try {
     await withDatabase(async (prisma) => {
       await prisma.user.delete({

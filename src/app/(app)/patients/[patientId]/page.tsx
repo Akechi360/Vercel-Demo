@@ -67,6 +67,7 @@ export default function PatientHistoryPage({ params }: { params: Promise<{ patie
   return (
     <div className="flex flex-col gap-6">
         <MedicalHistoryTimeline 
+            patientId={patientId}
             history={history} 
             onNewConsultation={handleNewConsultation}
         />

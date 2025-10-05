@@ -122,7 +122,7 @@ export function FinanceTable({
         head: [['ID', 'Paciente', 'Doctor', 'Fecha', 'Monto', 'Método', 'Estado']],
         body: filteredPayments.map(p => {
             const patient = patientMap.get(p.patientId);
-            const doctor = doctorMap.get(p.doctorId);
+            const doctor = doctorMap.get(p.doctorId || '');
             return [
                 p.id,
                 patient?.name ?? 'N/A',
@@ -295,7 +295,7 @@ export function FinanceTable({
               <TableBody>
                 {paginatedPayments.map((payment) => {
                   const patient = patientMap.get(payment.patientId);
-                  const doctor = doctorMap.get(payment.doctorId);
+                  const doctor = doctorMap.get(payment.doctorId || '');
                   const paymentMethod = paymentMethodMap.get(payment.paymentMethodId);
                   return (
                     <motion.tr
@@ -366,7 +366,7 @@ export function FinanceTable({
           >
             {paginatedPayments.map((payment) => {
                const patient = patientMap.get(payment.patientId);
-               const doctor = doctorMap.get(payment.doctorId);
+                const doctor = doctorMap.get(payment.doctorId || '');
                const paymentMethod = paymentMethodMap.get(payment.paymentMethodId);
               return (
               <motion.div
@@ -457,7 +457,7 @@ export function FinanceTable({
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                     <p><strong>Paciente:</strong> {patientMap.get(selectedPayment.patientId)?.name ?? 'N/A'}</p>
-                    <p><strong>Doctor:</strong> {doctorMap.get(selectedPayment.doctorId)?.name ?? 'N/A'}</p>
+                    <p><strong>Doctor:</strong> {doctorMap.get(selectedPayment.doctorId || '')?.name ?? 'N/A'}</p>
                     <p><strong>Monto:</strong> ${selectedPayment.monto.toFixed(2)}</p>
                     <p><strong>Fecha:</strong> {new Date(selectedPayment.date).toLocaleDateString()}</p>
                     <p><strong>Método:</strong> {paymentMethodMap.get(selectedPayment.paymentMethodId)}</p>

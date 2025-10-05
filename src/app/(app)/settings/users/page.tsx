@@ -47,17 +47,7 @@ import { useAuth } from '@/components/layout/auth-provider';
 import { usePermissions } from '@/hooks/use-permissions';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'admin' | 'doctor' | 'secretaria' | 'patient' | 'promotora';
-  status: 'ACTIVE' | 'INACTIVE';
-  lastLogin?: string;
-  createdAt: string;
-  phone?: string;
-}
+import { User } from "@prisma/client";
 
 // Mock data removed - now using database
 
@@ -79,14 +69,10 @@ export default function UsersManagementPage() {
         const usersData = await getUsers();
         setUsers(usersData);
       } catch (error) {
-        console.error('Error loading users:', error);
-        // Don't show error toast if database is not configured yet
-        if (!error.message?.includes('Database not configured')) {
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "No se pudieron cargar los usuarios.",
-          });
+        if (error instanceof Error) {
+          toast({ variant: "destructive", title: "Error", description: error.message });
+        } else {
+          toast({ variant: "destructive", title: "Error desconocido" });
         }
       }
     };
@@ -182,12 +168,11 @@ export default function UsersManagementPage() {
           description: "Los cambios se han guardado correctamente.",
         });
       } catch (error) {
-        console.error('Error updating user:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: `No se pudo actualizar el usuario: ${error.message || 'Error desconocido'}`,
-        });
+        if (error instanceof Error) {
+          toast({ variant: "destructive", title: "Error", description: error.message });
+        } else {
+          toast({ variant: "destructive", title: "Error desconocido" });
+        }
       }
     }
   };
@@ -199,6 +184,10 @@ export default function UsersManagementPage() {
         email: newUser.email,
         password: 'TempPassword123!', // Default password, should be changed on first login
         role: newUser.role,
+        status: 'ACTIVE',
+        phone: null,
+        lastLogin: null,
+        patientId: null
       });
       
       setUsers([...users, userData]);
@@ -209,18 +198,10 @@ export default function UsersManagementPage() {
         description: "El nuevo usuario ha sido agregado al sistema.",
       });
     } catch (error) {
-      if (error.message?.includes('Database not configured')) {
-        toast({
-          variant: "destructive",
-          title: "Base de datos no configurada",
-          description: "Por favor configure la base de datos primero.",
-        });
+      if (error instanceof Error) {
+        toast({ variant: "destructive", title: "Error", description: error.message });
       } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "No se pudo crear el usuario.",
-        });
+        toast({ variant: "destructive", title: "Error desconocido" });
       }
     }
   };
@@ -250,11 +231,11 @@ export default function UsersManagementPage() {
             description: `${userToDelete?.name} ha sido eliminado exitosamente del sistema.`,
           });
         } catch (error) {
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "No se pudo eliminar el usuario.",
-          });
+          if (error instanceof Error) {
+            toast({ variant: "destructive", title: "Error", description: error.message });
+          } else {
+            toast({ variant: "destructive", title: "Error desconocido" });
+          }
         }
       }
     });
@@ -462,12 +443,12 @@ export default function UsersManagementPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {user.lastLogin ? formatDate(user.lastLogin) : 'Nunca'}
+                    {user.lastLogin ? formatDate(user.lastLogin.toISOString()) : 'Nunca'}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Calendar className="h-3 w-3" />
-                      {formatDate(user.createdAt)}
+                      {formatDate(user.createdAt.toISOString())}
                     </div>
                   </TableCell>
                   <TableCell className="text-right">

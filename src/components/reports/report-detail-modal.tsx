@@ -39,7 +39,7 @@ export function ReportDetailModal({ isOpen, setIsOpen, report }: ReportDetailMod
         
         let company: Company | undefined;
         if (patient.companyId) {
-            company = await getCompanyById(patient.companyId);
+            company = await getCompanyById(patient.companyId) || undefined;
         }
 
         const doc = new jsPDF();

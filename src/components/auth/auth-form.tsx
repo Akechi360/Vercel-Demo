@@ -54,7 +54,7 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
   const { toast } = useToast();
   const router = useRouter();
 
-  const form = useForm({
+  const form = useForm<z.infer<typeof formSchemas[typeof mode]>>({
     resolver: zodResolver(formSchemas[mode]),
     defaultValues: {
       email: '',
@@ -81,7 +81,11 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
                 name: registerValues.name,
                 email: registerValues.email,
                 password: registerValues.password,
-                role: 'USER' // Default role for new users
+                role: 'patient', // Default role for new users
+                status: 'ACTIVE',
+                phone: null,
+                lastLogin: null,
+                patientId: null
             });
             
             toast({ 

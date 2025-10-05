@@ -54,7 +54,7 @@ export function AddAppointmentForm({ onFormSubmit }: AddAppointmentFormProps) {
   const form = useForm<AddAppointmentFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-        patientId: isPatient ? currentUser?.patientId : undefined,
+        patientId: isPatient ? currentUser?.patientId || undefined : undefined,
         date: new Date(),
         reason: "",
     },

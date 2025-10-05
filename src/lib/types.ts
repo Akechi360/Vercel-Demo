@@ -81,6 +81,7 @@ export const ROLE_PERMISSIONS: Record<User['role'], Permission[]> = {
     'own_data:read',
     'own_data:write',
   ],
+  USER: [],
 };
 
 export interface Patient {
@@ -147,13 +148,8 @@ export interface Consultation {
   reports: Report[];
 }
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'doctor' | 'patient' | 'admin' | 'secretaria' | 'promotora' | 'USER';
-  patientId?: string;
-}
+import { User as PrismaUser } from "@prisma/client"
+export type User = PrismaUser
 
 export interface IpssScore {
   id: string;

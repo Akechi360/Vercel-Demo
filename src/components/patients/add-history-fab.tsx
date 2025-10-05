@@ -14,7 +14,7 @@ import type { Patient } from "@/lib/types";
 import { useState } from "react";
   
 
-export function AddHistoryFab({ onFormSubmit }: { onFormSubmit: (values: ConsultationFormValues) => void }) {
+export function AddHistoryFab({ patientId, onFormSubmit }: { patientId: string; onFormSubmit: (values: ConsultationFormValues) => void }) {
     const [open, setOpen] = useState(false);
 
     const handleFormSubmit = (values: ConsultationFormValues) => {
@@ -37,7 +37,7 @@ export function AddHistoryFab({ onFormSubmit }: { onFormSubmit: (values: Consult
                     Rellena los detalles para el nuevo registro de consulta.
                 </DialogDescription>
                 </DialogHeader>
-                <ConsultationForm onFormSubmit={handleFormSubmit} />
+                <ConsultationForm patientId={patientId} onFormSubmit={handleFormSubmit} />
             </DialogContent>
         </Dialog>
     )

@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import type { Report } from '@/lib/types';
+import type { Report, NewReportFormValues } from '@/lib/types';
 import { FileText, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ReportCard } from './report-card';
@@ -14,12 +14,12 @@ interface ReportListProps {
 export default function ReportList({ initialReports, patientId }: ReportListProps) {
   const [reports, setReports] = useState<Report[]>(initialReports);
 
-  const handleNewReport = (report: Omit<Report, 'id' | 'patientId'>) => {
+  const handleNewReport = (values: NewReportFormValues) => {
     const newReport: Report = {
-      ...report,
+      ...values,
       id: `rep-${Date.now()}`,
       patientId: patientId,
-      fileUrl: (report.attachments && report.attachments.length > 0) ? report.attachments[0] : '#',
+      fileUrl: '#', // Default file URL since NewReportFormValues doesn't have fileUrl
     };
     setReports(prev => [newReport, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
   };

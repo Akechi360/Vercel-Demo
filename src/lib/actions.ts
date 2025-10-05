@@ -5,10 +5,15 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
+import { getPrismaClient, isDatabaseAvailable } from './db';
 
-const prisma = new PrismaClient({
-  log: ['query', 'info', 'warn', 'error'],
-});
+// Función para obtener el cliente de Prisma de manera segura
+const getPrisma = () => {
+  if (!isDatabaseAvailable()) {
+    throw new Error('Database not available. Please configure DATABASE_URL in your environment variables.');
+  }
+  return getPrismaClient();
+};
 
 // Simulate network delay
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
@@ -16,6 +21,11 @@ const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 // Test database connection
 export async function testDatabaseConnection(): Promise<boolean> {
   try {
+    if (!isDatabaseAvailable()) {
+      console.log('Database not available - DATABASE_URL not configured');
+      return false;
+    }
+    const prisma = getPrisma();
     await prisma.$connect();
     console.log('Database connection test successful');
     return true;
@@ -28,6 +38,11 @@ export async function testDatabaseConnection(): Promise<boolean> {
 // PATIENT ACTIONS
 export async function getPatients(): Promise<Patient[]> {
   try {
+    if (!isDatabaseAvailable()) {
+      console.log('Database not available - returning empty array');
+      return [];
+    }
+    const prisma = getPrisma();
     const patients = await prisma.patient.findMany({
       orderBy: { createdAt: 'desc' },
     });
@@ -68,6 +83,11 @@ export async function addPatient(patientData: {
   try {
     console.log('addPatient called with data:', JSON.stringify(patientData, null, 2));
     
+    if (!isDatabaseAvailable()) {
+      throw new Error('Database not available. Please configure DATABASE_URL in your environment variables.');
+    }
+    
+    const prisma = getPrisma();
     // Test database connection
     await prisma.$connect();
     console.log('Database connection successful');

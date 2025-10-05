@@ -12,7 +12,6 @@ import { useEffect, useState } from 'react';
 import type { Patient, Appointment, IpssScore } from '@/lib/types';
 import { isToday, isYesterday, subMonths } from 'date-fns';
 import { RoleBasedContent } from '@/components/shared/role-based-content';
-import { AuthDebug } from '@/components/debug/auth-debug';
 
 type DashboardStats = {
     totalPatients: number;
@@ -197,7 +196,6 @@ export default function DashboardPage() {
                     <p className="text-green-700">Aquí puedes ver tu historial médico y próximas citas.</p>
                 </div>
             </RoleBasedContent>
-            <AuthDebug />
         </div>
     );
 }

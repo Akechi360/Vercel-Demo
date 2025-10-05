@@ -15,6 +15,15 @@ const getPrisma = () => {
   return getPrismaClient();
 };
 
+// Función helper para ejecutar operaciones de base de datos con manejo de errores
+const withDatabase = async <T>(operation: (prisma: any) => Promise<T>): Promise<T> => {
+  if (!isDatabaseAvailable()) {
+    throw new Error('Database not configured');
+  }
+  const prisma = getPrismaClient();
+  return await operation(prisma);
+};
+
 // Simulate network delay
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
@@ -171,8 +180,10 @@ export async function addPatient(patientData: {
 
 export async function deletePatient(patientId: string): Promise<void> {
   try {
-    await prisma.patient.delete({
-      where: { id: patientId },
+    await withDatabase(async (prisma) => {
+      await prisma.patient.delete({
+        where: { id: patientId },
+      });
     });
   } catch (error) {
     console.error('Error deleting patient:', error);
@@ -253,6 +264,7 @@ export async function getDoctors(): Promise<Doctor[]> {
     });
 
     return doctors.map(doctor => ({
+      id: doctor.id,
       nombre: `${doctor.nombre} ${doctor.apellido}`,
       especialidad: doctor.especialidad,
       area: doctor.area || '',
@@ -267,11 +279,13 @@ export async function getDoctors(): Promise<Doctor[]> {
 // COMPANY ACTIONS
 export async function getCompanies(): Promise<Company[]> {
   try {
-    const companies = await prisma.company.findMany({
-      orderBy: { createdAt: 'desc' },
+    const companies = await withDatabase(async (prisma) => {
+      return await prisma.company.findMany({
+        orderBy: { createdAt: 'desc' },
+      });
     });
 
-    return companies.map(company => ({
+    return companies.map((company: any) => ({
       id: company.id,
       name: company.nombre,
       ruc: company.rif,
@@ -288,12 +302,14 @@ export async function getCompanies(): Promise<Company[]> {
 // ESTUDIO ACTIONS
 export async function getEstudios(): Promise<Estudio[]> {
   try {
-    const estudios = await prisma.estudio.findMany({
-      where: { activo: true },
-      orderBy: { nombre: 'asc' },
+    const estudios = await withDatabase(async (prisma) => {
+      return await prisma.estudio.findMany({
+        where: { activo: true },
+        orderBy: { nombre: 'asc' },
+      });
     });
 
-    return estudios.map(estudio => ({
+    return estudios.map((estudio: any) => ({
       id: estudio.id,
       categoria: estudio.tipo,
       nombre: estudio.nombre,
@@ -307,16 +323,18 @@ export async function getEstudios(): Promise<Estudio[]> {
 // CONSULTATION ACTIONS
 export async function getConsultations(): Promise<Consultation[]> {
   try {
-    const consultations = await prisma.consultation.findMany({
-      include: {
-        paciente: true,
-        doctor: true,
-        user: true,
-      },
-      orderBy: { fecha: 'desc' },
+    const consultations = await withDatabase(async (prisma) => {
+      return await prisma.consultation.findMany({
+        include: {
+          paciente: true,
+          doctor: true,
+          user: true,
+        },
+        orderBy: { fecha: 'desc' },
+      });
     });
 
-    return consultations.map(consultation => ({
+    return consultations.map((consultation: any) => ({
       id: consultation.id,
       patientId: consultation.paciente.id,
       date: consultation.fecha.toISOString(),
@@ -336,15 +354,17 @@ export async function getConsultations(): Promise<Consultation[]> {
 // LAB RESULT ACTIONS
 export async function getLabResults(): Promise<LabResult[]> {
   try {
-    const labResults = await prisma.labResult.findMany({
+    const labResults = await withDatabase(async (prisma) => {
+      return await prisma.labResult.findMany({
       include: {
         paciente: true,
         consultation: true,
       },
       orderBy: { fecha: 'desc' },
+      });
     });
 
-    return labResults.map(result => ({
+    return labResults.map((result: any) => ({
       id: result.id,
       patientId: result.paciente.id,
       testName: result.nombre,
@@ -354,18 +374,20 @@ export async function getLabResults(): Promise<LabResult[]> {
     }));
   } catch (error) {
     console.error('Error fetching lab results:', error);
-  return [];
+    return [];
   }
 }
 
 // REPORT ACTIONS
 export async function getReports(): Promise<Report[]> {
   try {
-    const reports = await prisma.report.findMany({
-      orderBy: { fecha: 'desc' },
+    const reports = await withDatabase(async (prisma) => {
+      return await prisma.report.findMany({
+        orderBy: { fecha: 'desc' },
+      });
     });
 
-    return reports.map(report => ({
+    return reports.map((report: any) => ({
       id: report.id,
       patientId: 'default-patient', // Default since we don't have patient relationship in schema
       title: report.titulo,
@@ -384,11 +406,13 @@ export async function getReports(): Promise<Report[]> {
 // SUPPLY ACTIONS
 export async function getSupplies(): Promise<Supply[]> {
   try {
-    const supplies = await prisma.supply.findMany({
-      orderBy: { createdAt: 'desc' },
+    const supplies = await withDatabase(async (prisma) => {
+      return await prisma.supply.findMany({
+        orderBy: { createdAt: 'desc' },
+      });
     });
 
-    return supplies.map(supply => ({
+    return supplies.map((supply: any) => ({
       id: supply.id,
       name: supply.nombre,
       category: supply.descripcion || '',
@@ -405,11 +429,13 @@ export async function getSupplies(): Promise<Supply[]> {
 // PROVIDER ACTIONS
 export async function getProviders(): Promise<Provider[]> {
   try {
-    const providers = await prisma.provider.findMany({
-      orderBy: { createdAt: 'desc' },
+    const providers = await withDatabase(async (prisma) => {
+      return await prisma.provider.findMany({
+        orderBy: { createdAt: 'desc' },
+      });
     });
 
-    return providers.map(provider => ({
+    return providers.map((provider: any) => ({
       id: provider.id,
       name: provider.nombre,
       specialty: provider.especialidad,
@@ -428,15 +454,17 @@ export async function getProviders(): Promise<Provider[]> {
 // PAYMENT ACTIONS
 export async function getPayments(): Promise<Payment[]> {
   try {
-    const payments = await prisma.payment.findMany({
-      include: {
-        paciente: true,
-        user: true,
-      },
-      orderBy: { fecha: 'desc' },
+    const payments = await withDatabase(async (prisma) => {
+      return await prisma.payment.findMany({
+        include: {
+          paciente: true,
+          user: true,
+        },
+        orderBy: { fecha: 'desc' },
+      });
     });
 
-    return payments.map(payment => ({
+    return payments.map((payment: any) => ({
       id: payment.id,
       patientId: payment.paciente.id,
       doctorId: undefined,
@@ -470,8 +498,10 @@ export async function login(credentials: { email: string; password: string }) {
   }
   
     // Check database users
-    const user = await prisma.user.findUnique({
-      where: { email: credentials.email },
+    const user = await withDatabase(async (prisma) => {
+      return await prisma.user.findUnique({
+        where: { email: credentials.email },
+      });
     });
 
     if (!user) {
@@ -518,7 +548,9 @@ export async function submitAffiliateLead(data: AffiliateLead) {
 // SYSTEM CONFIG ACTIONS
 export async function getSystemConfig() {
   try {
-    const config = await prisma.systemConfig.findFirst();
+    const config = await withDatabase(async (prisma) => {
+      return await prisma.systemConfig.findFirst();
+    });
     
     if (!config) {
       // Return default config if none exists
@@ -574,7 +606,8 @@ export async function getSystemConfig() {
 
 export async function updateSystemConfig(configData: any) {
   try {
-    const config = await prisma.systemConfig.upsert({
+    const config = await withDatabase(async (prisma) => {
+      return await prisma.systemConfig.upsert({
       where: { id: configData.id || 'default-config' },
       update: {
         clinicName: configData.clinicName,
@@ -603,6 +636,7 @@ export async function updateSystemConfig(configData: any) {
         autoBackup: configData.autoBackup ?? true,
         dataRetention: configData.dataRetention || '2 años',
       },
+      });
     });
 
     return {
@@ -635,7 +669,8 @@ export async function createUser(userData: {
   try {
     const hashedPassword = await bcrypt.hash(userData.password, 12);
     
-    const user = await prisma.user.create({
+    const user = await withDatabase(async (prisma) => {
+      return await prisma.user.create({
       data: {
         name: userData.name,
         email: userData.email,
@@ -651,6 +686,7 @@ export async function createUser(userData: {
           }
         })(),
       },
+      });
     });
 
     return {
@@ -691,9 +727,11 @@ export async function updateUser(userId: string, userData: {
       }
     }
 
-    const user = await prisma.user.update({
-      where: { id: userId },
+    const user = await withDatabase(async (prisma) => {
+      return await prisma.user.update({
+        where: { id: userId },
       data: updateData,
+      });
     });
 
     return {
@@ -729,8 +767,10 @@ export async function updateUser(userId: string, userData: {
 
 export async function deleteUser(userId: string) {
   try {
-    await prisma.user.delete({
-      where: { id: userId },
+    await withDatabase(async (prisma) => {
+      await prisma.user.delete({
+        where: { id: userId },
+      });
     });
   } catch (error) {
     console.error('Error deleting user:', error);
@@ -777,16 +817,18 @@ export async function getIpssScoresByPatientId(patientId: string): Promise<IpssS
 
 export async function getLabResultsByPatientId(patientId: string): Promise<LabResult[]> {
   try {
-    const labResults = await prisma.labResult.findMany({
+    const labResults = await withDatabase(async (prisma) => {
+      return await prisma.labResult.findMany({
       where: { pacienteId: patientId },
       include: {
         paciente: true,
         consultation: true,
       },
       orderBy: { fecha: 'desc' },
+      });
     });
 
-    return labResults.map(result => ({
+    return labResults.map((result: any) => ({
       id: result.id,
       patientId: result.paciente.id,
       testName: result.nombre,
@@ -802,7 +844,8 @@ export async function getLabResultsByPatientId(patientId: string): Promise<LabRe
 
 export async function getConsultationsByPatientId(patientId: string): Promise<Consultation[]> {
   try {
-    const consultations = await prisma.consultation.findMany({
+    const consultations = await withDatabase(async (prisma) => {
+      return await prisma.consultation.findMany({
       where: { pacienteId: patientId },
       include: {
         paciente: true,
@@ -810,9 +853,10 @@ export async function getConsultationsByPatientId(patientId: string): Promise<Co
         user: true,
       },
       orderBy: { fecha: 'desc' },
+      });
     });
 
-    return consultations.map(consultation => ({
+    return consultations.map((consultation: any) => ({
       id: consultation.id,
       patientId: consultation.paciente.id,
       date: consultation.fecha.toISOString(),
@@ -831,8 +875,10 @@ export async function getConsultationsByPatientId(patientId: string): Promise<Co
 
 export async function getPatientById(patientId: string): Promise<Patient | null> {
   try {
-    const patient = await prisma.patient.findUnique({
+    const patient = await withDatabase(async (prisma) => {
+      return await prisma.patient.findUnique({
       where: { id: patientId },
+    });
     });
 
     if (!patient) return null;
@@ -860,8 +906,10 @@ export async function getPatientById(patientId: string): Promise<Patient | null>
 
 export async function getCompanyById(companyId: string): Promise<Company | null> {
   try {
-    const company = await prisma.company.findUnique({
+    const company = await withDatabase(async (prisma) => {
+      return await prisma.company.findUnique({
       where: { id: companyId },
+    });
     });
 
     if (!company) return null;
@@ -887,7 +935,8 @@ export async function addCompany(companyData: {
   email?: string;
 }): Promise<Company> {
   try {
-    const company = await prisma.company.create({
+    const company = await withDatabase(async (prisma) => {
+      return await prisma.company.create({
       data: {
         nombre: companyData.name,
         rif: companyData.ruc,
@@ -896,6 +945,7 @@ export async function addCompany(companyData: {
         email: companyData.email || '',
         contacto: '',
       },
+      });
     });
 
     return {
@@ -920,7 +970,8 @@ export async function addSupply(supplyData: {
   expiryDate: string;
 }): Promise<Supply> {
   try {
-    const supply = await prisma.supply.create({
+    const supply = await withDatabase(async (prisma) => {
+      return await prisma.supply.create({
       data: {
         nombre: supplyData.name,
         descripcion: supplyData.category,
@@ -931,6 +982,7 @@ export async function addSupply(supplyData: {
         fechaVencimiento: supplyData.expiryDate ? new Date(supplyData.expiryDate) : null,
         estado: 'DISPONIBLE',
       },
+      });
     });
 
     return {
@@ -954,7 +1006,8 @@ export async function addAppointment(appointmentData: {
   reason: string;
 }): Promise<Appointment> {
   try {
-    const appointment = await prisma.appointment.create({
+    const appointment = await withDatabase(async (prisma) => {
+      return await prisma.appointment.create({
       data: {
         fecha: new Date(appointmentData.date),
         hora: '09:00', // Default time
@@ -965,6 +1018,7 @@ export async function addAppointment(appointmentData: {
         doctorId: appointmentData.doctorId,
         userId: 'master-admin', // Default to master admin for now
       },
+      });
     });
 
     return {
@@ -987,7 +1041,8 @@ export async function getAppointmentsWeeklyStats(): Promise<number[]> {
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     
-    const appointments = await prisma.appointment.findMany({
+    const appointments = await withDatabase(async (prisma) => {
+      return await prisma.appointment.findMany({
       where: {
         fecha: {
           gte: weekAgo,
@@ -997,12 +1052,13 @@ export async function getAppointmentsWeeklyStats(): Promise<number[]> {
       select: {
         fecha: true,
       },
+      });
     });
 
     // Group by day of week (0 = Sunday, 1 = Monday, etc.)
     const dailyCounts = [0, 0, 0, 0, 0, 0, 0]; // [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
     
-    appointments.forEach(appointment => {
+    appointments.forEach((appointment: any) => {
       const dayOfWeek = appointment.fecha.getDay();
       dailyCounts[dayOfWeek]++;
     });
@@ -1028,13 +1084,15 @@ export async function getLabResultsStats(): Promise<{ completed: number; pending
     const now = new Date();
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     
-    const labResults = await prisma.labResult.findMany({
+    const labResults = await withDatabase(async (prisma) => {
+      return await prisma.labResult.findMany({
       where: {
         fecha: {
           gte: monthAgo,
           lte: now,
         },
       },
+      });
     });
 
     // For now, we'll consider all lab results as "completed"
@@ -1051,7 +1109,8 @@ export async function getLabResultsStats(): Promise<{ completed: number; pending
 
 export async function getPsaTrends(): Promise<{ dates: string[]; values: number[] }> {
   try {
-    const psaResults = await prisma.labResult.findMany({
+    const psaResults = await withDatabase(async (prisma) => {
+      return await prisma.labResult.findMany({
       where: {
         tipo: 'PSA',
         nombre: {
@@ -1063,10 +1122,11 @@ export async function getPsaTrends(): Promise<{ dates: string[]; values: number[
         fecha: 'asc',
       },
       take: 6, // Last 6 PSA tests
+      });
     });
 
-    const dates = psaResults.map(result => result.fecha.toISOString().split('T')[0]);
-    const values = psaResults.map(result => {
+    const dates = psaResults.map((result: any) => result.fecha.toISOString().split('T')[0]);
+    const values = psaResults.map((result: any) => {
       // Extract numeric value from result string
       const match = result.resultado.match(/(\d+\.?\d*)/);
       return match ? parseFloat(match[1]) : 0;
@@ -1083,11 +1143,13 @@ export async function getPsaTrends(): Promise<{ dates: string[]; values: number[
 export async function getReportsByPatientId(patientId: string): Promise<Report[]> {
   try {
     // For now, return all reports since we don't have patient-specific reports in schema
-    const reports = await prisma.report.findMany({
+    const reports = await withDatabase(async (prisma) => {
+      return await prisma.report.findMany({
       orderBy: { fecha: 'desc' },
+      });
     });
 
-    return reports.map(report => ({
+    return reports.map((report: any) => ({
       id: report.id,
       patientId: patientId,
       title: report.titulo,
@@ -1105,7 +1167,8 @@ export async function getReportsByPatientId(patientId: string): Promise<Report[]
 
 export async function getPatientMedicalHistoryAsString(patientId: string): Promise<string> {
   try {
-    const patient = await prisma.patient.findUnique({
+    const patient = await withDatabase(async (prisma) => {
+      return await prisma.patient.findUnique({
       where: { id: patientId },
       include: {
         consultations: {
@@ -1126,6 +1189,7 @@ export async function getPatientMedicalHistoryAsString(patientId: string): Promi
           orderBy: { fecha: 'desc' },
         },
       },
+      });
     });
 
     if (!patient) {
@@ -1143,7 +1207,7 @@ export async function getPatientMedicalHistoryAsString(patientId: string): Promi
     if (patient.consultations.length > 0) {
       history += 'CONSULTAS MÉDICAS:\n';
       history += '='.repeat(50) + '\n';
-      patient.consultations.forEach((consultation, index) => {
+      patient.consultations.forEach((consultation: any, index: number) => {
         history += `${index + 1}. Fecha: ${consultation.fecha.toLocaleDateString()}\n`;
         history += `   Doctor: ${consultation.doctor ? `${consultation.doctor.nombre} ${consultation.doctor.apellido}` : 'No especificado'}\n`;
         history += `   Motivo: ${consultation.motivo}\n`;
@@ -1159,7 +1223,7 @@ export async function getPatientMedicalHistoryAsString(patientId: string): Promi
     if (patient.labResults.length > 0) {
       history += 'RESULTADOS DE LABORATORIO:\n';
       history += '='.repeat(50) + '\n';
-      patient.labResults.forEach((result, index) => {
+      patient.labResults.forEach((result: any, index: number) => {
         history += `${index + 1}. Fecha: ${result.fecha.toLocaleDateString()}\n`;
         history += `   Estudio: ${result.nombre}\n`;
         history += `   Tipo: ${result.tipo}\n`;
@@ -1172,7 +1236,7 @@ export async function getPatientMedicalHistoryAsString(patientId: string): Promi
     if (patient.appointments.length > 0) {
       history += 'CITAS MÉDICAS:\n';
       history += '='.repeat(50) + '\n';
-      patient.appointments.forEach((appointment, index) => {
+      patient.appointments.forEach((appointment: any, index: number) => {
         history += `${index + 1}. Fecha: ${appointment.fecha.toLocaleDateString()}\n`;
         history += `   Hora: ${appointment.hora}\n`;
         history += `   Tipo: ${appointment.tipo}\n`;
@@ -1196,11 +1260,13 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
   try {
     // Since we don't have a direct relationship between patients and companies in the schema,
     // we'll return all patients for now. This would need to be updated when the schema is modified.
-    const patients = await prisma.patient.findMany({
+    const patients = await withDatabase(async (prisma) => {
+      return await prisma.patient.findMany({
       orderBy: { createdAt: 'desc' },
+      });
     });
 
-    return patients.map(patient => {
+    return patients.map((patient: any) => {
       const age = Math.floor((Date.now() - patient.fechaNacimiento.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
       return {
         id: patient.id,

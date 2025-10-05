@@ -151,7 +151,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'doctor' | 'patient' | 'admin' | 'secretaria' | 'promotora';
+  role: 'doctor' | 'patient' | 'admin' | 'secretaria' | 'promotora' | 'USER';
   patientId?: string;
 }
 
@@ -220,6 +220,7 @@ export interface Payment {
 }
 
 export interface Doctor {
+  id: string;
   nombre: string;
   especialidad: string;
   area: string;

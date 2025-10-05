@@ -81,10 +81,8 @@ async function main() {
   ];
 
   for (const estudio of estudios) {
-    await prisma.estudio.upsert({
-      where: { nombre: estudio.nombre },
-      update: {},
-      create: estudio,
+    await prisma.estudio.create({
+      data: estudio,
     });
   }
 

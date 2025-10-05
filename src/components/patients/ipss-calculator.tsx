@@ -45,12 +45,13 @@ export function IpssCalculator({ patientId, historicalScores }: IpssCalculatorPr
   const { toast } = useToast();
 
   const totalScore = useMemo(() => {
-    return Object.values(scores).reduce((acc, score) => acc + (score || 0), 0);
+    return Object.values(scores).reduce((acc, score) => (acc || 0) + (score || 0), 0);
   }, [scores]);
 
   const scoreCategory = useMemo(() => {
-    if (totalScore <= 7) return { name: 'Leve', color: 'bg-green-500', className: 'text-green-500' };
-    if (totalScore <= 19) return { name: 'Moderado', color: 'bg-yellow-500', className: 'text-yellow-500' };
+    const score = totalScore || 0;
+    if (score <= 7) return { name: 'Leve', color: 'bg-green-500', className: 'text-green-500' };
+    if (score <= 19) return { name: 'Moderado', color: 'bg-yellow-500', className: 'text-yellow-500' };
     return { name: 'Severo', color: 'bg-red-500', className: 'text-red-500' };
   }, [totalScore]);
 
@@ -78,7 +79,7 @@ export function IpssCalculator({ patientId, historicalScores }: IpssCalculatorPr
         id: `ipss-${Date.now()}`,
         patientId,
         date: new Date().toISOString(),
-        score: totalScore,
+        score: totalScore || 0,
         category: scoreCategory.name as 'Leve' | 'Moderado' | 'Severo',
     };
 
@@ -132,10 +133,10 @@ export function IpssCalculator({ patientId, historicalScores }: IpssCalculatorPr
                     className="w-full p-4 border rounded-lg bg-muted/50 space-y-3"
                 >
                     <div className="flex justify-between items-center">
-                        <h3 className="font-bold text-2xl">{totalScore}</h3>
+                        <h3 className="font-bold text-2xl">{totalScore || 0}</h3>
                         <span className={cn("font-semibold text-lg", scoreCategory.className)}>{scoreCategory.name}</span>
                     </div>
-                    <Progress value={(totalScore / 35) * 100} indicatorClassName={scoreCategory.color} />
+                    <Progress value={((totalScore || 0) / 35) * 100} indicatorClassName={scoreCategory.color} />
                     <div className="flex justify-end">
                         <Button onClick={handleSave} size="sm">
                             <Save className="mr-2 h-4 w-4" />

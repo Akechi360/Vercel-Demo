@@ -138,7 +138,7 @@ export default function DashboardPage() {
     ];
 
     // Determinar qué tarjetas mostrar según el rol
-    let statCards = [];
+    let statCards: typeof patientStatCards = [];
     if (isPatient()) {
         statCards = patientStatCards;
     } else if (isAdmin() || isDoctor() || isSecretaria()) {

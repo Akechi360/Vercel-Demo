@@ -44,12 +44,12 @@ export function FinancePageClient({
       />
       
       {/* Solo Admin puede ver estadísticas financieras completas */}
-      <RoleBasedContent roles={['admin']}>
+      <RoleBasedContent allowedRoles={['admin']}>
         <FinanceStatCards payments={initialPayments} />
       </RoleBasedContent>
 
       {/* Secretaria ve opción de generar comprobantes */}
-      <RoleBasedContent roles={['secretaria']}>
+      <RoleBasedContent allowedRoles={['secretaria']}>
         <div className="space-y-4">
           <div className="text-center p-6 bg-muted rounded-lg">
             <h3 className="text-lg font-semibold mb-2">
@@ -63,7 +63,7 @@ export function FinancePageClient({
       </RoleBasedContent>
 
       {/* Paciente ve solo sus comprobantes para descargar */}
-      <RoleBasedContent roles={['patient']}>
+      <RoleBasedContent allowedRoles={['patient']}>
         <div className="space-y-4">
           <div className="text-center p-6 bg-muted rounded-lg">
             <h3 className="text-lg font-semibold mb-2">

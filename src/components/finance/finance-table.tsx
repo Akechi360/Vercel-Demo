@@ -125,8 +125,8 @@ export function FinanceTable({
             const doctor = doctorMap.get(p.doctorId);
             return [
                 p.id,
-                patient?.name || 'N/A',
-                doctor?.name || 'N/A',
+                patient?.name ?? 'N/A',
+                doctor?.name ?? 'N/A',
                 format(new Date(p.date), 'dd/MM/yyyy'),
                 `$${p.monto.toFixed(2)}`,
                 paymentMethodMap.get(p.paymentMethodId) || 'N/A',
@@ -308,10 +308,10 @@ export function FinanceTable({
                         <div className="flex items-center gap-3">
                           <Avatar>
                             {patient?.avatarUrl && <AvatarImage src={patient.avatarUrl} alt={patient.name} />}
-                            <AvatarFallback>{getInitials(patient?.name)}</AvatarFallback>
+                            <AvatarFallback>{getInitials(patient?.name ?? 'N/A')}</AvatarFallback>
                           </Avatar>
                           <div>
-                             <span className="font-medium">{patient?.name || 'N/A'}</span>
+                             <span className="font-medium">{patient?.name ?? 'N/A'}</span>
                              <p className="text-xs text-muted-foreground">{payment.id}</p>
                           </div>
                         </div>
@@ -381,10 +381,10 @@ export function FinanceTable({
                   <div className="flex items-center gap-3">
                     <Avatar>
                       {patient?.avatarUrl && <AvatarImage src={patient.avatarUrl} alt={patient.name} />}
-                      <AvatarFallback>{getInitials(patient?.name)}</AvatarFallback>
+                      <AvatarFallback>{getInitials(patient?.name ?? 'N/A')}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-bold">{patient?.name}</p>
+                      <p className="font-bold">{patient?.name ?? 'N/A'}</p>
                       <p className="text-sm text-muted-foreground">{payment.id}</p>
                     </div>
                   </div>
@@ -456,8 +456,8 @@ export function FinanceTable({
                     <DialogDescription>ID: {selectedPayment.id}</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
-                    <p><strong>Paciente:</strong> {patientMap.get(selectedPayment.patientId)?.name}</p>
-                    <p><strong>Doctor:</strong> {doctorMap.get(selectedPayment.doctorId)?.name}</p>
+                    <p><strong>Paciente:</strong> {patientMap.get(selectedPayment.patientId)?.name ?? 'N/A'}</p>
+                    <p><strong>Doctor:</strong> {doctorMap.get(selectedPayment.doctorId)?.name ?? 'N/A'}</p>
                     <p><strong>Monto:</strong> ${selectedPayment.monto.toFixed(2)}</p>
                     <p><strong>Fecha:</strong> {new Date(selectedPayment.date).toLocaleDateString()}</p>
                     <p><strong>Método:</strong> {paymentMethodMap.get(selectedPayment.paymentMethodId)}</p>

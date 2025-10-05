@@ -77,7 +77,7 @@ export function ConsultationForm({ onFormSubmit }: ConsultationFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
         date: new Date(),
-        doctor: doctors.length > 0 ? doctors[0].name : "",
+        doctor: doctors.length > 0 ? doctors[0].nombre : "",
         type: "Inicial",
         notes: "",
         prescriptions: [],
@@ -89,7 +89,7 @@ export function ConsultationForm({ onFormSubmit }: ConsultationFormProps) {
   // Update doctor default value when doctors are loaded
   useEffect(() => {
     if (doctors.length > 0 && !form.getValues('doctor')) {
-      form.setValue('doctor', doctors[0].name);
+      form.setValue('doctor', doctors[0].nombre);
     }
   }, [doctors, form]);
 

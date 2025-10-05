@@ -1,4 +1,4 @@
-import { getCompanyById, getPatientsByCompanyId } from "@/lib/actions";
+import { getCompanyById, getPatientsByCompanyId, getCompanies } from "@/lib/actions";
 import { notFound } from 'next/navigation';
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,13 +6,15 @@ import { Building, Mail, Phone } from "lucide-react";
 import PatientList from "@/components/patients/patient-list";
 import { PatientListWrapper } from "@/components/patients/patient-list-wrapper";
 
-export default async function CompanyDetailPage({ params }: { params: { companyId: string } }) {
-    const company = await getCompanyById(params.companyId);
+export default async function CompanyDetailPage({ params }: { params: Promise<{ companyId: string }> }) {
+    const { companyId } = await params;
+    const company = await getCompanyById(companyId);
     if (!company) {
         notFound();
     }
 
-    const patients = await getPatientsByCompanyId(params.companyId);
+    const patients = await getPatientsByCompanyId(companyId);
+    const companies = await getCompanies();
 
     return (
         <div className="flex flex-col gap-8">
@@ -35,7 +37,7 @@ export default async function CompanyDetailPage({ params }: { params: { companyI
             <div>
                 <h2 className="text-2xl font-bold tracking-tight text-foreground mb-4">Pacientes Afiliados ({patients.length})</h2>
                 {patients.length > 0 ? (
-                    <PatientListWrapper initialPatients={patients} />
+                    <PatientListWrapper initialPatients={patients} initialCompanies={companies} />
                 ) : (
                     <p className="text-muted-foreground">No hay pacientes afiliados a esta empresa.</p>
                 )}

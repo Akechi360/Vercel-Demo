@@ -7,11 +7,11 @@ import 'animate.css';
 
 export const metadata: Metadata = {
   title: 'UroVital',
-  description: 'Modern patient management for urologists.',
+  description: 'Más que un servicio de salud, un aliado para tu vida.',
   icons: {
-    icon: '/images/logo/urovital-logo2.png',
-    shortcut: '/images/logo/urovital-logo2.png',
-    apple: '/images/logo/urovital-logo2.png',
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
   },
 };
 

@@ -183,6 +183,11 @@ export async function deletePatient(patientId: string): Promise<void> {
 // APPOINTMENT ACTIONS
 export async function getAppointments(): Promise<Appointment[]> {
   try {
+    if (!isDatabaseAvailable()) {
+      console.log('Database not available - returning empty array');
+      return [];
+    }
+    const prisma = getPrisma();
     const appointments = await prisma.appointment.findMany({
       include: {
         paciente: true,
@@ -211,6 +216,11 @@ export async function getAppointments(): Promise<Appointment[]> {
 // USER ACTIONS
 export async function getUsers(): Promise<User[]> {
   try {
+    if (!isDatabaseAvailable()) {
+      console.log('Database not available - returning empty array');
+      return [];
+    }
+    const prisma = getPrisma();
     const users = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
     });
@@ -233,6 +243,11 @@ export async function getUsers(): Promise<User[]> {
 // DOCTOR ACTIONS
 export async function getDoctors(): Promise<Doctor[]> {
   try {
+    if (!isDatabaseAvailable()) {
+      console.log('Database not available - returning empty array');
+      return [];
+    }
+    const prisma = getPrisma();
     const doctors = await prisma.doctor.findMany({
       orderBy: { createdAt: 'desc' },
     });

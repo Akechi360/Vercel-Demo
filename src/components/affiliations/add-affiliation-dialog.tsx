@@ -13,6 +13,7 @@ import {
 import { PlusCircle } from "lucide-react";
 import { AddAffiliationForm } from "./add-affiliation-form";
 import type { Affiliation } from "@/lib/types";
+import type { FormValues } from "./add-affiliation-form";
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import { useAuth } from "../layout/auth-provider";
@@ -27,9 +28,10 @@ export function AddAffiliationDialog({ onAddAffiliation }: AddAffiliationDialogP
     const [open, setOpen] = useState(false);
     const { currentUser } = useAuth();
     
-    const handleSubmit = (values: Omit<Affiliation, 'id' | 'promotora' | 'afiliados'>) => {
+    const handleSubmit = (values: Omit<FormValues, 'nombreCompleto' | 'telefono' | 'direccion'>) => {
         const newAffiliation = {
             ...values,
+            ultimaAfiliacion: values.ultimaAfiliacion?.toString() ?? "",
             promotora: currentUser?.name || 'Usuario', // Use logged in user name
             afiliados: 1, // Default to 1 on creation
         };

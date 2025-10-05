@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
 const formSchema = z.object({
+  promotora: z.string().optional(),
   nombreCompleto: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
   telefono: z.string().min(7, "El teléfono debe tener al menos 7 dígitos."),
   direccion: z.string().min(10, "La dirección debe tener al menos 10 caracteres."),
@@ -38,7 +39,7 @@ const formSchema = z.object({
   estado: z.enum(['Activo', 'Inactivo']),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+export type FormValues = z.infer<typeof formSchema>;
 
 interface AddAffiliationFormProps {
   onSubmit: (values: Omit<FormValues, 'nombreCompleto' | 'telefono' | 'direccion'>) => void;

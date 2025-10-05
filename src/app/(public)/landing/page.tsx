@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Stethoscope, Check, Users, ShieldCheck, HeartPulse, Bone, FlaskConical, ZoomIn, Play, MessageSquare, Phone, MapPin, Ambulance, Microscope, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { AffiliateFlowTrigger } from '@/components/public/affiliate-enrollment';
+import { AffiliateEnrollment } from '@/components/public/affiliate-enrollment';
 
 const fadeIn = (delay: number = 0) => ({
   hidden: { opacity: 0, y: 20 },

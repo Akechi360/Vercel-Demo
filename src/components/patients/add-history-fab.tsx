@@ -11,15 +11,43 @@ import {
   } from "@/components/ui/dialog"
 import { ConsultationForm, ConsultationFormValues } from "./consultation-form";
 import type { Patient } from "@/lib/types";
+import { addConsultation } from "@/lib/actions";
+import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
   
 
 export function AddHistoryFab({ patientId, onFormSubmit }: { patientId: string; onFormSubmit: (values: ConsultationFormValues) => void }) {
     const [open, setOpen] = useState(false);
+    const { toast } = useToast();
 
-    const handleFormSubmit = (values: ConsultationFormValues) => {
-        onFormSubmit(values);
-        setOpen(false);
+    const handleFormSubmit = async (values: ConsultationFormValues) => {
+        try {
+            await addConsultation({
+                patientId: patientId,
+                date: values.date,
+                doctor: values.doctor,
+                type: values.type,
+                notes: values.notes,
+                prescriptions: values.prescriptions,
+                reports: values.reports,
+                labResults: values.labResults,
+            });
+            
+            toast({
+                title: "Consulta Guardada",
+                description: `Nueva consulta de tipo "${values.type}" ha sido guardada exitosamente.`,
+            });
+            
+            onFormSubmit(values);
+            setOpen(false);
+        } catch (error) {
+            console.error('Error saving consultation:', error);
+            toast({
+                title: "Error",
+                description: "No se pudo guardar la consulta. Por favor, inténtalo de nuevo.",
+                variant: "destructive",
+            });
+        }
     }
 
     return (

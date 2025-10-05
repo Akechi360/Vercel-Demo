@@ -342,6 +342,64 @@ export async function getConsultations(): Promise<Consultation[]> {
   }
 }
 
+export async function addConsultation(consultationData: {
+  patientId: string;
+  date: string;
+  doctor: string;
+  type: 'Inicial' | 'Seguimiento' | 'Pre-operatorio' | 'Post-operatorio';
+  notes: string;
+  prescriptions?: any[];
+  reports?: any[];
+  labResults?: any[];
+}): Promise<Consultation> {
+  try {
+    const consultation = await withDatabase(async (prisma) => {
+      // Find the doctor by name
+      const doctor = await prisma.doctor.findFirst({
+        where: {
+          OR: [
+            { nombre: { contains: consultationData.doctor } },
+            { apellido: { contains: consultationData.doctor } },
+          ]
+        }
+      });
+
+      return await prisma.consultation.create({
+        data: {
+          fecha: new Date(consultationData.date),
+          motivo: consultationData.type,
+          sintomas: '',
+          diagnostico: '',
+          tratamiento: '',
+          observaciones: consultationData.notes,
+          pacienteId: consultationData.patientId,
+          doctorId: doctor?.id || null,
+          userId: 'master-admin', // Default to master admin for now
+        },
+        include: {
+          paciente: true,
+          doctor: true,
+        }
+      });
+    });
+
+    return {
+      id: consultation.id,
+      patientId: consultation.pacienteId,
+      date: consultation.fecha.toISOString(),
+      doctor: consultation.doctor ? `${consultation.doctor.nombre} ${consultation.doctor.apellido}` : consultationData.doctor,
+      type: consultationData.type,
+      notes: consultation.observaciones || '',
+      prescriptions: consultationData.prescriptions || [],
+      labResults: consultationData.labResults || [],
+      reports: consultationData.reports || [],
+    };
+  } catch (error) {
+    console.error('Error adding consultation:', error);
+    throw new Error('Error al agregar consulta');
+  }
+}
+
 // LAB RESULT ACTIONS
 export async function getLabResults(): Promise<LabResult[]> {
   try {

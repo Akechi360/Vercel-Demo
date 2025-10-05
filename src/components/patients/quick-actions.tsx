@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ConsultationForm, ConsultationFormValues } from "./consultation-form";
 import type { Patient, Appointment, Consultation, IpssScore } from "@/lib/types";
+import { addConsultation } from "@/lib/actions";
 import jsPDF from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
@@ -25,12 +26,32 @@ export function QuickActions({ patient, upcomingAppointments, latestConsultation
     const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
-    const handleAddHistory = (values: ConsultationFormValues) => {
-        toast({
-            title: "Acción Simulada: Agregar Historia",
-            description: `Nueva consulta de tipo "${values.type}" guardada.`,
-        });
-        setIsHistoryModalOpen(false);
+    const handleAddHistory = async (values: ConsultationFormValues) => {
+        try {
+            await addConsultation({
+                patientId: patient.id,
+                date: values.date,
+                doctor: values.doctor,
+                type: values.type,
+                notes: values.notes,
+                prescriptions: values.prescriptions,
+                reports: values.reports,
+                labResults: values.labResults,
+            });
+            
+            toast({
+                title: "Consulta Guardada",
+                description: `Nueva consulta de tipo "${values.type}" ha sido guardada exitosamente.`,
+            });
+            setIsHistoryModalOpen(false);
+        } catch (error) {
+            console.error('Error saving consultation:', error);
+            toast({
+                title: "Error",
+                description: "No se pudo guardar la consulta. Por favor, inténtalo de nuevo.",
+                variant: "destructive",
+            });
+        }
     }
     
     const handleAddAppointment = () => {

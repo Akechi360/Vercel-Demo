@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,128 +8,116 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      String
-  status    String   @default("ACTIVE")
-  createdAt DateTime @default(now())
-  phone     String?
-  lastLogin DateTime?
-  patientId String?
-
-  // Relations
-  affiliations Affiliation[]
-  appointments Appointment[]
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String
+  password      String
+  role          String
+  status        String         @default("ACTIVE")
+  createdAt     DateTime       @default(now())
+  phone         String?
+  lastLogin     DateTime?
+  patientId     String?
+  affiliations  Affiliation[]
+  appointments  Appointment[]
   consultations Consultation[]
-  payments     Payment[]
+  payments      Payment[]
 
   @@map("users")
 }
 
 model Patient {
-  id          String   @id @default(cuid())
-  nombre      String
-  apellido    String
-  cedula      String   @unique
+  id              String         @id @default(cuid())
+  nombre          String
+  apellido        String
+  cedula          String         @unique
   fechaNacimiento DateTime
-  telefono    String?
-  email       String?
-  direccion   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  appointments   Appointment[]
-  consultations  Consultation[]
-  payments       Payment[]
-  labResults     LabResult[]
-  prescriptions  Prescription[]
+  telefono        String?
+  email           String?
+  direccion       String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  appointments    Appointment[]
+  consultations   Consultation[]
+  labResults      LabResult[]
+  payments        Payment[]
+  prescriptions   Prescription[]
 
   @@map("patients")
 }
 
 model Doctor {
-  id          String   @id @default(cuid())
-  nombre      String
-  apellido    String
-  especialidad String
-  cedula      String   @unique
-  telefono    String?
-  email       String?
-  direccion   String?
-  area        String?
-  contacto    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  appointments   Appointment[]
-  consultations  Consultation[]
+  id            String         @id @default(cuid())
+  nombre        String
+  apellido      String
+  especialidad  String
+  cedula        String         @unique
+  telefono      String?
+  email         String?
+  direccion     String?
+  area          String?
+  contacto      String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  appointments  Appointment[]
+  consultations Consultation[]
 
   @@map("doctors")
 }
 
 model Company {
-  id        String   @id @default(cuid())
-  nombre    String
-  rif       String   @unique
-  direccion String?
-  telefono  String?
-  email     String?
-  contacto  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
+  id           String        @id @default(cuid())
+  nombre       String
+  rif          String        @unique
+  direccion    String?
+  telefono     String?
+  email        String?
+  contacto     String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   affiliations Affiliation[]
 
   @@map("companies")
 }
 
 model Provider {
-  id          String   @id @default(cuid())
-  nombre      String
+  id           String        @id @default(cuid())
+  nombre       String
   especialidad String
-  telefono    String?
-  email       String?
-  direccion   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
+  telefono     String?
+  email        String?
+  direccion    String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   appointments Appointment[]
 
   @@map("providers")
 }
 
 model Appointment {
-  id          String            @id @default(cuid())
-  fecha       DateTime
-  hora        String
-  tipo        AppointmentType
-  estado      AppointmentStatus @default(PROGRAMADA)
-  notas       String?
-  pacienteId  String
-  doctorId    String?
-  providerId  String?
-  userId      String
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-
-  // Relations
-  paciente Patient  @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
-  doctor   Doctor?  @relation(fields: [doctorId], references: [id], onDelete: SetNull)
-  provider Provider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String            @id @default(cuid())
+  fecha         DateTime
+  hora          String
+  tipo          AppointmentType
+  estado        AppointmentStatus @default(PROGRAMADA)
+  notas         String?
+  pacienteId    String
+  doctorId      String?
+  providerId    String?
+  userId        String
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  doctor        Doctor?           @relation(fields: [doctorId], references: [id])
+  paciente      Patient           @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  provider      Provider?         @relation(fields: [providerId], references: [id])
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   consultations Consultation[]
 
   @@map("appointments")
 }
 
 model Consultation {
-  id            String   @id @default(cuid())
+  id            String         @id @default(cuid())
   fecha         DateTime
   motivo        String
   sintomas      String?
@@ -143,22 +128,20 @@ model Consultation {
   doctorId      String?
   appointmentId String?
   userId        String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relations
-  paciente   Patient     @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
-  doctor     Doctor?     @relation(fields: [doctorId], references: [id], onDelete: SetNull)
-  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  labResults LabResult[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  appointment   Appointment?   @relation(fields: [appointmentId], references: [id])
+  doctor        Doctor?        @relation(fields: [doctorId], references: [id])
+  paciente      Patient        @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  labResults    LabResult[]
   prescriptions Prescription[]
 
   @@map("consultations")
 }
 
 model LabResult {
-  id             String   @id @default(cuid())
+  id             String        @id @default(cuid())
   nombre         String
   tipo           String
   resultado      String
@@ -166,18 +149,16 @@ model LabResult {
   fecha          DateTime
   pacienteId     String
   consultationId String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  // Relations
-  paciente     Patient      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
-  consultation Consultation? @relation(fields: [consultationId], references: [id], onDelete: SetNull)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  consultation   Consultation? @relation(fields: [consultationId], references: [id])
+  paciente       Patient       @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
 
   @@map("lab_results")
 }
 
 model Prescription {
-  id             String   @id @default(cuid())
+  id             String        @id @default(cuid())
   medicamento    String
   dosis          String
   frecuencia     String
@@ -185,69 +166,63 @@ model Prescription {
   instrucciones  String?
   pacienteId     String
   consultationId String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  // Relations
-  paciente     Patient      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
-  consultation Consultation? @relation(fields: [consultationId], references: [id], onDelete: SetNull)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  consultation   Consultation? @relation(fields: [consultationId], references: [id])
+  paciente       Patient       @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
 
   @@map("prescriptions")
 }
 
 model Payment {
-  id          String        @id @default(cuid())
-  monto       Decimal       @db.Decimal(10, 2)
-  tipo        PaymentType
-  metodo      String
-  estado      PaymentStatus @default(PENDIENTE)
-  fecha       DateTime
-  referencia  String?
-  notas       String?
-  pacienteId  String
-  userId      String
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  // Relations
-  paciente Patient @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
-  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String        @id @default(cuid())
+  monto      Decimal       @db.Decimal(10, 2)
+  tipo       PaymentType
+  metodo     String
+  estado     PaymentStatus @default(PENDIENTE)
+  fecha      DateTime
+  referencia String?
+  notas      String?
+  pacienteId String
+  userId     String
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  paciente   Patient       @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("payments")
 }
 
 model Affiliation {
-  id          String            @id @default(cuid())
-  planId      String
-  estado      AffiliationStatus @default(ACTIVA)
-  fechaInicio DateTime
-  fechaFin    DateTime?
-  monto       Decimal           @db.Decimal(10, 2)
+  id            String            @id @default(cuid())
+  planId        String
+  estado        AffiliationStatus @default(ACTIVA)
+  fechaInicio   DateTime
+  fechaFin      DateTime?
+  monto         Decimal           @db.Decimal(10, 2)
   beneficiarios Json?
-  companyId   String?
-  userId      String
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-
-  // Relations
-  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId     String?
+  userId        String
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  company       Company?          @relation(fields: [companyId], references: [id])
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("affiliations")
 }
 
 model Supply {
-  id          String   @id @default(cuid())
-  nombre      String
-  descripcion String?
-  cantidad    Int
-  unidad      String
-  precio      Decimal  @db.Decimal(10, 2)
-  proveedor   String?
+  id               String       @id @default(cuid())
+  nombre           String
+  descripcion      String?
+  cantidad         Int
+  unidad           String
+  precio           Decimal      @db.Decimal(10, 2)
+  proveedor        String?
   fechaVencimiento DateTime?
-  estado      SupplyStatus @default(DISPONIBLE)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  estado           SupplyStatus @default(DISPONIBLE)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
   @@map("supplies")
 }
@@ -272,7 +247,7 @@ model Estudio {
   descripcion String?
   tipo        String
   precio      Decimal  @db.Decimal(10, 2)
-  duracion    Int? // en minutos
+  duracion    Int?
   requisitos  String?
   activo      Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -282,25 +257,24 @@ model Estudio {
 }
 
 model SystemConfig {
-  id                String   @id @default(cuid())
-  clinicName        String   @default("UroVital")
-  clinicAddress     String?
-  clinicPhone       String?
-  clinicEmail       String?
-  workingHours      String?
-  notifications     Boolean  @default(true)
-  emailNotifications Boolean @default(true)
-  smsNotifications  Boolean  @default(false)
-  maintenanceMode   Boolean  @default(false)
-  autoBackup        Boolean  @default(true)
-  dataRetention     String   @default("2 años")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  clinicName         String   @default("UroVital")
+  clinicAddress      String?
+  clinicPhone        String?
+  clinicEmail        String?
+  workingHours       String?
+  notifications      Boolean  @default(true)
+  emailNotifications Boolean  @default(true)
+  smsNotifications   Boolean  @default(false)
+  maintenanceMode    Boolean  @default(false)
+  autoBackup         Boolean  @default(true)
+  dataRetention      String   @default("2 años")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   @@map("system_config")
 }
 
-// Enums
 enum UserRole {
   ADMIN
   DOCTOR
@@ -351,9 +325,4 @@ enum SupplyStatus {
   AGOTADO
   VENCIDO
   RESERVADO
-}
-
-enum UserStatus {
-  ACTIVE
-  INACTIVE
 }

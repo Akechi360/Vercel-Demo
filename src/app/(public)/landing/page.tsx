@@ -141,7 +141,7 @@ export default function LandingPage() {
                       className="relative"
                   >
                       <Image 
-                          src="/images/landing/doctors-uro.jpg" 
+                          src="/images/landing/doctors-uro1.png" 
                           alt="Doctor" 
                           width={608} 
                           height={601}

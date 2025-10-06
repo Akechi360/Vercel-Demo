@@ -84,7 +84,6 @@ export function FinancePageClient({
         doctors={doctors}
         paymentTypes={paymentTypes}
         paymentMethods={paymentMethods}
-        receipts={receipts}
         showAdminData={canViewFinanceAdmin()}
         showReceiptGeneration={canGenerateReceipts()}
         showReceiptDownload={canDownloadReceipts()}

@@ -20,9 +20,10 @@ import type { Company } from '@/lib/types';
 
 const formSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
-  ruc: z.string().min(8, 'El RUC/NIT debe tener al menos 8 caracteres.'),
+  ruc: z.string().min(8, 'El RIF debe tener al menos 8 caracteres.'),
   phone: z.string().optional(),
   email: z.string().email('Email inválido.').optional().or(z.literal('')),
+  address: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -42,6 +43,7 @@ export function AddCompanyForm({ onSuccess }: AddCompanyFormProps) {
       ruc: '',
       phone: '',
       email: '',
+      address: '',
     },
   });
 
@@ -89,9 +91,9 @@ export function AddCompanyForm({ onSuccess }: AddCompanyFormProps) {
           name="ruc"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>RUC / NIT</FormLabel>
+              <FormLabel>RIF</FormLabel>
               <FormControl>
-                <Input placeholder="Ej: 12345678-9" {...field} />
+                <Input placeholder="Ej: J-12345678-9" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -118,6 +120,19 @@ export function AddCompanyForm({ onSuccess }: AddCompanyFormProps) {
               <FormLabel>Email (Opcional)</FormLabel>
               <FormControl>
                 <Input type="email" placeholder="Ej: contacto@empresa.com" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="address"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Dirección (Opcional)</FormLabel>
+              <FormControl>
+                <Input placeholder="Ej: Av. Principal, Edificio Central, Piso 5" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

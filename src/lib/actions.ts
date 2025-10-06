@@ -295,23 +295,38 @@ export async function getDoctors(): Promise<Doctor[]> {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Combine both sources
-    const allDoctors = [
-      ...doctorsFromTable.map(doctor => ({
-        id: doctor.id,
-        nombre: `${doctor.nombre} ${doctor.apellido}`,
-        especialidad: doctor.especialidad,
-        area: doctor.area || '',
-        contacto: doctor.contacto || '',
-      })),
-      ...doctorUsers.map(user => ({
-        id: user.id,
-        nombre: user.name,
-        especialidad: 'Médico General', // Default specialty for users
-        area: '',
-        contacto: user.phone || '',
-      }))
-    ];
+    // Combine both sources, avoiding duplicates by name
+    const allDoctors = [];
+    const usedNames = new Set<string>();
+
+    // First, add doctors from the Doctor table
+    for (const doctor of doctorsFromTable) {
+      const fullName = `${doctor.nombre} ${doctor.apellido}`.trim();
+      if (!usedNames.has(fullName)) {
+        allDoctors.push({
+          id: doctor.id,
+          nombre: fullName,
+          especialidad: doctor.especialidad,
+          area: doctor.area || '',
+          contacto: doctor.contacto || '',
+        });
+        usedNames.add(fullName);
+      }
+    }
+
+    // Then, add users with doctor role (only if name not already used)
+    for (const user of doctorUsers) {
+      if (!usedNames.has(user.name)) {
+        allDoctors.push({
+          id: user.id,
+          nombre: user.name,
+          especialidad: 'Médico General', // Default specialty for users
+          area: '',
+          contacto: user.phone || '',
+        });
+        usedNames.add(user.name);
+      }
+    }
 
     return allDoctors;
   } catch (error) {
@@ -1188,6 +1203,7 @@ export async function addCompany(companyData: {
   ruc: string;
   phone?: string;
   email?: string;
+  address?: string;
 }): Promise<Company> {
   try {
     const company = await withDatabase(async (prisma) => {
@@ -1195,7 +1211,7 @@ export async function addCompany(companyData: {
       data: {
         nombre: companyData.name,
         rif: companyData.ruc,
-        direccion: '',
+        direccion: companyData.address || '',
         telefono: companyData.phone || '',
         email: companyData.email || '',
         contacto: '',

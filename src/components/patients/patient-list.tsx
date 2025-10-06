@@ -100,10 +100,10 @@ export default function PatientList() {
       // Add UroVital logo
       addUroVitalLogo(doc);
       
-      doc.setFontSize(18);
+      doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(58, 109, 255);
-      doc.text("Lista de Pacientes - UroVital", 14, 20);
+      doc.text("Lista de Pacientes", doc.internal.pageSize.getWidth() / 2, 20, { align: "center" });
 
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");

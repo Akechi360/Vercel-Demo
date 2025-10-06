@@ -193,13 +193,13 @@ export function FinanceTable({
         doc.setTextColor(58, 109, 255);
         doc.text("UROVITAL - Sistema de Gestión Médica", doc.internal.pageSize.getWidth() / 2, 25, { align: "center" });
 
-        doc.setFontSize(14);
-        doc.setTextColor(0, 0, 0);
-        doc.text("Comprobante de Pago", doc.internal.pageSize.getWidth() / 2, 35, { align: "center" });
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Comprobante de Pago", doc.internal.pageSize.getWidth() / 2, 35, { align: "center" });
 
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.text(`Nº ${payment.id}`, doc.internal.pageSize.getWidth() / 2, 42, { align: "center" });
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text(`ID del Pago: ${payment.id}`, doc.internal.pageSize.getWidth() / 2, 42, { align: "center" });
 
         // Date
         doc.setFontSize(10);
@@ -216,6 +216,9 @@ export function FinanceTable({
 
         // Patient info
         const patient = patientMap.get(payment.patientId);
+        const doctor = doctorMap.get(payment.doctorId || '');
+        const paymentMethod = paymentMethodMap.get(payment.paymentMethodId);
+        
         doc.setFont("helvetica", "bold");
         doc.text("Datos del Paciente:", margin, y);
         y += 8;
@@ -230,11 +233,15 @@ export function FinanceTable({
         doc.text("Detalles del Pago:", margin, y);
         y += 8;
         doc.setFont("helvetica", "normal");
-        doc.text(`Concepto: Consulta médica`, margin, y);
+        doc.text(`Doctor: ${doctor?.name || 'N/A'}`, margin, y);
+        y += 6;
+        doc.text(`Fecha: ${format(new Date(payment.date), 'dd/MM/yyyy')}`, margin, y);
         y += 6;
         doc.text(`Monto: $${payment.monto.toFixed(2)}`, margin, y);
         y += 6;
-        doc.text(`Método de pago: ${paymentMethodMap.get(payment.paymentMethodId) || 'N/A'}`, margin, y);
+        doc.text(`Método de pago: ${paymentMethod || 'N/A'}`, margin, y);
+        y += 6;
+        doc.text(`Estado: ${payment.status}`, margin, y);
         y += 10;
 
         // Footer

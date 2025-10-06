@@ -671,6 +671,38 @@ export async function login(credentials: { email: string; password: string }) {
   }
 }
 
+// AFFILIATION ACTIONS
+export async function getAffiliations(): Promise<any[]> {
+  try {
+    const affiliations = await withDatabase(async (prisma) => {
+      return await prisma.affiliation.findMany({
+        include: {
+          company: true,
+          user: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    });
+
+    return affiliations.map((affiliation: any) => ({
+      id: affiliation.id,
+      planId: affiliation.planId,
+      estado: affiliation.estado,
+      fechaInicio: affiliation.fechaInicio.toISOString(),
+      fechaFin: affiliation.fechaFin?.toISOString() || null,
+      monto: affiliation.monto.toNumber(),
+      beneficiarios: affiliation.beneficiarios,
+      companyId: affiliation.companyId,
+      userId: affiliation.userId,
+      company: affiliation.company,
+      user: affiliation.user,
+    }));
+  } catch (error) {
+    console.error('Error fetching affiliations:', error);
+    return [];
+  }
+}
+
 // AFFILIATE LEAD ACTIONS
 export async function submitAffiliateLead(data: AffiliateLead) {
   try {
@@ -1328,31 +1360,50 @@ export async function getPatientMedicalHistoryAsString(patientId: string): Promi
 
 export async function getPatientsByCompanyId(companyId: string): Promise<Patient[]> {
   try {
-    // Since we don't have a direct relationship between patients and companies in the schema,
-    // we'll return all patients for now. This would need to be updated when the schema is modified.
-    const patients = await withDatabase(async (prisma) => {
-      return await prisma.patient.findMany({
-      orderBy: { createdAt: 'desc' },
+    // Get users affiliated to this company through affiliations
+    const affiliations = await withDatabase(async (prisma) => {
+      return await prisma.affiliation.findMany({
+        where: { 
+          companyId: companyId,
+          estado: 'ACTIVA'
+        },
+        include: {
+          user: {
+            include: {
+              patient: true // Include patient data if user has patientId
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
       });
     });
 
-    return patients.map((patient: any) => {
-      const age = Math.floor((Date.now() - patient.fechaNacimiento.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-      return {
-        id: patient.id,
-        name: `${patient.nombre} ${patient.apellido}`,
-        age,
-        gender: 'Masculino' as const, // Default value
-        bloodType: 'O+' as const,
-        status: 'Activo' as const,
-        lastVisit: patient.updatedAt.toISOString(),
-        contact: {
-          phone: patient.telefono || '',
-          email: patient.email || '',
-        },
-        companyId: undefined,
-      };
-    });
+    // Extract patients from affiliated users
+    const patients: Patient[] = [];
+    
+    for (const affiliation of affiliations) {
+      if (affiliation.user.patient) {
+        const patient = affiliation.user.patient;
+        const age = Math.floor((Date.now() - patient.fechaNacimiento.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+        
+        patients.push({
+          id: patient.id,
+          name: `${patient.nombre} ${patient.apellido}`,
+          age,
+          gender: 'Masculino' as const, // Default value
+          bloodType: 'O+' as const,
+          status: 'Activo' as const,
+          lastVisit: patient.updatedAt.toISOString(),
+          contact: {
+            phone: patient.telefono || '',
+            email: patient.email || '',
+          },
+          companyId: companyId,
+        });
+      }
+    }
+
+    return patients;
   } catch (error) {
     console.error('Error fetching patients by company ID:', error);
     return [];

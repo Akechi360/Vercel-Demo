@@ -1,13 +1,17 @@
-import { getCompanies, getPatients } from '@/lib/actions';
+import { getCompanies, getAffiliations } from '@/lib/actions';
 import { PageHeader } from '@/components/shared/page-header';
 import CompanyListWrapper from '@/components/companies/company-list-wrapper';
 
 export default async function CompaniesPage() {
   const initialCompanies = await getCompanies();
-  const patients = await getPatients();
+  const affiliations = await getAffiliations();
 
   const companiesWithPatientCount = initialCompanies.map(company => {
-    const patientCount = patients.filter(p => p.companyId === company.id).length;
+    // Count active affiliations for this company
+    const patientCount = affiliations.filter(affiliation => 
+      affiliation.companyId === company.id && 
+      affiliation.estado === 'ACTIVA'
+    ).length;
     return { ...company, patientCount };
   });
 

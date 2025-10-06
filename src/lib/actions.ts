@@ -61,6 +61,7 @@ export async function getPatients(): Promise<Patient[]> {
       return {
         id: patient.id,
         name: `${patient.nombre} ${patient.apellido}`,
+        cedula: patient.cedula,
         age,
         gender: 'Masculino' as const, // Default value
         bloodType: 'O+' as const, // Default value
@@ -176,6 +177,7 @@ export async function addPatient(patientData: {
     return {
       id: patient.id,
       name: `${patient.nombre} ${patient.apellido}`,
+      cedula: patient.cedula,
       age: patientData.age,
       gender: patientData.gender,
       bloodType: patientData.bloodType ?? 'O+', // Default blood type
@@ -1156,6 +1158,7 @@ export async function getPatientById(patientId: string): Promise<Patient | null>
     return {
       id: patient.id,
       name: `${patient.nombre} ${patient.apellido}`,
+      cedula: patient.cedula,
       age,
       gender: 'Masculino' as const, // Default value
       bloodType: 'O+' as const,
@@ -1584,6 +1587,7 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
       return {
         id: patient.id,
         name: `${patient.nombre} ${patient.apellido}`,
+        cedula: patient.cedula,
         age,
         gender: 'Masculino' as const, // Default value
         bloodType: 'O+' as const,
@@ -1603,5 +1607,136 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
   } catch (error) {
     console.error('Error fetching patients by company ID:', error);
     return [];
+  }
+}
+
+// RECEIPT FUNCTIONS
+export async function createReceipt(receiptData: {
+  patientId: string;
+  amount: number;
+  concept: string;
+  method: string;
+  createdBy: string;
+}): Promise<{ id: string; number: string }> {
+  try {
+    if (!isDatabaseAvailable()) {
+      throw new Error('Database not available');
+    }
+
+    const prisma = getPrisma();
+    
+    // Generate receipt number
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    
+    // Get count of receipts for today to generate sequential number
+    const todayStart = new Date(year, today.getMonth(), today.getDate());
+    const todayEnd = new Date(year, today.getMonth(), today.getDate() + 1);
+    
+    const todayReceipts = await prisma.receipt.count({
+      where: {
+        createdAt: {
+          gte: todayStart,
+          lt: todayEnd,
+        },
+      },
+    });
+    
+    const receiptNumber = `REC-${year}${month}${day}-${String(todayReceipts + 1).padStart(3, '0')}`;
+
+    const receipt = await prisma.receipt.create({
+      data: {
+        number: receiptNumber,
+        patientId: receiptData.patientId,
+        amount: receiptData.amount,
+        concept: receiptData.concept,
+        method: receiptData.method,
+        createdBy: receiptData.createdBy,
+      },
+    });
+
+    // Create audit log
+    await createAuditLog(receiptData.createdBy, 'Comprobante creado', `Comprobante ${receiptNumber} generado para paciente ${receiptData.patientId}`);
+
+    return {
+      id: receipt.id,
+      number: receipt.number,
+    };
+  } catch (error) {
+    console.error('Error creating receipt:', error);
+    throw new Error('Error al crear el comprobante');
+  }
+}
+
+export async function getReceipts(): Promise<any[]> {
+  try {
+    if (!isDatabaseAvailable()) {
+      console.log('Database not available - returning empty array');
+      return [];
+    }
+
+    const prisma = getPrisma();
+    
+    const receipts = await prisma.receipt.findMany({
+      include: {
+        patient: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return receipts.map((receipt: any) => ({
+      id: receipt.id,
+      number: receipt.number,
+      patientName: `${receipt.patient.nombre} ${receipt.patient.apellido}`,
+      patientCedula: receipt.patient.cedula,
+      amount: receipt.amount,
+      concept: receipt.concept,
+      method: receipt.method,
+      createdAt: receipt.createdAt.toISOString(),
+      createdBy: receipt.createdBy,
+    }));
+  } catch (error) {
+    console.error('Error fetching receipts:', error);
+    return [];
+  }
+}
+
+export async function getReceiptById(receiptId: string): Promise<any | null> {
+  try {
+    if (!isDatabaseAvailable()) {
+      return null;
+    }
+
+    const prisma = getPrisma();
+    
+    const receipt = await prisma.receipt.findUnique({
+      where: { id: receiptId },
+      include: {
+        patient: true,
+      },
+    });
+
+    if (!receipt) {
+      return null;
+    }
+
+    return {
+      id: receipt.id,
+      number: receipt.number,
+      patientName: `${receipt.patient.nombre} ${receipt.patient.apellido}`,
+      patientCedula: receipt.patient.cedula,
+      amount: receipt.amount,
+      concept: receipt.concept,
+      method: receipt.method,
+      createdAt: receipt.createdAt.toISOString(),
+      createdBy: receipt.createdBy,
+    };
+  } catch (error) {
+    console.error('Error fetching receipt by ID:', error);
+    return null;
   }
 }

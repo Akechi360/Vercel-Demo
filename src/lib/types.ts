@@ -87,6 +87,7 @@ export const ROLE_PERMISSIONS: Record<User['role'], Permission[]> = {
 export interface Patient {
   id: string;
   name: string;
+  cedula: string;
   age: number;
   gender: 'Masculino' | 'Femenino' | 'Otro';
   bloodType: string;

@@ -43,6 +43,7 @@ model Patient {
   labResults      LabResult[]
   payments        Payment[]
   prescriptions   Prescription[]
+  receipts        Receipt[]
 
   @@map("patients")
 }
@@ -326,6 +327,20 @@ enum SupplyStatus {
   AGOTADO
   VENCIDO
   RESERVADO
+}
+
+model Receipt {
+  id          String   @id @default(cuid())
+  number      String   @unique
+  patientId   String
+  amount      Decimal  @db.Decimal(10, 2)
+  concept     String
+  method      String
+  createdAt   DateTime @default(now())
+  createdBy   String
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("receipts")
 }
 
 model AuditLog {

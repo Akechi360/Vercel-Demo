@@ -1368,11 +1368,7 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
           estado: 'ACTIVA'
         },
         include: {
-          user: {
-            include: {
-              patient: true // Include patient data if user has patientId
-            }
-          }
+          user: true
         },
         orderBy: { createdAt: 'desc' },
       });
@@ -1382,24 +1378,32 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
     const patients: Patient[] = [];
     
     for (const affiliation of affiliations) {
-      if (affiliation.user.patient) {
-        const patient = affiliation.user.patient;
-        const age = Math.floor((Date.now() - patient.fechaNacimiento.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-        
-        patients.push({
-          id: patient.id,
-          name: `${patient.nombre} ${patient.apellido}`,
-          age,
-          gender: 'Masculino' as const, // Default value
-          bloodType: 'O+' as const,
-          status: 'Activo' as const,
-          lastVisit: patient.updatedAt.toISOString(),
-          contact: {
-            phone: patient.telefono || '',
-            email: patient.email || '',
-          },
-          companyId: companyId,
+      if (affiliation.user.patientId) {
+        // Get patient data using the patientId from user
+        const patient = await withDatabase(async (prisma) => {
+          return await prisma.patient.findUnique({
+            where: { id: affiliation.user.patientId }
+          });
         });
+
+        if (patient) {
+          const age = Math.floor((Date.now() - patient.fechaNacimiento.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+          
+          patients.push({
+            id: patient.id,
+            name: `${patient.nombre} ${patient.apellido}`,
+            age,
+            gender: 'Masculino' as const, // Default value
+            bloodType: 'O+' as const,
+            status: 'Activo' as const,
+            lastVisit: patient.updatedAt.toISOString(),
+            contact: {
+              phone: patient.telefono || '',
+              email: patient.email || '',
+            },
+            companyId: companyId,
+          });
+        }
       }
     }
 

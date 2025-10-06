@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 import { getInitials } from '@/lib/utils';
-import { Search, MoreHorizontal, FileDown } from 'lucide-react';
+import { Search, MoreHorizontal, FileDown, FileText, Edit, Ban, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,7 @@ import { format } from 'date-fns';
 import { addUroVitalLogo } from '@/lib/pdf-helpers';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
+import { CreateReceiptModal } from './create-receipt-modal';
 
 const MySwal = withReactContent(Swal);
 const ITEMS_PER_PAGE = 5;
@@ -60,6 +61,9 @@ export function FinanceTable({
   const { toast } = useToast();
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [receipts, setReceipts] = useState<any[]>([]);
+  const [editingReceipt, setEditingReceipt] = useState<any>(null);
 
   const patientMap = useMemo(() => new Map(allPatients.map(p => [p.id, p])), [allPatients]);
   const doctorMap = useMemo(() => new Map(allDoctors.map(d => [d.id, d])), [allDoctors]);
@@ -84,6 +88,21 @@ export function FinanceTable({
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter]);
+
+  // Cargar comprobantes al montar el componente
+  useEffect(() => {
+    loadReceipts();
+  }, []);
+
+  const loadReceipts = async () => {
+    try {
+      const { getReceipts } = await import('@/lib/actions');
+      const receiptsData = await getReceipts();
+      setReceipts(receiptsData);
+    } catch (error) {
+      console.error('Error loading receipts:', error);
+    }
+  };
 
 
   const containerVariants = {
@@ -266,19 +285,16 @@ export function FinanceTable({
     });
   };
 
-  const handleEditPayment = (payment: Payment) => {
-    // TODO: Implementar edición de pago
-    toast({
-      title: "Función en desarrollo",
-      description: "La edición de pagos estará disponible próximamente.",
-    });
+  const handleEditReceipt = (receipt: any) => {
+    setEditingReceipt(receipt);
+    setIsCreateModalOpen(true);
   };
 
-  const handleGeneratePDF = (payment: Payment) => {
+  const handleGeneratePDF = (receipt: any) => {
     const isDarkMode = document.documentElement.classList.contains('dark');
     MySwal.fire({
       title: 'Generar PDF',
-      text: '¿Deseas generar el comprobante en PDF para este pago?',
+      text: '¿Deseas generar el comprobante en PDF?',
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Sí, generar',
@@ -290,7 +306,7 @@ export function FinanceTable({
     }).then((result) => {
       if (result.isConfirmed) {
         // Generar y descargar el PDF
-        handleDownloadPDF(payment);
+        generateReceiptPDF(receipt);
         
         MySwal.fire({
           title: 'PDF Generado',
@@ -304,10 +320,10 @@ export function FinanceTable({
     });
   };
 
-  const handleAnnulPayment = (paymentId: string) => {
+  const handleAnnulReceipt = async (receiptId: string) => {
     const isDarkMode = document.documentElement.classList.contains('dark');
     MySwal.fire({
-      title: '¿Anular pago?',
+      title: '¿Seguro que deseas anular este comprobante?',
       text: "Esta acción no se puede deshacer.",
       icon: 'warning',
       showCancelButton: true,
@@ -317,25 +333,134 @@ export function FinanceTable({
       cancelButtonColor: '#718096',
       background: isDarkMode ? "#1e293b" : "#ffffff",
       color: isDarkMode ? "#f1f5f9" : "#0f172a",
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        setPayments(prevPayments => 
-          prevPayments.map(p => 
-            p.id === paymentId ? { ...p, status: 'Anulado' } : p
-          )
-        );
-        MySwal.fire({
-            title: 'Anulado', 
-            text: 'El pago ha sido anulado.', 
-            icon: 'success',
-            background: isDarkMode ? "#1e293b" : "#ffffff",
-            color: isDarkMode ? "#f1f5f9" : "#0f172a",
-            confirmButtonColor: '#4f46e5',
-        });
+        try {
+          // TODO: Implementar actualización de estado en base de datos
+          // const { updateReceiptStatus } = await import('@/lib/actions');
+          // await updateReceiptStatus(receiptId, 'Anulado');
+          
+          // Actualizar estado local
+          setReceipts(prevReceipts => 
+            prevReceipts.map(r => 
+              r.id === receiptId ? { ...r, status: 'Anulado' } : r
+            )
+          );
+          
+          toast({
+            title: "Comprobante anulado correctamente",
+            description: "El comprobante ha sido anulado exitosamente.",
+          });
+          
+          MySwal.fire({
+              title: 'Anulado', 
+              text: 'El comprobante ha sido anulado.', 
+              icon: 'success',
+              background: isDarkMode ? "#1e293b" : "#ffffff",
+              color: isDarkMode ? "#f1f5f9" : "#0f172a",
+              confirmButtonColor: '#4f46e5',
+          });
+        } catch (error) {
+          console.error('Error annulling receipt:', error);
+          toast({
+            variant: "destructive",
+            title: "Error al anular comprobante",
+            description: "No se pudo anular el comprobante. Inténtalo de nuevo.",
+          });
+        }
       }
     });
   };
 
+  const generateReceiptPDF = (receipt: any) => {
+    try {
+      const doc = new jsPDF();
+      const margin = 14;
+
+      // Add UroVital logo
+      addUroVitalLogo(doc);
+
+      // Header
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(58, 109, 255);
+      doc.text("UROVITAL - Sistema de Gestión Médica", doc.internal.pageSize.getWidth() / 2, 25, { align: "center" });
+
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Comprobante de Pago", doc.internal.pageSize.getWidth() / 2, 35, { align: "center" });
+
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Nº ${receipt.number}`, doc.internal.pageSize.getWidth() / 2, 42, { align: "center" });
+
+      // Date
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100);
+      doc.text(`Fecha de emisión: ${format(new Date(receipt.createdAt), 'dd/MM/yyyy - HH:mm')}`, doc.internal.pageSize.getWidth() - margin, 20, { align: "right" });
+
+      let y = 55;
+
+      // Receipt details
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(0, 0, 0);
+
+      // Patient info
+      doc.setFont("helvetica", "bold");
+      doc.text("Datos del Paciente:", margin, y);
+      y += 8;
+      doc.setFont("helvetica", "normal");
+      doc.text(`Nombre: ${receipt.patientName}`, margin, y);
+      y += 6;
+      doc.text(`Cédula: ${receipt.patientCedula}`, margin, y);
+      y += 10;
+
+      // Payment details
+      doc.setFont("helvetica", "bold");
+      doc.text("Detalles del Pago:", margin, y);
+      y += 8;
+      doc.setFont("helvetica", "normal");
+      doc.text(`Concepto: ${receipt.concept}`, margin, y);
+      y += 6;
+      doc.text(`Monto: $${Number(receipt.amount).toFixed(2)}`, margin, y);
+      y += 6;
+      doc.text(`Método de pago: ${receipt.method}`, margin, y);
+      y += 6;
+      doc.text(`Estado: ${receipt.status || 'Pagado'}`, margin, y);
+      y += 6;
+      doc.text(`Emitido por: ${receipt.createdBy}`, margin, y);
+      y += 10;
+
+      // Footer
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      doc.text("Emitido automáticamente por UroVital © 2025", doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: "center" });
+
+      // Download PDF
+      const fileName = `Comprobante_${receipt.number}.pdf`;
+      doc.save(fileName);
+
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        variant: "destructive",
+        title: "Error al generar PDF",
+        description: "No se pudo generar el archivo PDF.",
+      });
+    }
+  };
+
+  const handleModalSuccess = () => {
+    loadReceipts();
+    setEditingReceipt(null);
+  };
+
+  const handleModalClose = () => {
+    setIsCreateModalOpen(false);
+    setEditingReceipt(null);
+  };
 
   return (
     <div className="space-y-6 overflow-x-auto md:overflow-x-visible">
@@ -358,6 +483,13 @@ export function FinanceTable({
                     <TabsTrigger value="Anulado">Anulados</TabsTrigger>
                 </TabsList>
             </Tabs>
+            <Button 
+              onClick={() => setIsCreateModalOpen(true)}
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Crear Comprobante
+            </Button>
             <Button variant="outline" size="icon" onClick={handleExport}>
                 <FileDown className="h-4 w-4" />
             </Button>
@@ -385,96 +517,94 @@ export function FinanceTable({
                         <TableHead>Paciente</TableHead>
                         <TableHead>Doctor</TableHead>
                         <TableHead>Fecha</TableHead>
-                        {showAdminData && <TableHead>Monto</TableHead>}
+                        <TableHead>Monto</TableHead>
                         <TableHead>Método</TableHead>
                         <TableHead>Estado</TableHead>
-                        {showReceiptGeneration && <TableHead className="text-right">Acciones</TableHead>}
+                        <TableHead className="text-right">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paginatedPayments.map((payment) => {
-                        const patient = patientMap.get(payment.patientId);
-                        const doctor = doctorMap.get(payment.doctorId || '');
-                        const paymentMethod = paymentMethodMap.get(payment.paymentMethodId);
-                        return (
-                          <motion.tr
-                            key={payment.id}
-                            variants={itemVariants}
-                            layout
-                            className="group"
-                          >
-                            <TableCell className="font-medium">
-                              <div className="flex items-center space-x-3">
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage src={patient?.avatarUrl} />
-                                  <AvatarFallback className="text-xs">
-                                    {getInitials(patient?.name || 'N/A')}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <div className="font-medium">{patient?.name || 'N/A'}</div>
-                                  <div className="text-sm text-muted-foreground">{patient?.cedula || 'N/A'}</div>
-                                </div>
+                      {receipts.map((receipt) => (
+                        <motion.tr
+                          key={receipt.id}
+                          variants={itemVariants}
+                          layout
+                          className="group"
+                        >
+                          <TableCell className="font-medium">
+                            <div className="flex items-center space-x-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback className="text-xs">
+                                  {getInitials(receipt.patientName || 'N/A')}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium">{receipt.patientName || 'N/A'}</div>
+                                <div className="text-sm text-muted-foreground">{receipt.patientCedula || 'N/A'}</div>
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center space-x-2">
-                                <Avatar className="h-6 w-6">
-                                  <AvatarFallback className="text-xs">
-                                    {getInitials(doctor?.name || 'N/A')}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span className="text-sm">{doctor?.name || 'N/A'}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {format(new Date(payment.date), 'dd/MM/yyyy')}
-                            </TableCell>
-                            {showAdminData && (
-                              <TableCell className="font-medium">
-                                ${payment.monto.toFixed(2)}
-                              </TableCell>
-                            )}
-                            <TableCell>
-                              <Badge variant="outline" className="text-xs">
-                                {paymentMethod || 'N/A'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge className={cn('font-medium', statusColors[payment.status])}>
-                                {payment.status}
-                              </Badge>
-                            </TableCell>
-                            {showReceiptGeneration && (
-                              <TableCell className="text-right">
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                      <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleGeneratePDF(payment)}>
-                                      Generar PDF
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleEditPayment(payment)}>
-                                      Editar
-                                    </DropdownMenuItem>
-                                    {payment.status !== 'Anulado' && (
-                                      <DropdownMenuItem 
-                                        onClick={() => handleAnnulPayment(payment.id)}
-                                        className="text-red-600 focus:text-red-600"
-                                      >
-                                        Anular
-                                      </DropdownMenuItem>
-                                    )}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </TableCell>
-                            )}
-                          </motion.tr>
-                        );
-                      })}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <Avatar className="h-6 w-6">
+                                <AvatarFallback className="text-xs">
+                                  {getInitials('Dr.')}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm">Dr. {receipt.doctorName || 'N/A'}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {format(new Date(receipt.createdAt), 'dd/MM/yyyy')}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            ${Number(receipt.amount).toFixed(2)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {receipt.method || 'N/A'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={cn('font-medium', statusColors[receipt.status as keyof typeof statusColors] || statusColors.Pagado)}>
+                              {receipt.status || 'Pagado'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleGeneratePDF(receipt)}
+                                className="h-8 w-8 p-0"
+                                title="Generar PDF"
+                              >
+                                <FileText className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditReceipt(receipt)}
+                                className="h-8 w-8 p-0"
+                                title="Editar"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              {receipt.status !== 'Anulado' && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleAnnulReceipt(receipt.id)}
+                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                                  title="Anular"
+                                >
+                                  <Ban className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </motion.tr>
+                      ))}
                     </TableBody>
                   </Table>
                 </motion.div>
@@ -486,62 +616,85 @@ export function FinanceTable({
                   initial="hidden"
                   animate="show"
                 >
-                  {paginatedPayments.map((payment) => {
-                    const patient = patientMap.get(payment.patientId);
-                    const doctor = doctorMap.get(payment.doctorId || '');
-                    const paymentMethod = paymentMethodMap.get(payment.paymentMethodId);
-                    return (
-                      <motion.div
-                        key={payment.id}
-                        variants={itemVariants}
-                        className="rounded-lg border bg-card p-4"
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center space-x-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={patient?.avatarUrl} />
-                              <AvatarFallback>
-                                {getInitials(patient?.name || 'N/A')}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="font-medium">{patient?.name || 'N/A'}</div>
-                              <div className="text-sm text-muted-foreground">{patient?.cedula || 'N/A'}</div>
-                            </div>
-                          </div>
-                          <Badge className={cn('font-medium', statusColors[payment.status])}>
-                            {payment.status}
-                          </Badge>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2 text-sm">
+                  {receipts.map((receipt) => (
+                    <motion.div
+                      key={receipt.id}
+                      variants={itemVariants}
+                      className="rounded-lg border bg-card p-4"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarFallback>
+                              {getInitials(receipt.patientName || 'N/A')}
+                            </AvatarFallback>
+                          </Avatar>
                           <div>
-                            <span className="text-muted-foreground">Doctor:</span>
-                            <div className="font-medium">{doctor?.name || 'N/A'}</div>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Fecha:</span>
-                            <div className="font-medium">{format(new Date(payment.date), 'dd/MM/yyyy')}</div>
-                          </div>
-                          {showAdminData && (
-                            <div>
-                              <span className="text-muted-foreground">Monto:</span>
-                              <div className="font-medium">${payment.monto.toFixed(2)}</div>
-                            </div>
-                          )}
-                          <div>
-                            <span className="text-muted-foreground">Método:</span>
-                            <div className="font-medium">{paymentMethod || 'N/A'}</div>
+                            <div className="font-medium">{receipt.patientName || 'N/A'}</div>
+                            <div className="text-sm text-muted-foreground">{receipt.patientCedula || 'N/A'}</div>
                           </div>
                         </div>
-                      </motion.div>
-                    );
-                  })}
+                        <Badge className={cn('font-medium', statusColors[receipt.status as keyof typeof statusColors] || statusColors.Pagado)}>
+                          {receipt.status || 'Pagado'}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Doctor:</span>
+                          <div className="font-medium">Dr. {receipt.doctorName || 'N/A'}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Fecha:</span>
+                          <div className="font-medium">{format(new Date(receipt.createdAt), 'dd/MM/yyyy')}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Monto:</span>
+                          <div className="font-medium">${Number(receipt.amount).toFixed(2)}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Método:</span>
+                          <div className="font-medium">{receipt.method || 'N/A'}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleGeneratePDF(receipt)}
+                          className="text-xs"
+                        >
+                          <FileText className="h-3 w-3 mr-1" />
+                          PDF
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditReceipt(receipt)}
+                          className="text-xs"
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          Editar
+                        </Button>
+                        {receipt.status !== 'Anulado' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleAnnulReceipt(receipt.id)}
+                            className="text-xs text-red-600 border-red-200 hover:bg-red-50"
+                          >
+                            <Ban className="h-3 w-3 mr-1" />
+                            Anular
+                          </Button>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
                 </motion.div>
 
-                {filteredPayments.length === 0 && (
+                {receipts.length === 0 && (
                   <div className="text-center py-16 text-muted-foreground col-span-full">
-                    <Search className="mx-auto h-10 w-10 mb-2" />
-                    No se encontraron pagos.
+                    <FileText className="mx-auto h-10 w-10 mb-2" />
+                    No hay comprobantes generados aún.
                   </div>
                 )}
 
@@ -590,6 +743,15 @@ export function FinanceTable({
             </DialogContent>
         </Dialog>
       )}
+
+      <CreateReceiptModal
+        isOpen={isCreateModalOpen}
+        onClose={handleModalClose}
+        onSuccess={handleModalSuccess}
+        patients={allPatients}
+        doctors={allDoctors}
+        editData={editingReceipt}
+      />
     </div>
   );
 }

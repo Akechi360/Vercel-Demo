@@ -1018,6 +1018,31 @@ export async function getPatientById(patientId: string): Promise<Patient | null>
 
     if (!patient) return null;
 
+    // Get user associated with this patient
+    const user = await withDatabase(async (prisma) => {
+      return await prisma.user.findFirst({
+        where: { patientId: patientId },
+        include: {
+          affiliations: {
+            where: { estado: 'ACTIVA' },
+            include: {
+              company: true
+            }
+          }
+        }
+      });
+    });
+
+    // Get company information if user has active affiliations
+    let companyId: string | undefined;
+    let companyName: string | undefined;
+    
+    if (user && user.affiliations.length > 0) {
+      const activeAffiliation = user.affiliations[0]; // Get first active affiliation
+      companyId = activeAffiliation.companyId;
+      companyName = activeAffiliation.company?.nombre;
+    }
+
     const age = Math.floor((Date.now() - patient.fechaNacimiento.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
     return {
       id: patient.id,
@@ -1031,7 +1056,8 @@ export async function getPatientById(patientId: string): Promise<Patient | null>
         phone: patient.telefono || '',
         email: patient.email || '',
       },
-      companyId: undefined,
+      companyId: companyId,
+      companyName: companyName,
     };
   } catch (error) {
     console.error('Error fetching patient by ID:', error);

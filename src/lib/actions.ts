@@ -403,21 +403,21 @@ export async function addConsultation(consultationData: {
         });
         
         if (doctorUser) {
-          // Create a temporary doctor object for users with doctor role
-          doctor = {
-            id: doctorUser.id,
-            nombre: doctorUser.name.split(' ')[0] || doctorUser.name,
-            apellido: doctorUser.name.split(' ').slice(1).join(' ') || '',
-            especialidad: 'Médico General',
-            cedula: '',
-            telefono: doctorUser.phone,
-            email: doctorUser.email,
-            direccion: '',
-            area: '',
-            contacto: doctorUser.phone || '',
-            createdAt: doctorUser.createdAt,
-            updatedAt: doctorUser.updatedAt,
-          };
+          // Create a doctor record in the Doctor table for this user
+          const [nombre, apellido] = doctorUser.name.split(' ', 2);
+          doctor = await prisma.doctor.create({
+            data: {
+              nombre: nombre || doctorUser.name,
+              apellido: apellido || '',
+              especialidad: 'Médico General',
+              cedula: `DOC-${doctorUser.id}`, // Generate unique ID based on user ID
+              telefono: doctorUser.phone,
+              email: doctorUser.email,
+              direccion: '',
+              area: '',
+              contacto: doctorUser.phone || '',
+            }
+          });
         }
       }
 

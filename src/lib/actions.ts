@@ -6,6 +6,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
 import { getPrismaClient, isDatabaseAvailable } from './db';
 
 // Función para obtener el cliente de Prisma de manera segura
@@ -1619,11 +1620,14 @@ export async function createReceipt(receiptData: {
   createdBy: string;
 }): Promise<{ id: string; number: string }> {
   try {
+    console.log('createReceipt called with data:', JSON.stringify(receiptData, null, 2));
+    
     if (!isDatabaseAvailable()) {
       throw new Error('Database not available');
     }
 
     const prisma = getPrisma();
+    console.log('Prisma client obtained successfully');
     
     // Generate receipt number
     const today = new Date();
@@ -1645,17 +1649,29 @@ export async function createReceipt(receiptData: {
     });
     
     const receiptNumber = `REC-${year}${month}${day}-${String(todayReceipts + 1).padStart(3, '0')}`;
+    console.log('Generated receipt number:', receiptNumber);
+
+    console.log('Creating receipt with data:', {
+      number: receiptNumber,
+      patientId: receiptData.patientId,
+      amount: receiptData.amount,
+      concept: receiptData.concept,
+      method: receiptData.method,
+      createdBy: receiptData.createdBy,
+    });
 
     const receipt = await prisma.receipt.create({
       data: {
         number: receiptNumber,
         patientId: receiptData.patientId,
-        amount: receiptData.amount,
+        amount: new Decimal(receiptData.amount),
         concept: receiptData.concept,
         method: receiptData.method,
         createdBy: receiptData.createdBy,
       },
     });
+
+    console.log('Receipt created successfully:', receipt);
 
     // Create audit log
     await createAuditLog(receiptData.createdBy, 'Comprobante creado', `Comprobante ${receiptNumber} generado para paciente ${receiptData.patientId}`);
@@ -1666,7 +1682,28 @@ export async function createReceipt(receiptData: {
     };
   } catch (error) {
     console.error('Error creating receipt:', error);
-    throw new Error('Error al crear el comprobante');
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
+    
+    // Handle specific Prisma errors
+    if (error instanceof Error) {
+      if (error.message.includes('connect')) {
+        throw new Error('Error de conexión a la base de datos. Verifique la configuración.');
+      } else if (error.message.includes('unique constraint')) {
+        throw new Error('Ya existe un comprobante con este número.');
+      } else if (error.message.includes('foreign key')) {
+        throw new Error('Error de referencia en la base de datos. Verifique que el paciente exista.');
+      } else if (error.message.includes('required')) {
+        throw new Error('Faltan campos requeridos para crear el comprobante.');
+      } else {
+        throw new Error(`Error al crear comprobante: ${error.message}`);
+      }
+    }
+    
+    throw new Error('Error desconocido al crear comprobante');
   }
 }
 

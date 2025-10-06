@@ -689,6 +689,9 @@ export async function login(credentials: { email: string; password: string }) {
       return { success: false, error: 'Contraseña incorrecta' };
     }
 
+    // Create audit log for successful login
+    await createAuditLog(user.id, 'Inicio de sesión', `Usuario ${user.name} inició sesión`);
+
     return {
       success: true,
       user: {
@@ -866,12 +869,67 @@ export async function updateSystemConfig(configData: any) {
   }
 }
 
+// AUDIT LOG ACTIONS
+export async function createAuditLog(userId: string, action: string, details?: string): Promise<void> {
+  try {
+    await withDatabase(async (prisma) => {
+      await prisma.auditLog.create({
+        data: {
+          userId,
+          action,
+          details,
+        },
+      });
+    });
+  } catch (error) {
+    console.error('Error creating audit log:', error);
+    // Don't throw error to avoid breaking the main operation
+  }
+}
+
+export async function getAuditLogs(): Promise<any[]> {
+  try {
+    const auditLogs = await withDatabase(async (prisma) => {
+      return await prisma.auditLog.findMany({
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    });
+
+    return auditLogs.map((log: any) => ({
+      id: log.id,
+      userId: log.userId,
+      action: log.action,
+      details: log.details,
+      createdAt: log.createdAt.toISOString(),
+      user: {
+        id: log.user.id,
+        name: log.user.name,
+        email: log.user.email,
+        role: log.user.role,
+      },
+    }));
+  } catch (error) {
+    console.error('Error fetching audit logs:', error);
+    return [];
+  }
+}
+
 // USER MANAGEMENT ACTIONS
 export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<User> {
   try {
     const hashedPassword = await bcrypt.hash(data.password, 12);
     
-    return await withDatabase(async (prisma) => {
+    const newUser = await withDatabase(async (prisma) => {
       return await prisma.user.create({
         data: {
           ...data,
@@ -879,6 +937,11 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
         },
       });
     });
+
+    // Create audit log for user creation
+    await createAuditLog(newUser.id, 'Usuario creado', `Nuevo usuario ${newUser.name} con rol ${newUser.role}`);
+
+    return newUser;
   } catch (error) {
     console.error('Error creating user:', error);
     throw new Error('Error al crear usuario');

@@ -33,6 +33,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Label } from '../ui/label';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { addUroVitalLogo } from '@/lib/pdf-helpers';
 import { usePatientStore } from '@/lib/store/patient-store';
 import { useCompanyStore } from '@/lib/store/company-store';
 import { AddPatientForm } from './add-patient-form';
@@ -96,6 +97,9 @@ export default function PatientList() {
       const doc = new jsPDF();
       const exportTime = new Date();
 
+      // Add UroVital logo
+      addUroVitalLogo(doc);
+      
       doc.setFontSize(18);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(58, 109, 255);

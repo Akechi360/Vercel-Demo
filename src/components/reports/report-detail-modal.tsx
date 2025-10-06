@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import jsPDF from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
+import { addUroVitalLogo } from '@/lib/pdf-helpers';
 import { getCompanyById, getPatientById } from '@/lib/actions';
 
 interface ReportDetailModalProps {
@@ -45,6 +46,9 @@ export function ReportDetailModal({ isOpen, setIsOpen, report }: ReportDetailMod
         const doc = new jsPDF();
         const margin = 14;
         const exportDate = new Date();
+
+        // Add UroVital logo
+        addUroVitalLogo(doc);
 
         // Título y fecha
         doc.setFontSize(20);

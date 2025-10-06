@@ -19,6 +19,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import jsPDF from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
+import { addUroVitalLogo } from '@/lib/pdf-helpers';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 
@@ -174,8 +175,8 @@ export function FinanceTable({
         const doc = new jsPDF();
         const patient = patientMap.get(payment.patientId);
         
-        doc.setFontSize(10);
-        doc.text("UroVital", 14, 20);
+        // Add UroVital logo
+        addUroVitalLogo(doc);
 
         doc.setFontSize(18);
         doc.text("Comprobante de Pago", 105, 20, { align: 'center' });

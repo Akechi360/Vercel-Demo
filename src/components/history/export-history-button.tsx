@@ -7,6 +7,7 @@ import { getPatientMedicalHistoryAsString } from "@/lib/actions";
 import type { Patient } from "@/lib/types";
 import { Download } from "lucide-react";
 import jsPDF from "jspdf";
+import { addUroVitalLogo } from '@/lib/pdf-helpers';
 
 interface ExportHistoryButtonProps {
     patient: Patient;
@@ -20,6 +21,9 @@ export function ExportHistoryButton({ patient }: ExportHistoryButtonProps) {
             const historyString = await getPatientMedicalHistoryAsString(patient.id);
             
             const doc = new jsPDF();
+            
+            // Add UroVital logo
+            addUroVitalLogo(doc);
             
             // Add title
             doc.setFontSize(18);

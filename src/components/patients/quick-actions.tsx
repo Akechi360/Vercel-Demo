@@ -11,6 +11,7 @@ import { addConsultation } from "@/lib/actions";
 import jsPDF from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
+import { addUroVitalLogo } from '@/lib/pdf-helpers';
 
 interface QuickActionsProps {
     patient: Patient & { companyName?: string };
@@ -65,6 +66,9 @@ export function QuickActions({ patient, upcomingAppointments, latestConsultation
     const handleExportSummary = () => {
         const doc = new jsPDF();
         const margin = 14;
+
+        // Add UroVital logo
+        addUroVitalLogo(doc);
 
         // Título y fecha
         doc.setFontSize(20);

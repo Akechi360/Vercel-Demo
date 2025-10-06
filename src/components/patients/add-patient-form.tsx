@@ -25,6 +25,7 @@ const formSchema = z.object({
   age: z.coerce.number().min(1, 'La edad debe ser mayor a 0.').max(120, 'La edad es inválida.'),
   gender: z.enum(['Masculino', 'Femenino', 'Otro'], { required_error: 'Seleccione un género.' }),
   phone: z.string().optional(),
+  email: z.string().email('Dirección de correo inválida.').optional().or(z.literal('')),
   companyId: z.string().optional(),
 });
 
@@ -49,6 +50,7 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
       name: '',
       age: undefined,
       phone: '',
+      email: '',
       companyId: '',
     },
   });
@@ -74,7 +76,7 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
         gender: values.gender,
         contact: {
             phone: values.phone || '',
-            email: '',
+            email: values.email || '',
         },
         companyId: values.companyId === 'none' ? undefined : values.companyId,
       });
@@ -155,6 +157,19 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
               <FormLabel>Teléfono (Opcional)</FormLabel>
               <FormControl>
                 <Input placeholder="Ej: 555-123-4567" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Correo Electrónico (Opcional)</FormLabel>
+              <FormControl>
+                <Input type="email" placeholder="Ej: juan@ejemplo.com" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

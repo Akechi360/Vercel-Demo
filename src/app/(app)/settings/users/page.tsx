@@ -121,6 +121,10 @@ export default function UsersManagementPage() {
         return 'default';
       case 'secretaria':
         return 'secondary';
+      case 'patient':
+        return 'outline';
+      case 'promotora':
+        return 'secondary';
       default:
         return 'outline';
     }
@@ -434,7 +438,10 @@ export default function UsersManagementPage() {
                   <TableCell>
                     <Badge variant={getRoleBadgeVariant(user.role)}>
                       {user.role === 'admin' ? 'Administrador' : 
-                       user.role === 'doctor' ? 'Doctor' : 'Secretaria'}
+                       user.role === 'doctor' ? 'Doctor' : 
+                       user.role === 'secretaria' ? 'Secretaria' :
+                       user.role === 'patient' ? 'Paciente' :
+                       user.role === 'promotora' ? 'Promotora' : 'Desconocido'}
                     </Badge>
                   </TableCell>
                   <TableCell>

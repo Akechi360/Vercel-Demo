@@ -22,6 +22,7 @@ model User {
   appointments  Appointment[]
   consultations Consultation[]
   payments      Payment[]
+  auditLogs     AuditLog[]
 
   @@map("users")
 }
@@ -325,4 +326,15 @@ enum SupplyStatus {
   AGOTADO
   VENCIDO
   RESERVADO
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
 }

@@ -28,6 +28,7 @@ import {
   ChevronDown,
   CreditCard,
   Handshake,
+  Shield,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -44,6 +45,7 @@ const mainMenuItems = [
   { href: '/appointments', label: 'Citas', icon: Calendar, permission: 'appointments:read' },
   { href: '/finanzas', label: 'Finanzas', icon: CreditCard, permission: 'finance:read' },
   { href: '/afiliaciones', label: 'Afiliaciones', icon: Handshake, permission: 'affiliations:read' },
+  { href: '/auditoria', label: 'Auditoría', icon: Shield, permission: 'admin:all' },
 ];
 
 const adminMenuItems = [

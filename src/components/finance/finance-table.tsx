@@ -57,8 +57,6 @@ export function FinanceTable({
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todos');
   const [currentPage, setCurrentPage] = useState(1);
-  const [activeTab, setActiveTab] = useState('payments');
-  const [receipts, setReceipts] = useState<any[]>([]);
   const { toast } = useToast();
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -87,27 +85,6 @@ export function FinanceTable({
     setCurrentPage(1);
   }, [searchTerm, statusFilter]);
 
-  // Cargar comprobantes cuando se cambie a la pestaña
-  useEffect(() => {
-    if (activeTab === 'receipts') {
-      loadReceipts();
-    }
-  }, [activeTab]);
-
-  const loadReceipts = async () => {
-    try {
-      const { getReceipts } = await import('@/lib/actions');
-      const receiptsData = await getReceipts();
-      setReceipts(receiptsData);
-    } catch (error) {
-      console.error('Error loading receipts:', error);
-      toast({
-        variant: "destructive",
-        title: "Error al cargar comprobantes",
-        description: "No se pudieron cargar los comprobantes.",
-      });
-    }
-  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -297,11 +274,11 @@ export function FinanceTable({
     });
   };
 
-  const handleGenerateReceipt = async (payment: Payment) => {
+  const handleGeneratePDF = (payment: Payment) => {
     const isDarkMode = document.documentElement.classList.contains('dark');
     MySwal.fire({
-      title: 'Generar Comprobante',
-      text: '¿Deseas generar un comprobante para este pago?',
+      title: 'Generar PDF',
+      text: '¿Deseas generar el comprobante en PDF para este pago?',
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Sí, generar',
@@ -310,48 +287,19 @@ export function FinanceTable({
       cancelButtonColor: '#718096',
       background: isDarkMode ? "#1e293b" : "#ffffff",
       color: isDarkMode ? "#f1f5f9" : "#0f172a",
-    }).then(async (result) => {
+    }).then((result) => {
       if (result.isConfirmed) {
-        try {
-          // Obtener datos del pago
-          const patient = patientMap.get(payment.patientId);
-          const doctor = doctorMap.get(payment.doctorId || '');
-          const paymentMethod = paymentMethodMap.get(payment.paymentMethodId);
-          
-          // Crear el comprobante en la base de datos
-          const receiptData = {
-            patientId: payment.patientId,
-            amount: payment.monto,
-            concept: `Pago de consulta - Dr. ${doctor?.name || 'N/A'}`,
-            method: paymentMethod || 'N/A',
-            createdBy: 'sistema' // TODO: Obtener del usuario actual
-          };
-
-          // Importar la función createReceipt dinámicamente
-          const { createReceipt } = await import('@/lib/actions');
-          const receipt = await createReceipt(receiptData);
-          
-          // Generar y descargar el PDF
-          handleDownloadPDF(payment);
-          
-          // Recargar comprobantes si estamos en esa pestaña
-          if (activeTab === 'receipts') {
-            loadReceipts();
-          }
-          
-          toast({
-            title: "Comprobante generado",
-            description: `Comprobante ${receipt.number} creado y descargado exitosamente.`,
-          });
-          
-        } catch (error) {
-          console.error('Error creating receipt:', error);
-          toast({
-            variant: "destructive",
-            title: "Error al generar comprobante",
-            description: "No se pudo crear el comprobante en la base de datos.",
-          });
-        }
+        // Generar y descargar el PDF
+        handleDownloadPDF(payment);
+        
+        MySwal.fire({
+          title: 'PDF Generado',
+          text: 'El comprobante se ha generado y descargado exitosamente.',
+          icon: 'success',
+          background: isDarkMode ? "#1e293b" : "#ffffff",
+          color: isDarkMode ? "#f1f5f9" : "#0f172a",
+          confirmButtonColor: '#4f46e5',
+        });
       }
     });
   };
@@ -388,86 +336,6 @@ export function FinanceTable({
     });
   };
 
-  const generateReceiptPDF = (receipt: any) => {
-    try {
-      const doc = new jsPDF();
-      const margin = 14;
-
-      // Add UroVital logo
-      addUroVitalLogo(doc);
-
-      // Header
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(58, 109, 255);
-      doc.text("UROVITAL - Sistema de Gestión Médica", doc.internal.pageSize.getWidth() / 2, 25, { align: "center" });
-
-      doc.setFontSize(14);
-      doc.setTextColor(0, 0, 0);
-      doc.text("Comprobante de Pago", doc.internal.pageSize.getWidth() / 2, 35, { align: "center" });
-
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.text(`Nº ${receipt.number}`, doc.internal.pageSize.getWidth() / 2, 42, { align: "center" });
-
-      // Date
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(100);
-      doc.text(`Fecha de emisión: ${format(new Date(receipt.createdAt), 'dd/MM/yyyy - HH:mm')}`, doc.internal.pageSize.getWidth() - margin, 20, { align: "right" });
-
-      let y = 55;
-
-      // Receipt details
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-
-      // Patient info
-      doc.setFont("helvetica", "bold");
-      doc.text("Datos del Paciente:", margin, y);
-      y += 8;
-      doc.setFont("helvetica", "normal");
-      doc.text(`Nombre: ${receipt.patientName}`, margin, y);
-      y += 6;
-      doc.text(`Cédula: ${receipt.patientCedula}`, margin, y);
-      y += 10;
-
-      // Payment details
-      doc.setFont("helvetica", "bold");
-      doc.text("Detalles del Pago:", margin, y);
-      y += 8;
-      doc.setFont("helvetica", "normal");
-      doc.text(`Concepto: ${receipt.concept}`, margin, y);
-      y += 6;
-      doc.text(`Monto: $${Number(receipt.amount).toFixed(2)}`, margin, y);
-      y += 6;
-      doc.text(`Método de pago: ${receipt.method}`, margin, y);
-      y += 10;
-
-      // Footer
-      doc.setFontSize(8);
-      doc.setTextColor(100);
-      doc.text("Emitido automáticamente por UroVital © 2025", doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: "center" });
-
-      // Download PDF
-      const fileName = `Comprobante_${receipt.number}.pdf`;
-      doc.save(fileName);
-
-      toast({
-        title: "PDF generado exitosamente",
-        description: `El comprobante ${receipt.number} ha sido descargado.`,
-      });
-
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      toast({
-        variant: "destructive",
-        title: "Error al generar PDF",
-        description: "No se pudo generar el archivo PDF.",
-      });
-    }
-  };
 
   return (
     <div className="space-y-6 overflow-x-auto md:overflow-x-visible">
@@ -496,16 +364,7 @@ export function FinanceTable({
         </div>
       </div>
 
-      {/* Tabs for Payments and Receipts */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="payments">Pagos</TabsTrigger>
-          <TabsTrigger value="receipts">Comprobantes</TabsTrigger>
-        </TabsList>
-        
-        {activeTab === 'payments' && (
-          <div className="mt-4">
-            <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait">
         <motion.div
           key={currentPage}
           initial={{ opacity: 0 }}
@@ -595,17 +454,11 @@ export function FinanceTable({
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => {
-                                      setSelectedPayment(payment);
-                                      setIsDetailModalOpen(true);
-                                    }}>
-                                      Ver detalles
+                                    <DropdownMenuItem onClick={() => handleGeneratePDF(payment)}>
+                                      Generar PDF
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleEditPayment(payment)}>
                                       Editar
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleGenerateReceipt(payment)}>
-                                      Generar Comprobante
                                     </DropdownMenuItem>
                                     {payment.status !== 'Anulado' && (
                                       <DropdownMenuItem 
@@ -713,66 +566,8 @@ export function FinanceTable({
                     </Button>
                   </div>
                 )}
-            </motion.div>
-          </AnimatePresence>
-          </div>
-        )}
-
-        {activeTab === 'receipts' && (
-          <div className="mt-4 space-y-4">
-            {receipts.length === 0 ? (
-              <div className="text-center p-8 bg-muted rounded-lg">
-                <p className="text-muted-foreground">No hay comprobantes generados aún.</p>
-              </div>
-            ) : (
-              <div className="border rounded-lg">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Número</TableHead>
-                      <TableHead>Paciente</TableHead>
-                      <TableHead>Concepto</TableHead>
-                      <TableHead>Monto</TableHead>
-                      <TableHead>Método</TableHead>
-                      <TableHead>Fecha</TableHead>
-                      <TableHead>Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {receipts.map((receipt) => (
-                      <TableRow key={receipt.id}>
-                        <TableCell className="font-medium">{receipt.number}</TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{receipt.patientName}</div>
-                            <div className="text-sm text-muted-foreground">{receipt.patientCedula}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{receipt.concept}</TableCell>
-                        <TableCell className="font-medium">${Number(receipt.amount).toFixed(2)}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{receipt.method}</Badge>
-                        </TableCell>
-                        <TableCell>{format(new Date(receipt.createdAt), 'dd/MM/yyyy HH:mm')}</TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => generateReceiptPDF(receipt)}
-                          >
-                            <FileDown className="h-4 w-4 mr-1" />
-                            PDF
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </div>
-        )}
-      </Tabs>
+        </motion.div>
+      </AnimatePresence>
 
       {selectedPayment && (
         <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>

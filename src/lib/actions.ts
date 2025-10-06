@@ -1629,6 +1629,11 @@ export async function createReceipt(receiptData: {
     const prisma = getPrisma();
     console.log('Prisma client obtained successfully');
     
+    // Check if receipt model is available
+    if (!prisma.receipt) {
+      throw new Error('Modelo Receipt no está disponible. Por favor, reinicia la aplicación.');
+    }
+    
     // Generate receipt number
     const today = new Date();
     const year = today.getFullYear();
@@ -1639,14 +1644,20 @@ export async function createReceipt(receiptData: {
     const todayStart = new Date(year, today.getMonth(), today.getDate());
     const todayEnd = new Date(year, today.getMonth(), today.getDate() + 1);
     
-    const todayReceipts = await prisma.receipt.count({
-      where: {
-        createdAt: {
-          gte: todayStart,
-          lt: todayEnd,
+    let todayReceipts = 0;
+    try {
+      todayReceipts = await prisma.receipt.count({
+        where: {
+          createdAt: {
+            gte: todayStart,
+            lt: todayEnd,
+          },
         },
-      },
-    });
+      });
+    } catch (countError) {
+      console.log('Error counting receipts, using 0 as default:', countError);
+      todayReceipts = 0;
+    }
     
     const receiptNumber = `REC-${year}${month}${day}-${String(todayReceipts + 1).padStart(3, '0')}`;
     console.log('Generated receipt number:', receiptNumber);

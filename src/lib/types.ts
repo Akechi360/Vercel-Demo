@@ -98,6 +98,7 @@ export interface Patient {
   };
   avatarUrl?: string;
   companyId?: string;
+  companyName?: string;
 }
 
 export interface Appointment {

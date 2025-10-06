@@ -1401,46 +1401,69 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
           estado: 'ACTIVA'
         },
         include: {
-          user: true
+          user: {
+            include: {
+              // We'll get patient data directly if it exists
+            }
+          }
         },
         orderBy: { createdAt: 'desc' },
       });
     });
 
-    // Extract patients from affiliated users
-    const patients: Patient[] = [];
-    
-    for (const affiliation of affiliations) {
-      if (affiliation.user.patientId) {
-        // Get patient data using the patientId from user
-        const patient = await withDatabase(async (prisma) => {
-          return await prisma.patient.findUnique({
-            where: { id: affiliation.user.patientId }
-          });
-        });
+    console.log(`Found ${affiliations.length} affiliations for company ${companyId}`);
 
-        if (patient) {
-          const age = Math.floor((Date.now() - patient.fechaNacimiento.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-          
-          patients.push({
-            id: patient.id,
-            name: `${patient.nombre} ${patient.apellido}`,
-            age,
-            gender: 'Masculino' as const, // Default value
-            bloodType: 'O+' as const,
-            status: 'Activo' as const,
-            lastVisit: patient.updatedAt.toISOString(),
-            contact: {
-              phone: patient.telefono || '',
-              email: patient.email || '',
-            },
-            companyId: companyId,
-          });
-        }
-      }
-    }
+    // Get all patient IDs from affiliated users
+    const patientIds = affiliations
+      .map(affiliation => affiliation.user.patientId)
+      .filter(Boolean);
 
-    return patients;
+    console.log(`Found ${patientIds.length} patient IDs from affiliations`);
+
+    // Get all patients in one query
+    const patients = await withDatabase(async (prisma) => {
+      return await prisma.patient.findMany({
+        where: {
+          id: {
+            in: patientIds
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    });
+
+    console.log(`Found ${patients.length} patients in database`);
+
+    // Get company name for display
+    const company = await withDatabase(async (prisma) => {
+      return await prisma.company.findUnique({
+        where: { id: companyId }
+      });
+    });
+
+    // Map to Patient interface
+    const mappedPatients: Patient[] = patients.map(patient => {
+      const age = Math.floor((Date.now() - patient.fechaNacimiento.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+      
+      return {
+        id: patient.id,
+        name: `${patient.nombre} ${patient.apellido}`,
+        age,
+        gender: 'Masculino' as const, // Default value
+        bloodType: 'O+' as const,
+        status: 'Activo' as const,
+        lastVisit: patient.updatedAt.toISOString(),
+        contact: {
+          phone: patient.telefono || '',
+          email: patient.email || '',
+        },
+        companyId: companyId,
+        companyName: company?.nombre || undefined,
+      };
+    });
+
+    console.log(`Returning ${mappedPatients.length} mapped patients`);
+    return mappedPatients;
   } catch (error) {
     console.error('Error fetching patients by company ID:', error);
     return [];

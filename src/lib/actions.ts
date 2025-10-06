@@ -1691,7 +1691,7 @@ export async function createReceipt(receiptData: {
       id: receipt.id,
       number: receipt.number,
       patientId: receipt.patientId,
-      amount: receipt.amount,
+      amount: Number(receipt.amount), // Convert Decimal to number
       concept: receipt.concept,
       method: receipt.method,
       createdAt: receipt.createdAt,
@@ -1747,7 +1747,7 @@ export async function getReceipts(): Promise<any[]> {
       number: receipt.number,
       patientName: `${receipt.patient.nombre} ${receipt.patient.apellido}`,
       patientCedula: receipt.patient.cedula,
-      amount: receipt.amount,
+      amount: Number(receipt.amount), // Convert Decimal to number
       concept: receipt.concept,
       method: receipt.method,
       createdAt: receipt.createdAt.toISOString(),
@@ -1783,7 +1783,7 @@ export async function getReceiptById(receiptId: string): Promise<any | null> {
       number: receipt.number,
       patientName: `${receipt.patient.nombre} ${receipt.patient.apellido}`,
       patientCedula: receipt.patient.cedula,
-      amount: receipt.amount,
+      amount: Number(receipt.amount), // Convert Decimal to number
       concept: receipt.concept,
       method: receipt.method,
       createdAt: receipt.createdAt.toISOString(),

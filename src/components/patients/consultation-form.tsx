@@ -78,7 +78,7 @@ export function ConsultationForm({ patientId, onFormSubmit }: ConsultationFormPr
     resolver: zodResolver(formSchema),
     defaultValues: {
         date: new Date(),
-        doctor: doctors.length > 0 ? doctors[0].nombre : "",
+        doctor: doctors.length > 0 ? doctors[0].id : "",
         type: "Inicial",
         notes: "",
         prescriptions: [],
@@ -90,7 +90,7 @@ export function ConsultationForm({ patientId, onFormSubmit }: ConsultationFormPr
   // Update doctor default value when doctors are loaded
   useEffect(() => {
     if (doctors.length > 0 && !form.getValues('doctor')) {
-      form.setValue('doctor', doctors[0].nombre);
+      form.setValue('doctor', doctors[0].id);
     }
   }, [doctors, form]);
 
@@ -105,8 +105,13 @@ export function ConsultationForm({ patientId, onFormSubmit }: ConsultationFormPr
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    // Find the doctor name by ID
+    const selectedDoctor = doctors.find(doctor => doctor.id === values.doctor);
+    const doctorName = selectedDoctor ? selectedDoctor.nombre : values.doctor;
+    
     const formattedValues: ConsultationFormValues = {
         ...values,
+        doctor: doctorName, // Convert ID back to name for the API
         date: values.date.toISOString(),
         prescriptions: (values.prescriptions || []).map(p => ({ ...p, id: p.id || `rx-${Date.now()}-${Math.random()}` })),
         reports: (values.reports || []).map(r => ({
@@ -185,7 +190,7 @@ export function ConsultationForm({ patientId, onFormSubmit }: ConsultationFormPr
                         <SelectItem value="loading" disabled>Cargando doctores...</SelectItem>
                       ) : doctors.length > 0 ? (
                         doctors.map((doctor) => (
-                          <SelectItem key={doctor.id} value={doctor.nombre}>
+                          <SelectItem key={doctor.id} value={doctor.id}>
                             {doctor.nombre}
                           </SelectItem>
                         ))

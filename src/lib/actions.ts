@@ -468,19 +468,36 @@ export async function addConsultation(consultationData: {
         }
       }
 
-      // Get a valid user ID (prefer master-admin, fallback to first admin user)
-      let userId = 'master-admin';
+      // Get a valid user ID (prefer master-admin, fallback to first admin user, then any user)
+      let userId: string | null = null;
+      
+      // First try to find master-admin
       const masterAdmin = await prisma.user.findUnique({
         where: { id: 'master-admin' }
       });
       
-      if (!masterAdmin) {
+      if (masterAdmin) {
+        userId = masterAdmin.id;
+      } else {
+        // Fallback to first admin user
         const adminUser = await prisma.user.findFirst({
           where: { role: 'admin' }
         });
+        
         if (adminUser) {
           userId = adminUser.id;
+        } else {
+          // Last resort: get any user from the database
+          const anyUser = await prisma.user.findFirst();
+          if (anyUser) {
+            userId = anyUser.id;
+          }
         }
+      }
+
+      // If no user found, throw an error
+      if (!userId) {
+        throw new Error('No se encontró ningún usuario válido en el sistema para crear la consulta');
       }
 
       return await prisma.consultation.create({

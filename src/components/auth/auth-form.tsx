@@ -54,12 +54,22 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
   const { toast } = useToast();
   const router = useRouter();
 
+  const getDefaultValues = (currentMode: AuthMode) => {
+    switch (currentMode) {
+      case 'login':
+        return { email: '', password: '' };
+      case 'register':
+        return { name: '', email: '', password: '' };
+      case 'forgot-password':
+        return { email: '' };
+      default:
+        return { email: '' };
+    }
+  };
+
   const form = useForm<z.infer<typeof formSchemas[typeof mode]>>({
     resolver: zodResolver(formSchemas[mode]),
-    defaultValues: {
-      email: '',
-      ...(mode !== 'login' && { name: '', password: '' }),
-    },
+    defaultValues: getDefaultValues(mode),
   });
   
   const { formState: { isSubmitting }, reset } = form;
@@ -131,8 +141,9 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
   }
 
   const handleModeChange = (newMode: AuthMode) => {
-    reset();
     setMode(newMode);
+    // Reset form with new default values for the new mode
+    reset(getDefaultValues(newMode));
   }
 
   return (

@@ -125,10 +125,6 @@ export function ConsultationForm({ patientId, onFormSubmit }: ConsultationFormPr
         })),
     }
     onFormSubmit(formattedValues);
-    toast({
-      title: "Consulta Añadida",
-      description: "El nuevo registro de consulta ha sido guardado.",
-    })
     form.reset();
   }
 
@@ -168,6 +164,36 @@ export function ConsultationForm({ patientId, onFormSubmit }: ConsultationFormPr
                       />
                     </PopoverContent>
                   </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="doctor"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Doctor</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un doctor" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {loading ? (
+                        <SelectItem value="loading" disabled>Cargando doctores...</SelectItem>
+                      ) : doctors.length > 0 ? (
+                        doctors.map((doctor) => (
+                          <SelectItem key={doctor.id} value={doctor.nombre}>
+                            {doctor.nombre}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-doctors" disabled>No hay doctores disponibles</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

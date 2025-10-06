@@ -250,17 +250,37 @@ export async function getDoctors(): Promise<Doctor[]> {
       return [];
     }
     const prisma = getPrisma();
-    const doctors = await prisma.doctor.findMany({
+    
+    // Get doctors from the Doctor table
+    const doctorsFromTable = await prisma.doctor.findMany({
       orderBy: { createdAt: 'desc' },
     });
 
-    return doctors.map(doctor => ({
-      id: doctor.id,
-      nombre: `${doctor.nombre} ${doctor.apellido}`,
-      especialidad: doctor.especialidad,
-      area: doctor.area || '',
-      contacto: doctor.contacto || '',
-    }));
+    // Get users with doctor role from the User table
+    const doctorUsers = await prisma.user.findMany({
+      where: { role: 'doctor' },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Combine both sources
+    const allDoctors = [
+      ...doctorsFromTable.map(doctor => ({
+        id: doctor.id,
+        nombre: `${doctor.nombre} ${doctor.apellido}`,
+        especialidad: doctor.especialidad,
+        area: doctor.area || '',
+        contacto: doctor.contacto || '',
+      })),
+      ...doctorUsers.map(user => ({
+        id: user.id,
+        nombre: user.name,
+        especialidad: 'Médico General', // Default specialty for users
+        area: '',
+        contacto: user.phone || '',
+      }))
+    ];
+
+    return allDoctors;
   } catch (error) {
     console.error('Error fetching doctors:', error);
   return [];
@@ -354,8 +374,17 @@ export async function addConsultation(consultationData: {
 }): Promise<Consultation> {
   try {
     const consultation = await withDatabase(async (prisma) => {
-      // Find the doctor by name
-      const doctor = await prisma.doctor.findFirst({
+      // Verify patient exists
+      const patient = await prisma.patient.findUnique({
+        where: { id: consultationData.patientId }
+      });
+      
+      if (!patient) {
+        throw new Error(`Paciente con ID ${consultationData.patientId} no encontrado`);
+      }
+
+      // Find the doctor by name in both Doctor table and User table
+      let doctor = await prisma.doctor.findFirst({
         where: {
           OR: [
             { nombre: { contains: consultationData.doctor } },
@@ -363,6 +392,49 @@ export async function addConsultation(consultationData: {
           ]
         }
       });
+
+      // If not found in Doctor table, check User table
+      if (!doctor) {
+        const doctorUser = await prisma.user.findFirst({
+          where: {
+            role: 'doctor',
+            name: { contains: consultationData.doctor }
+          }
+        });
+        
+        if (doctorUser) {
+          // Create a temporary doctor object for users with doctor role
+          doctor = {
+            id: doctorUser.id,
+            nombre: doctorUser.name.split(' ')[0] || doctorUser.name,
+            apellido: doctorUser.name.split(' ').slice(1).join(' ') || '',
+            especialidad: 'Médico General',
+            cedula: '',
+            telefono: doctorUser.phone,
+            email: doctorUser.email,
+            direccion: '',
+            area: '',
+            contacto: doctorUser.phone || '',
+            createdAt: doctorUser.createdAt,
+            updatedAt: doctorUser.updatedAt,
+          };
+        }
+      }
+
+      // Get a valid user ID (prefer master-admin, fallback to first admin user)
+      let userId = 'master-admin';
+      const masterAdmin = await prisma.user.findUnique({
+        where: { id: 'master-admin' }
+      });
+      
+      if (!masterAdmin) {
+        const adminUser = await prisma.user.findFirst({
+          where: { role: 'admin' }
+        });
+        if (adminUser) {
+          userId = adminUser.id;
+        }
+      }
 
       return await prisma.consultation.create({
         data: {
@@ -374,7 +446,7 @@ export async function addConsultation(consultationData: {
           observaciones: consultationData.notes,
           pacienteId: consultationData.patientId,
           doctorId: doctor?.id || null,
-          userId: 'master-admin', // Default to master admin for now
+          userId: userId,
         },
         include: {
           paciente: true,
@@ -396,7 +468,28 @@ export async function addConsultation(consultationData: {
     };
   } catch (error) {
     console.error('Error adding consultation:', error);
-    throw new Error('Error al agregar consulta');
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
+    
+    // Handle specific Prisma errors
+    if (error instanceof Error) {
+      if (error.message.includes('connect')) {
+        throw new Error('Error de conexión a la base de datos. Verifique la configuración.');
+      } else if (error.message.includes('unique constraint')) {
+        throw new Error('Ya existe una consulta con estos datos.');
+      } else if (error.message.includes('foreign key')) {
+        throw new Error('Error de referencia en la base de datos. Verifique que el paciente y doctor existan.');
+      } else if (error.message.includes('required')) {
+        throw new Error('Faltan campos requeridos para crear la consulta.');
+      } else {
+        throw new Error(`Error al agregar consulta: ${error.message}`);
+      }
+    }
+    
+    throw new Error('Error desconocido al agregar consulta');
   }
 }
 

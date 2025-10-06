@@ -164,7 +164,7 @@ export async function addPatient(patientData: {
           estado: 'ACTIVA',
           fechaInicio: new Date(),
           monto: 0, // Default amount
-          beneficiarios: null,
+          beneficiarios: undefined,
           companyId: patientData.companyId,
           userId: user.id,
         },
@@ -1415,7 +1415,7 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
 
     // Get all patient IDs from affiliated users
     const patientIds = affiliations
-      .map(affiliation => affiliation.user.patientId)
+      .map((affiliation: any) => affiliation.user.patientId)
       .filter(Boolean);
 
     console.log(`Found ${patientIds.length} patient IDs from affiliations`);
@@ -1442,7 +1442,7 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
     });
 
     // Map to Patient interface
-    const mappedPatients: Patient[] = patients.map(patient => {
+    const mappedPatients: Patient[] = patients.map((patient: any) => {
       const age = Math.floor((Date.now() - patient.fechaNacimiento.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
       
       return {

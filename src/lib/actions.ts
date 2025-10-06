@@ -1618,7 +1618,7 @@ export async function createReceipt(receiptData: {
   concept: string;
   method: string;
   createdBy: string;
-}): Promise<{ id: string; number: string }> {
+}): Promise<any> {
   try {
     console.log('createReceipt called with data:', JSON.stringify(receiptData, null, 2));
     
@@ -1690,6 +1690,12 @@ export async function createReceipt(receiptData: {
     return {
       id: receipt.id,
       number: receipt.number,
+      patientId: receipt.patientId,
+      amount: receipt.amount,
+      concept: receipt.concept,
+      method: receipt.method,
+      createdAt: receipt.createdAt,
+      createdBy: receipt.createdBy,
     };
   } catch (error) {
     console.error('Error creating receipt:', error);

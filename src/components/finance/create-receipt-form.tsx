@@ -98,7 +98,7 @@ export function CreateReceiptForm({ patients, onSuccess }: CreateReceiptFormProp
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(100);
-    doc.text(`Fecha de emisión: ${format(new Date(), 'dd/MM/yyyy - HH:mm')}`, doc.internal.pageSize.getWidth() - margin, 20, { align: "right" });
+    doc.text(`Fecha de emisión: ${format(new Date(receiptData.createdAt), 'dd/MM/yyyy - HH:mm')}`, doc.internal.pageSize.getWidth() - margin, 20, { align: "right" });
 
     let y = 55;
 
@@ -124,7 +124,7 @@ export function CreateReceiptForm({ patients, onSuccess }: CreateReceiptFormProp
     doc.setFont("helvetica", "normal");
     doc.text(`Concepto: ${receiptData.concept}`, margin, y);
     y += 6;
-    doc.text(`Monto: $${parseFloat(receiptData.amount).toFixed(2)}`, margin, y);
+    doc.text(`Monto: $${Number(receiptData.amount).toFixed(2)}`, margin, y);
     y += 6;
     doc.text(`Método de pago: ${paymentMethods.find(m => m.value === receiptData.method)?.label || receiptData.method}`, margin, y);
     y += 10;
@@ -160,16 +160,9 @@ export function CreateReceiptForm({ patients, onSuccess }: CreateReceiptFormProp
         createdBy: currentUser.email,
       });
 
-      // Generate PDF
-      const pdfDoc = await generateReceiptPDF(receiptData, selectedPatient);
-      
-      // Download PDF
-      const fileName = `Comprobante_${receiptData.number}.pdf`;
-      pdfDoc.save(fileName);
-
       toast({
         title: "Comprobante creado exitosamente ✅",
-        description: `El comprobante ${receiptData.number} ha sido generado y descargado.`,
+        description: `El comprobante ${receiptData.number} ha sido creado. Puedes generar el PDF desde la lista de comprobantes.`,
       });
 
       form.reset();

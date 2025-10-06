@@ -1,5 +1,5 @@
 // src/app/(app)/finanzas/page.tsx
-import { getPayments, getPatients, getPaymentTypes, getPaymentMethods, getUsers } from '@/lib/actions';
+import { getPayments, getPatients, getPaymentTypes, getPaymentMethods, getUsers, getReceipts } from '@/lib/actions';
 import { PageHeader } from '@/components/shared/page-header';
 import { FinanceTable } from '@/components/finance/finance-table';
 import { Button } from '@/components/ui/button';
@@ -19,12 +19,14 @@ export default async function FinanzasPage() {
         paymentTypes,
         paymentMethods,
         users,
+        receipts,
     ] = await Promise.all([
         getPayments(),
         getPatients(),
         getPaymentTypes(),
         getPaymentMethods(),
         getUsers(),
+        getReceipts(),
     ]);
 
   const doctors = users.filter(u => u.role === 'doctor');
@@ -36,6 +38,7 @@ export default async function FinanzasPage() {
       doctors={doctors}
       paymentTypes={paymentTypes}
       paymentMethods={paymentMethods}
+      receipts={receipts}
     />
   );
 }

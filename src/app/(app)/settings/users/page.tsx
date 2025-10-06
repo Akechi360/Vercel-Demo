@@ -191,7 +191,8 @@ export default function UsersManagementPage() {
         status: 'ACTIVE',
         phone: null,
         lastLogin: null,
-        patientId: null
+        patientId: null,
+        avatarUrl: null
       });
       
       setUsers([...users, userData]);

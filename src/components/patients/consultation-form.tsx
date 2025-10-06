@@ -16,6 +16,7 @@ import { format } from "date-fns"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Consultation, Doctor } from "@/lib/types";
 import { FileInput } from "../ui/file-input";
 import { getDoctors } from "@/lib/actions";
@@ -176,32 +177,58 @@ export function ConsultationForm({ patientId, onFormSubmit }: ConsultationFormPr
             <FormField
               control={form.control}
               name="doctor"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Doctor</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona un doctor" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {loading ? (
-                        <SelectItem value="loading" disabled>Cargando doctores...</SelectItem>
-                      ) : doctors.length > 0 ? (
-                        doctors.map((doctor) => (
-                          <SelectItem key={doctor.id} value={doctor.id}>
-                            {doctor.nombre}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="no-doctors" disabled>No hay doctores disponibles</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const selectedDoctor = doctors.find(d => d.id === field.value);
+                return (
+                  <FormItem>
+                    <FormLabel>Doctor</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona un doctor" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {loading ? (
+                          <SelectItem value="loading" disabled>Cargando doctores...</SelectItem>
+                        ) : doctors.length > 0 ? (
+                          doctors.map((doctor) => (
+                            <SelectItem key={doctor.id} value={doctor.id}>
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-6 w-6">
+                                  {doctor.avatarUrl ? (
+                                    <AvatarImage src={doctor.avatarUrl} alt={doctor.nombre} />
+                                  ) : null}
+                                  <AvatarFallback className="text-xs">
+                                    {doctor.nombre.charAt(0)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                {doctor.nombre}
+                              </div>
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-doctors" disabled>No hay doctores disponibles</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {selectedDoctor && (
+                      <div className="flex items-center gap-2 mt-2 p-2 bg-muted rounded-md">
+                        <Avatar className="h-8 w-8">
+                          {selectedDoctor.avatarUrl ? (
+                            <AvatarImage src={selectedDoctor.avatarUrl} alt={selectedDoctor.nombre} />
+                          ) : null}
+                          <AvatarFallback>
+                            {selectedDoctor.nombre.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium">Dr. {selectedDoctor.nombre}</span>
+                      </div>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
             <FormField
               control={form.control}

@@ -4,29 +4,100 @@ import { CardTitle, CardDescription, CardHeader, CardContent, Card } from "@/com
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/components/layout/auth-provider"
-import { useState } from "react"
+import { useState, useRef } from "react"
+import { useToast } from "@/hooks/use-toast"
+import { updateUser } from "@/lib/actions"
+import { Upload, X } from "lucide-react"
 
 export default function ProfilePage() {
   const { currentUser } = useAuth();
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: currentUser?.name || '',
     email: currentUser?.email || '',
+    avatarUrl: currentUser?.avatarUrl || '',
   });
 
-  const handleSave = () => {
-    // Aquí implementarías la lógica para guardar los cambios
-    console.log('Guardando cambios:', formData);
-    setIsEditing(false);
+  const handleSave = async () => {
+    if (!currentUser) return;
+    
+    setIsLoading(true);
+    try {
+      await updateUser(currentUser.id, {
+        name: formData.name,
+        email: formData.email,
+        avatarUrl: formData.avatarUrl,
+      });
+      
+      toast({
+        title: "Perfil actualizado",
+        description: "Tu información se ha guardado correctamente.",
+      });
+      setIsEditing(false);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo actualizar el perfil. Inténtalo de nuevo.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCancel = () => {
     setFormData({
       name: currentUser?.name || '',
       email: currentUser?.email || '',
+      avatarUrl: currentUser?.avatarUrl || '',
     });
     setIsEditing(false);
+  };
+
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo de archivo
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        variant: "destructive",
+        title: "Tipo de archivo no válido",
+        description: "Solo se permiten archivos JPG, PNG y WebP.",
+      });
+      return;
+    }
+
+    // Validar tamaño (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        variant: "destructive",
+        title: "Archivo demasiado grande",
+        description: "El archivo debe ser menor a 2MB.",
+      });
+      return;
+    }
+
+    // Convertir a URL para preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      setFormData({ ...formData, avatarUrl: result });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveAvatar = () => {
+    setFormData({ ...formData, avatarUrl: '' });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   return (
@@ -36,6 +107,56 @@ export default function ProfilePage() {
         <CardDescription>Actualiza tu información personal.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Avatar Section */}
+        {currentUser?.role === 'doctor' && (
+          <div className="space-y-4">
+            <Label>Foto de Perfil</Label>
+            <div className="flex items-center gap-4">
+              <Avatar className="h-20 w-20">
+                {formData.avatarUrl ? (
+                  <AvatarImage src={formData.avatarUrl} alt={formData.name} />
+                ) : null}
+                <AvatarFallback className="text-lg">
+                  {formData.name.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={!isEditing}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {formData.avatarUrl ? 'Cambiar' : 'Subir'}
+                  </Button>
+                  {formData.avatarUrl && isEditing && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRemoveAvatar}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Eliminar
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  JPG, PNG o WebP. Máximo 2MB.
+                </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  onChange={handleAvatarChange}
+                  className="hidden"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="name">Nombre</Label>
@@ -73,10 +194,10 @@ export default function ProfilePage() {
             </Button>
           ) : (
             <>
-              <Button onClick={handleSave}>
-                Guardar Cambios
+              <Button onClick={handleSave} disabled={isLoading}>
+                {isLoading ? 'Guardando...' : 'Guardar Cambios'}
               </Button>
-              <Button variant="outline" onClick={handleCancel}>
+              <Button variant="outline" onClick={handleCancel} disabled={isLoading}>
                 Cancelar
               </Button>
             </>

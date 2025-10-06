@@ -18,6 +18,7 @@ model User {
   phone         String?
   lastLogin     DateTime?
   patientId     String?
+  avatarUrl     String?        @default("/images/avatars/default-doctor.png")
   affiliations  Affiliation[]
   appointments  Appointment[]
   consultations Consultation[]

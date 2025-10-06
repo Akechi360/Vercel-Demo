@@ -316,6 +316,7 @@ export async function getDoctors(): Promise<Doctor[]> {
           especialidad: doctor.especialidad,
           area: doctor.area || '',
           contacto: doctor.contacto || '',
+          avatarUrl: undefined, // Doctors from table don't have avatarUrl
         });
         usedNames.add(fullName);
       }
@@ -330,6 +331,7 @@ export async function getDoctors(): Promise<Doctor[]> {
           especialidad: 'Médico General', // Default specialty for users
           area: '',
           contacto: user.phone || '',
+          avatarUrl: user.avatarUrl || undefined,
         });
         usedNames.add(user.name);
       }

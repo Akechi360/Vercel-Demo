@@ -95,7 +95,8 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
                 status: 'ACTIVE',
                 phone: null,
                 lastLogin: null,
-                patientId: null
+                patientId: null,
+                avatarUrl: null
             });
             
             toast({ 

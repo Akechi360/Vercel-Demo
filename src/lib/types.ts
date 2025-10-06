@@ -223,6 +223,7 @@ export interface Doctor {
   especialidad: string;
   area: string;
   contacto: string;
+  avatarUrl?: string;
 }
 
 export interface Estudio {

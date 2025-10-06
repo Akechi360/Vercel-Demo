@@ -83,7 +83,12 @@ export default function AppHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
               <Avatar className="h-8 w-8">
-                <AvatarFallback>{currentUser ? currentUser.name.charAt(0) : 'U'}</AvatarFallback>
+                {currentUser?.role === 'doctor' && currentUser?.avatarUrl ? (
+                  <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
+                ) : null}
+                <AvatarFallback>
+                  {currentUser ? currentUser.name.charAt(0) : 'U'}
+                </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>

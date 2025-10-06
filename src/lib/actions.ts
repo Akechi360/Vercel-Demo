@@ -18,8 +18,12 @@ const getPrisma = () => {
 };
 
 // Función helper para ejecutar operaciones de base de datos con manejo de errores
-const withDatabase = async <T>(operation: (prisma: any) => Promise<T>): Promise<T> => {
+const withDatabase = async <T>(operation: (prisma: any) => Promise<T>, fallbackValue?: T): Promise<T> => {
   if (!isDatabaseAvailable()) {
+    console.log('Database not available - using fallback value');
+    if (fallbackValue !== undefined) {
+      return fallbackValue;
+    }
     throw new Error('Database not configured');
   }
   const prisma = getPrismaClient();
@@ -686,7 +690,7 @@ export async function getPayments(): Promise<Payment[]> {
         },
         orderBy: { fecha: 'desc' },
       });
-    });
+    }, []); // Fallback to empty array
 
     return payments.map((payment: any) => ({
       id: payment.id,

@@ -9,7 +9,6 @@ import Link from 'next/link';
 import { usePermissions } from '@/hooks/use-permissions';
 import { RoleBasedContent } from '@/components/shared/role-based-content';
 import { Payment, Patient, User, PaymentType, PaymentMethod } from '@/lib/types';
-import { ReceiptsTable } from '@/components/finance/receipts-table';
 
 interface FinancePageClientProps {
   initialPayments: Payment[];
@@ -85,18 +84,11 @@ export function FinancePageClient({
         doctors={doctors}
         paymentTypes={paymentTypes}
         paymentMethods={paymentMethods}
+        receipts={receipts}
         showAdminData={canViewFinanceAdmin()}
         showReceiptGeneration={canGenerateReceipts()}
         showReceiptDownload={canDownloadReceipts()}
       />
-
-      {/* Tabla de Comprobantes */}
-      <RoleBasedContent allowedRoles={['admin', 'secretaria']}>
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold">Comprobantes Generados</h2>
-          <ReceiptsTable receipts={receipts} patients={patients} />
-        </div>
-      </RoleBasedContent>
     </div>
   );
 }

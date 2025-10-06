@@ -32,6 +32,7 @@ interface FinanceTableProps {
   doctors: User[];
   paymentTypes: PaymentType[];
   paymentMethods: PaymentMethod[];
+  receipts?: any[];
   showAdminData?: boolean;
   showReceiptGeneration?: boolean;
   showReceiptDownload?: boolean;
@@ -49,6 +50,7 @@ export function FinanceTable({
     doctors: allDoctors,
     paymentTypes: allPaymentTypes,
     paymentMethods: allPaymentMethods,
+    receipts = [],
     showAdminData = true,
     showReceiptGeneration = true,
     showReceiptDownload = true
@@ -57,6 +59,7 @@ export function FinanceTable({
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todos');
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState('payments');
   const { toast } = useToast();
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -239,6 +242,87 @@ export function FinanceTable({
     });
   };
 
+  const generateReceiptPDF = (receipt: any) => {
+    try {
+      const doc = new jsPDF();
+      const margin = 14;
+
+      // Add UroVital logo
+      addUroVitalLogo(doc);
+
+      // Header
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(58, 109, 255);
+      doc.text("UROVITAL - Sistema de Gestión Médica", doc.internal.pageSize.getWidth() / 2, 25, { align: "center" });
+
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Comprobante de Pago", doc.internal.pageSize.getWidth() / 2, 35, { align: "center" });
+
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Nº ${receipt.number}`, doc.internal.pageSize.getWidth() / 2, 42, { align: "center" });
+
+      // Date
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100);
+      doc.text(`Fecha de emisión: ${format(new Date(receipt.createdAt), 'dd/MM/yyyy - HH:mm')}`, doc.internal.pageSize.getWidth() - margin, 20, { align: "right" });
+
+      let y = 55;
+
+      // Receipt details
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(0, 0, 0);
+
+      // Patient info
+      doc.setFont("helvetica", "bold");
+      doc.text("Datos del Paciente:", margin, y);
+      y += 8;
+      doc.setFont("helvetica", "normal");
+      doc.text(`Nombre: ${receipt.patientName}`, margin, y);
+      y += 6;
+      doc.text(`Cédula: ${receipt.patientCedula}`, margin, y);
+      y += 10;
+
+      // Payment details
+      doc.setFont("helvetica", "bold");
+      doc.text("Detalles del Pago:", margin, y);
+      y += 8;
+      doc.setFont("helvetica", "normal");
+      doc.text(`Concepto: ${receipt.concept}`, margin, y);
+      y += 6;
+      doc.text(`Monto: $${Number(receipt.amount).toFixed(2)}`, margin, y);
+      y += 6;
+      doc.text(`Método de pago: ${receipt.method}`, margin, y);
+      y += 10;
+
+      // Footer
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      doc.text("Emitido automáticamente por UroVital © 2025", doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: "center" });
+
+      // Download PDF
+      const fileName = `Comprobante_${receipt.number}.pdf`;
+      doc.save(fileName);
+
+      toast({
+        title: "PDF generado exitosamente",
+        description: `El comprobante ${receipt.number} ha sido descargado.`,
+      });
+
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        variant: "destructive",
+        title: "Error al generar PDF",
+        description: "No se pudo generar el archivo PDF.",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6 overflow-x-auto md:overflow-x-visible">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
@@ -266,14 +350,23 @@ export function FinanceTable({
         </div>
       </div>
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentPage}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-        >
+      {/* Tabs for Payments and Receipts */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="payments">Pagos</TabsTrigger>
+          <TabsTrigger value="receipts">Comprobantes</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {activeTab === 'payments' && (
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentPage}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
           {/* Desktop Table */}
           <motion.div 
             className="hidden md:block rounded-lg border bg-card"
@@ -420,32 +513,90 @@ export function FinanceTable({
         </motion.div>
       </AnimatePresence>
 
-      {filteredPayments.length === 0 && (
-        <div className="text-center py-16 text-muted-foreground col-span-full">
-          <Search className="mx-auto h-10 w-10 mb-2" />
-          No se encontraron pagos.
-        </div>
+            {filteredPayments.length === 0 && (
+              <div className="text-center py-16 text-muted-foreground col-span-full">
+                <Search className="mx-auto h-10 w-10 mb-2" />
+                No se encontraron pagos.
+              </div>
+            )}
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center space-x-4 pt-4">
+                <Button 
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  Anterior
+                </Button>
+                <span className="text-sm font-medium text-muted-foreground">
+                  Página {currentPage} de {totalPages}
+                </span>
+                <Button 
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  Siguiente
+                </Button>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       )}
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center space-x-4 pt-4">
-          <Button 
-            variant="outline"
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-          >
-            Anterior
-          </Button>
-          <span className="text-sm font-medium text-muted-foreground">
-            Página {currentPage} de {totalPages}
-          </span>
-          <Button 
-            variant="outline"
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
-          >
-            Siguiente
-          </Button>
+      {activeTab === 'receipts' && (
+        <div className="space-y-4">
+          {receipts.length === 0 ? (
+            <div className="text-center p-8 bg-muted rounded-lg">
+              <p className="text-muted-foreground">No hay comprobantes generados aún.</p>
+            </div>
+          ) : (
+            <div className="border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Número</TableHead>
+                    <TableHead>Paciente</TableHead>
+                    <TableHead>Concepto</TableHead>
+                    <TableHead>Monto</TableHead>
+                    <TableHead>Método</TableHead>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {receipts.map((receipt) => (
+                    <TableRow key={receipt.id}>
+                      <TableCell className="font-medium">{receipt.number}</TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{receipt.patientName}</div>
+                          <div className="text-sm text-muted-foreground">{receipt.patientCedula}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{receipt.concept}</TableCell>
+                      <TableCell className="font-medium">${Number(receipt.amount).toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{receipt.method}</Badge>
+                      </TableCell>
+                      <TableCell>{format(new Date(receipt.createdAt), 'dd/MM/yyyy HH:mm')}</TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => generateReceiptPDF(receipt)}
+                        >
+                          <FileDown className="h-4 w-4 mr-1" />
+                          PDF
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </div>
       )}
 

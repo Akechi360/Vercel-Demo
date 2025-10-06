@@ -436,21 +436,35 @@ export async function addConsultation(consultationData: {
         });
         
         if (doctorUser) {
-          // Create a doctor record in the Doctor table for this user
-          const [nombre, apellido] = doctorUser.name.split(' ', 2);
-          doctor = await prisma.doctor.create({
-            data: {
-              nombre: nombre || doctorUser.name,
-              apellido: apellido || '',
-              especialidad: 'Médico General',
-              cedula: `DOC-${doctorUser.id}`, // Generate unique ID based on user ID
-              telefono: doctorUser.phone,
-              email: doctorUser.email,
-              direccion: '',
-              area: '',
-              contacto: doctorUser.phone || '',
+          // Check if a doctor record already exists for this user
+          const existingDoctor = await prisma.doctor.findFirst({
+            where: {
+              OR: [
+                { email: doctorUser.email },
+                { cedula: `DOC-${doctorUser.id}` }
+              ]
             }
           });
+
+          if (!existingDoctor) {
+            // Create a doctor record in the Doctor table for this user
+            const [nombre, apellido] = doctorUser.name.split(' ', 2);
+            doctor = await prisma.doctor.create({
+              data: {
+                nombre: nombre || doctorUser.name,
+                apellido: apellido || '',
+                especialidad: 'Médico General',
+                cedula: `DOC-${doctorUser.id}-${Date.now()}`, // More unique ID with timestamp
+                telefono: doctorUser.phone,
+                email: doctorUser.email,
+                direccion: '',
+                area: '',
+                contacto: doctorUser.phone || '',
+              }
+            });
+          } else {
+            doctor = existingDoctor;
+          }
         }
       }
 

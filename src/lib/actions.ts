@@ -126,6 +126,7 @@ export async function addPatient(patientData: {
       direccion: '',
     });
     
+    // Create patient
     const patient = await prisma.patient.create({
       data: {
         nombre: nombre || patientData.name,
@@ -139,6 +140,38 @@ export async function addPatient(patientData: {
     });
     
     console.log('Patient created successfully:', patient);
+
+    // Create user for the patient
+    const user = await prisma.user.create({
+      data: {
+        name: patientData.name,
+        email: patientData.contact.email || `${patient.id}@patient.local`,
+        password: 'temp-password', // Temporary password, should be changed
+        role: 'patient',
+        status: 'ACTIVE',
+        phone: patientData.contact.phone,
+        patientId: patient.id,
+      },
+    });
+
+    console.log('User created successfully:', user);
+
+    // If companyId is provided, create affiliation
+    if (patientData.companyId) {
+      const affiliation = await prisma.affiliation.create({
+        data: {
+          planId: 'default-plan',
+          estado: 'ACTIVA',
+          fechaInicio: new Date(),
+          monto: 0, // Default amount
+          beneficiarios: null,
+          companyId: patientData.companyId,
+          userId: user.id,
+        },
+      });
+
+      console.log('Affiliation created successfully:', affiliation);
+    }
 
     return {
       id: patient.id,

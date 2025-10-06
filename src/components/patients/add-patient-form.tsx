@@ -76,7 +76,7 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
             phone: values.phone || '',
             email: '',
         },
-        companyId: values.companyId,
+        companyId: values.companyId === 'none' ? undefined : values.companyId,
       });
       addPatientToStore(newPatient);
       toast({

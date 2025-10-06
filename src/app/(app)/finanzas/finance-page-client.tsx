@@ -33,16 +33,6 @@ export function FinancePageClient({
     <div className="flex flex-col gap-8">
       <PageHeader 
         title="Finanzas"
-        actions={
-          canGenerateReceipts() && (
-            <Button asChild>
-              <Link href="/finanzas/nuevo">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Crear Comprobante
-              </Link>
-            </Button>
-          )
-        }
       />
       
       {/* Solo Admin puede ver estadísticas financieras completas */}

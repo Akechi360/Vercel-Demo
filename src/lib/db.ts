@@ -1,5 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 
+// Singleton pattern para evitar múltiples conexiones
+let prisma: PrismaClient | null = null;
+
 // Configuración condicional de Prisma
 const createPrismaClient = () => {
   // Verificar si DATABASE_URL está disponible
@@ -8,13 +11,22 @@ const createPrismaClient = () => {
     return null;
   }
 
-  return new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
-  });
-};
+  // Si ya existe una instancia, reutilizarla
+  if (prisma) {
+    return prisma;
+  }
 
-// Crear instancia de Prisma
-const prisma = createPrismaClient();
+  prisma = new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['error'] : ['error'],
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
+    },
+  });
+
+  return prisma;
+};
 
 // Función para verificar si la base de datos está disponible
 export const isDatabaseAvailable = (): boolean => {
@@ -26,7 +38,7 @@ export const getPrismaClient = () => {
   if (!isDatabaseAvailable()) {
     throw new Error('Database not available. Please configure DATABASE_URL.');
   }
-  return prisma!;
+  return createPrismaClient()!;
 };
 
 // Exportar la instancia por defecto

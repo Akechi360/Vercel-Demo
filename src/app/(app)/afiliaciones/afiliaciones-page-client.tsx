@@ -4,11 +4,14 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AffiliationStatCards } from "@/components/affiliations/stat-cards";
 import { useState } from "react";
 import AffiliationActions from "@/components/affiliations/affiliation-actions";
 import { AddAffiliationDialog } from "@/components/affiliations/add-affiliation-dialog";
+import { createTestAffiliation } from "@/lib/actions";
+import { useToast } from "@/hooks/use-toast";
 
 interface AfiliacionesPageClientProps {
   initialAffiliations: any[];
@@ -16,6 +19,7 @@ interface AfiliacionesPageClientProps {
 
 export function AfiliacionesPageClient({ initialAffiliations }: AfiliacionesPageClientProps) {
   const [affiliations, setAffiliations] = useState(initialAffiliations);
+  const { toast } = useToast();
 
   const handleRemoveAffiliation = (id: string) => {
     setAffiliations(prev => prev.filter(item => item.id !== id));
@@ -33,6 +37,24 @@ export function AfiliacionesPageClient({ initialAffiliations }: AfiliacionesPage
     // Reload the page to get fresh data from server
     window.location.reload();
   };
+
+  const handleCreateTestAffiliation = async () => {
+    try {
+      await createTestAffiliation();
+      toast({
+        title: "Afiliación de prueba creada",
+        description: "Se creó una afiliación de prueba en la base de datos.",
+      });
+      handleRefreshAffiliations();
+    } catch (error) {
+      console.error('Error creating test affiliation:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo crear la afiliación de prueba.",
+      });
+    }
+  };
   
   return (
     <div className="flex flex-col gap-8">
@@ -44,6 +66,13 @@ export function AfiliacionesPageClient({ initialAffiliations }: AfiliacionesPage
                         onAddAffiliation={handleAddAffiliation} 
                         onRefresh={handleRefreshAffiliations}
                     />
+                    <Button 
+                        variant="outline" 
+                        onClick={handleCreateTestAffiliation}
+                        className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                    >
+                        🧪 Crear Test
+                    </Button>
                 </div>
             }
         />

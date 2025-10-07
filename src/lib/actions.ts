@@ -838,6 +838,57 @@ export async function getAffiliations(): Promise<any[]> {
   }
 }
 
+// Test function to create a manual affiliation
+export async function createTestAffiliation(): Promise<any> {
+  try {
+    console.log('🧪 Creating test affiliation...');
+    
+    const isAvailable = await isDatabaseAvailable();
+    if (!isAvailable) {
+      throw new Error('Base de datos no disponible.');
+    }
+
+    const prisma = getPrisma();
+    
+    // First, get a company and user
+    const companies = await prisma.company.findMany({ take: 1 });
+    const users = await prisma.user.findMany({ take: 1 });
+    
+    console.log('🏢 Available companies:', companies);
+    console.log('👥 Available users:', users);
+    
+    if (companies.length === 0) {
+      throw new Error('No hay empresas en la base de datos');
+    }
+    
+    if (users.length === 0) {
+      throw new Error('No hay usuarios en la base de datos');
+    }
+    
+    const testAffiliation = await prisma.affiliation.create({
+      data: {
+        planId: 'test-plan',
+        estado: 'ACTIVA',
+        fechaInicio: new Date(),
+        monto: 100,
+        beneficiarios: undefined,
+        companyId: companies[0].id,
+        userId: users[0].id,
+      },
+      include: {
+        company: true,
+        user: true,
+      },
+    });
+
+    console.log('✅ Test affiliation created successfully:', testAffiliation);
+    return testAffiliation;
+  } catch (error) {
+    console.error('❌ Error creating test affiliation:', error);
+    throw error;
+  }
+}
+
 // AFFILIATE LEAD ACTIONS
 export async function submitAffiliateLead(data: AffiliateLead) {
   try {

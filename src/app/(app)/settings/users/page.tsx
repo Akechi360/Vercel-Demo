@@ -192,7 +192,7 @@ export default function UsersManagementPage() {
         phone: null,
         lastLogin: null,
         patientId: null,
-        avatarUrl: null
+        avatarUrl: null // Se usará el valor por defecto de Prisma
       });
       
       setUsers([...users, userData]);

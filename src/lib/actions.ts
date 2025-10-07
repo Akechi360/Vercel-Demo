@@ -982,19 +982,27 @@ export async function getAuditLogs(): Promise<any[]> {
 // USER MANAGEMENT ACTIONS
 export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<User> {
   try {
+    if (!isDatabaseAvailable()) {
+      throw new Error('Base de datos no disponible. No se puede crear el usuario.');
+    }
+
     const hashedPassword = await bcrypt.hash(data.password, 12);
+    const prisma = getPrisma();
     
-    const newUser = await withDatabase(async (prisma) => {
-      return await prisma.user.create({
-        data: {
-          ...data,
-          password: hashedPassword,
-        },
-      });
+    const newUser = await prisma.user.create({
+      data: {
+        ...data,
+        password: hashedPassword,
+      },
     });
 
     // Create audit log for user creation
-    await createAuditLog(newUser.id, 'Usuario creado', `Nuevo usuario ${newUser.name} con rol ${newUser.role}`);
+    try {
+      await createAuditLog(newUser.id, 'Usuario creado', `Nuevo usuario ${newUser.name} con rol ${newUser.role}`);
+    } catch (auditError) {
+      console.warn('Error creating audit log:', auditError);
+      // Don't fail user creation if audit log fails
+    }
 
     return newUser;
   } catch (error) {
@@ -1005,11 +1013,14 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
 
 export async function updateUser(userId: string, data: Partial<Omit<User, "id" | "createdAt">>): Promise<User> {
   try {
-    return await withDatabase(async (prisma) => {
-      return await prisma.user.update({
-        where: { id: userId },
-        data,
-      });
+    if (!isDatabaseAvailable()) {
+      throw new Error('Base de datos no disponible. No se puede actualizar el usuario.');
+    }
+
+    const prisma = getPrisma();
+    return await prisma.user.update({
+      where: { id: userId },
+      data,
     });
   } catch (error) {
     console.error('Error updating user:', error);
@@ -1020,10 +1031,13 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
 
 export async function deleteUser(userId: string): Promise<void> {
   try {
-    await withDatabase(async (prisma) => {
-      await prisma.user.delete({
-        where: { id: userId },
-      });
+    if (!isDatabaseAvailable()) {
+      throw new Error('Base de datos no disponible. No se puede eliminar el usuario.');
+    }
+
+    const prisma = getPrisma();
+    await prisma.user.delete({
+      where: { id: userId },
     });
   } catch (error) {
     console.error('Error deleting user:', error);

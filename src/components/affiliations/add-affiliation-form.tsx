@@ -27,158 +27,187 @@ import { useAuth } from "../layout/auth-provider";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { useEffect, useState } from "react";
+import { getCompanies, getUsers } from "@/lib/actions";
+import type { Company, User } from "@/lib/types";
 
 const formSchema = z.object({
-  promotora: z.string().optional(),
-  nombreCompleto: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
-  telefono: z.string().min(7, "El teléfono debe tener al menos 7 dígitos."),
-  direccion: z.string().min(10, "La dirección debe tener al menos 10 caracteres."),
-  ultimaAfiliacion: z.date({
-    required_error: "La fecha de afiliación es requerida.",
-  }),
-  estado: z.enum(['Activo', 'Inactivo']),
+  companyId: z.string().optional(),
+  userId: z.string().min(1, "El usuario es requerido."),
+  planId: z.string().min(1, "El plan es requerido."),
+  monto: z.coerce.number().min(0, "El monto debe ser mayor o igual a 0."),
+  estado: z.enum(['ACTIVA', 'INACTIVA', 'SUSPENDIDA', 'VENCIDA']).default('ACTIVA'),
 });
 
 export type FormValues = z.infer<typeof formSchema>;
 
 interface AddAffiliationFormProps {
-  onSubmit: (values: Omit<FormValues, 'nombreCompleto' | 'telefono' | 'direccion'>) => void;
+  onSubmit: (values: FormValues) => void;
   onCancel: () => void;
 }
 
 export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormProps) {
   const { currentUser } = useAuth();
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [companiesData, usersData] = await Promise.all([
+          getCompanies(),
+          getUsers()
+        ]);
+        setCompanies(companiesData);
+        setUsers(usersData);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      nombreCompleto: "",
-      telefono: "",
-      direccion: "",
-      ultimaAfiliacion: new Date(),
-      estado: "Activo",
+      companyId: "",
+      userId: "",
+      planId: "default-plan",
+      monto: 0,
+      estado: "ACTIVA",
     },
   });
 
   const { formState: { isSubmitting } } = form;
 
   const handleFormSubmit = (values: FormValues) => {
-    // We only pass the necessary fields, as the prompt requested placeholders
-    const { nombreCompleto, telefono, direccion, ...rest } = values;
-    onSubmit(rest);
+    onSubmit(values);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Cargando datos...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
         <FormField
           control={form.control}
-          name="promotora"
+          name="companyId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Promotora</FormLabel>
-              <FormControl>
-                <Input value={currentUser?.name || "Usuario"} disabled />
-              </FormControl>
+              <FormLabel>Empresa (Opcional)</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona una empresa o deja vacío para paciente particular" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="">Paciente Particular</SelectItem>
+                  {companies.map((company) => (
+                    <SelectItem key={company.id} value={company.id}>
+                      {company.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
         />
+
         <FormField
           control={form.control}
-          name="nombreCompleto"
+          name="userId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Nombre Completo del Afiliado</FormLabel>
-              <FormControl>
-                <Input placeholder="Ej: Ana de Pérez" {...field} />
-              </FormControl>
+              <FormLabel>Usuario</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un usuario" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name} ({user.role})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
         />
-         <FormField
+
+        <FormField
           control={form.control}
-          name="telefono"
+          name="planId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Número de Teléfono</FormLabel>
+              <FormLabel>Plan</FormLabel>
               <FormControl>
-                <Input type="tel" placeholder="Ej: 0414-1234567" {...field} />
+                <Input placeholder="Ej: Plan Básico, Plan Premium" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-         <FormField
+
+        <FormField
           control={form.control}
-          name="direccion"
+          name="monto"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Dirección</FormLabel>
+              <FormLabel>Monto</FormLabel>
               <FormControl>
-                <Textarea placeholder="Ej: Urb. La Viña, Valencia" {...field} />
+                <Input 
+                  type="number" 
+                  step="0.01" 
+                  placeholder="0.00" 
+                  {...field} 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="ultimaAfiliacion"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Fecha de Afiliación</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full pl-3 text-left font-normal h-10",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value ? format(field.value, "PPP") : <span>Elige una fecha</span>}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="estado"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Estado</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder="Seleccione un estado" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Activo">Activo</SelectItem>
-                    <SelectItem value="Inactivo">Inactivo</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+
+        <FormField
+          control={form.control}
+          name="estado"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Estado</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un estado" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="ACTIVA">Activa</SelectItem>
+                  <SelectItem value="INACTIVA">Inactiva</SelectItem>
+                  <SelectItem value="SUSPENDIDA">Suspendida</SelectItem>
+                  <SelectItem value="VENCIDA">Vencida</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <div className="flex justify-end gap-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancelar

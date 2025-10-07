@@ -764,10 +764,11 @@ export async function login(credentials: { email: string; password: string }) {
 
 // AFFILIATION ACTIONS
 export async function addAffiliation(affiliationData: {
-  companyId: string;
+  companyId?: string;
   userId: string;
   planId?: string;
   monto?: number;
+  estado?: string;
 }): Promise<any> {
   try {
     const isAvailable = await isDatabaseAvailable();
@@ -780,11 +781,11 @@ export async function addAffiliation(affiliationData: {
     const affiliation = await prisma.affiliation.create({
       data: {
         planId: affiliationData.planId || 'default-plan',
-        estado: 'ACTIVA',
+        estado: (affiliationData.estado as any) || 'ACTIVA',
         fechaInicio: new Date(),
         monto: affiliationData.monto || 0,
         beneficiarios: undefined,
-        companyId: affiliationData.companyId,
+        companyId: affiliationData.companyId || null, // Allow null for patient particular
         userId: affiliationData.userId,
       },
       include: {

@@ -23,7 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 const MySwal = withReactContent(Swal);
 
 interface AddAffiliationDialogProps {
-    onAddAffiliation: (newAffiliation: Omit<Affiliation, 'id'>) => void;
+    onAddAffiliation?: (newAffiliation: Omit<Affiliation, 'id'>) => void;
     onRefresh?: () => void;
 }
 
@@ -33,35 +33,43 @@ export function AddAffiliationDialog({ onAddAffiliation, onRefresh }: AddAffilia
     const { currentUser } = useAuth();
     const { toast } = useToast();
     
-    const handleSubmit = async (values: Omit<FormValues, 'nombreCompleto' | 'telefono' | 'direccion'>) => {
+    const handleSubmit = async (values: FormValues) => {
         setIsLoading(true);
         try {
-            // For now, we'll just show a success message and refresh the page
-            // The actual affiliation creation should be done through the patient creation flow
-            // or through a proper form that selects company and user
+            console.log('🔍 Creating affiliation with values:', values);
+            
+            const affiliationData = {
+                companyId: values.companyId || undefined, // Convert empty string to undefined
+                userId: values.userId,
+                planId: values.planId,
+                monto: values.monto,
+                estado: values.estado,
+            };
+
+            const newAffiliation = await addAffiliation(affiliationData);
             
             setOpen(false);
             
-            // Refresh the page to show any existing affiliations
+            // Refresh the page to show the new affiliation
             if (onRefresh) {
                 onRefresh();
             }
             
             const isDarkMode = document.documentElement.classList.contains('dark');
             MySwal.fire({
-                title: 'Información',
-                text: 'Para crear afiliaciones, por favor usa el flujo de "Agregar Paciente" y selecciona una empresa. Las afiliaciones se crean automáticamente cuando un paciente se asocia a una empresa.',
-                icon: 'info',
+                title: 'Afiliación creada',
+                text: 'La afiliación fue registrada con éxito en la base de datos.',
+                icon: 'success',
                 background: isDarkMode ? '#1e293b' : '#ffffff',
                 color: isDarkMode ? '#f1f5f9' : '#0f172a',
                 confirmButtonColor: '#4f46e5',
             });
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error creating affiliation:', error);
             toast({
                 variant: "destructive",
                 title: "Error",
-                description: "Hubo un problema. Inténtalo de nuevo.",
+                description: error instanceof Error ? error.message : "No se pudo crear la afiliación.",
             });
         } finally {
             setIsLoading(false);

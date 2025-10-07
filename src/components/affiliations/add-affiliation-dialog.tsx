@@ -19,6 +19,7 @@ import withReactContent from 'sweetalert2-react-content';
 import { useAuth } from "../layout/auth-provider";
 import { addAffiliation } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
+import { useCachedData } from "@/hooks/use-cached-data";
 
 const MySwal = withReactContent(Swal);
 
@@ -32,6 +33,7 @@ export function AddAffiliationDialog({ onAddAffiliation, onRefresh }: AddAffilia
     const [isLoading, setIsLoading] = useState(false);
     const { currentUser } = useAuth();
     const { toast } = useToast();
+    const { refreshData } = useCachedData();
     
     const handleSubmit = async (values: FormValues) => {
         setIsLoading(true);
@@ -76,8 +78,20 @@ export function AddAffiliationDialog({ onAddAffiliation, onRefresh }: AddAffilia
         }
     };
 
+    const handleOpenChange = (newOpen: boolean) => {
+        setOpen(newOpen);
+        if (!newOpen) {
+            // Refresh cache when dialog closes
+            refreshData();
+            // Also refresh the page data if callback provided
+            if (onRefresh) {
+                onRefresh();
+            }
+        }
+    };
+
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
                 <Button>
                     <PlusCircle className="mr-2 h-4 w-4" />

@@ -27,9 +27,7 @@ import { useAuth } from "../layout/auth-provider";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { useEffect, useState } from "react";
-import { getCompanies, getUsers } from "@/lib/actions";
-import type { Company, User } from "@/lib/types";
+import { useCachedData } from "@/hooks/use-cached-data";
 
 const formSchema = z.object({
   companyId: z.string().optional(),
@@ -55,32 +53,7 @@ interface AddAffiliationFormProps {
 
 export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormProps) {
   const { currentUser } = useAuth();
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        console.log('🔍 Loading companies and users...');
-        const [companiesData, usersData] = await Promise.all([
-          getCompanies(),
-          getUsers()
-        ]);
-        console.log(`✅ Loaded ${companiesData.length} companies and ${usersData.length} users`);
-        setCompanies(companiesData);
-        setUsers(usersData);
-      } catch (error) {
-        console.error('❌ Error loading data:', error);
-        // Set empty arrays on error to prevent infinite loading
-        setCompanies([]);
-        setUsers([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
-  }, []);
+  const { companies, users, loading, error } = useCachedData();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -104,7 +77,20 @@ export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormPro
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-3"></div>
-          <p className="text-sm text-muted-foreground">Cargando empresas y usuarios...</p>
+          <p className="text-sm text-muted-foreground">Cargando datos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <p className="text-sm text-red-600 mb-4">{error}</p>
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            Reintentar
+          </Button>
         </div>
       </div>
     );

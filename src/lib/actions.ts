@@ -274,6 +274,14 @@ export async function getUsers(): Promise<User[]> {
     }
     const prisma = getPrisma();
     return await prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        avatarUrl: true,
+        createdAt: true,
+      },
       orderBy: { createdAt: 'desc' },
     });
   } catch (error) {
@@ -349,6 +357,14 @@ export async function getCompanies(): Promise<Company[]> {
   try {
     const companies = await withDatabase(async (prisma) => {
       return await prisma.company.findMany({
+        select: {
+          id: true,
+          nombre: true,
+          rif: true,
+          telefono: true,
+          email: true,
+          createdAt: true,
+        },
         orderBy: { createdAt: 'desc' },
       });
     });
@@ -363,7 +379,7 @@ export async function getCompanies(): Promise<Company[]> {
     }));
   } catch (error) {
     console.error('Error fetching companies:', error);
-  return [];
+    return [];
   }
 }
 

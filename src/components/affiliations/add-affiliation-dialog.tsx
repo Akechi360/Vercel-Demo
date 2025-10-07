@@ -42,7 +42,7 @@ export function AddAffiliationDialog({ onAddAffiliation, onRefresh }: AddAffilia
             
             const affiliationData = {
                 companyId: values.companyId === "none" ? undefined : values.companyId, // Convert "none" to undefined
-                userId: values.userId,
+                userId: currentUser?.id || "", // Use logged in user automatically
                 planId: values.planId,
                 monto: values.monto,
                 estado: values.estado,

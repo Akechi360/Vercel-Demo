@@ -24,14 +24,13 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { useAuth } from "../layout/auth-provider";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Check, Star, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useCachedData } from "@/hooks/use-cached-data";
 
 const formSchema = z.object({
   companyId: z.string().optional(),
-  userId: z.string().min(1, "El usuario es requerido."),
   planId: z.string().min(1, "El plan es requerido."),
   monto: z.preprocess(
     (val) => {
@@ -59,8 +58,7 @@ export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormPro
     resolver: zodResolver(formSchema),
     defaultValues: {
       companyId: "none",
-      userId: "",
-      planId: "default-plan",
+      planId: "",
       monto: 0,
       estado: "ACTIVA",
     },
@@ -125,40 +123,81 @@ export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormPro
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="userId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Usuario</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un usuario" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.name} ({user.role})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Usuario</label>
+          <div className="flex items-center space-x-2 p-3 border rounded-md bg-muted/50">
+            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+              <span className="text-sm font-medium text-blue-600">
+                {currentUser?.name?.charAt(0) || 'U'}
+              </span>
+            </div>
+            <div>
+              <p className="text-sm font-medium">{currentUser?.name || 'Usuario'}</p>
+              <p className="text-xs text-muted-foreground">{currentUser?.role || 'Usuario'}</p>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Se usará automáticamente tu usuario para esta afiliación
+          </p>
+        </div>
 
         <FormField
           control={form.control}
           name="planId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Plan</FormLabel>
-              <FormControl>
-                <Input placeholder="Ej: Plan Básico, Plan Premium" {...field} />
-              </FormControl>
+              <FormLabel>Plan de Afiliación</FormLabel>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div
+                  className={cn(
+                    "relative p-4 border-2 rounded-lg cursor-pointer transition-all hover:shadow-md",
+                    field.value === "basico" 
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-950" 
+                      : "border-gray-200 hover:border-gray-300"
+                  )}
+                  onClick={() => field.onChange("basico")}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                        <Shield className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-sm">Plan Básico</h3>
+                        <p className="text-xs text-muted-foreground">Cobertura esencial</p>
+                      </div>
+                    </div>
+                    {field.value === "basico" && (
+                      <Check className="w-5 h-5 text-blue-600" />
+                    )}
+                  </div>
+                </div>
+                
+                <div
+                  className={cn(
+                    "relative p-4 border-2 rounded-lg cursor-pointer transition-all hover:shadow-md",
+                    field.value === "premium" 
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-950" 
+                      : "border-gray-200 hover:border-gray-300"
+                  )}
+                  onClick={() => field.onChange("premium")}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
+                        <Star className="w-5 h-5 text-yellow-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-sm">Plan Premium</h3>
+                        <p className="text-xs text-muted-foreground">Cobertura completa</p>
+                      </div>
+                    </div>
+                    {field.value === "premium" && (
+                      <Check className="w-5 h-5 text-blue-600" />
+                    )}
+                  </div>
+                </div>
+              </div>
               <FormMessage />
             </FormItem>
           )}

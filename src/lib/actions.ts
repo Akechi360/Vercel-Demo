@@ -11,15 +11,16 @@ import { getPrismaClient, isDatabaseAvailable } from './db';
 
 // Función para obtener el cliente de Prisma de manera segura
 const getPrisma = () => {
-  if (!isDatabaseAvailable()) {
-    throw new Error('Database not available. Please configure DATABASE_URL in your environment variables.');
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL is required but not found in environment variables');
   }
   return getPrismaClient();
 };
 
 // Función helper para ejecutar operaciones de base de datos con manejo de errores
 const withDatabase = async <T>(operation: (prisma: any) => Promise<T>, fallbackValue?: T): Promise<T> => {
-  if (!isDatabaseAvailable()) {
+  const isAvailable = await isDatabaseAvailable();
+  if (!isAvailable) {
     console.log('Database not available - using fallback value');
     if (fallbackValue !== undefined) {
       return fallbackValue;
@@ -36,14 +37,7 @@ const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 // Test database connection
 export async function testDatabaseConnection(): Promise<boolean> {
   try {
-    if (!isDatabaseAvailable()) {
-      console.log('Database not available - DATABASE_URL not configured');
-      return false;
-    }
-    const prisma = getPrisma();
-    await prisma.$connect();
-    console.log('Database connection test successful');
-    return true;
+    return await isDatabaseAvailable();
   } catch (error) {
     console.error('Database connection test failed:', error);
     return false;
@@ -53,7 +47,8 @@ export async function testDatabaseConnection(): Promise<boolean> {
 // PATIENT ACTIONS
 export async function getPatients(): Promise<Patient[]> {
   try {
-    if (!isDatabaseAvailable()) {
+    const isAvailable = await isDatabaseAvailable();
+    if (!isAvailable) {
       console.log('Database not available - returning empty array');
       return [];
     }
@@ -99,7 +94,8 @@ export async function addPatient(patientData: {
   try {
     console.log('addPatient called with data:', JSON.stringify(patientData, null, 2));
     
-    if (!isDatabaseAvailable()) {
+    const isAvailable = await isDatabaseAvailable();
+    if (!isAvailable) {
       throw new Error('Database not available. Please configure DATABASE_URL in your environment variables.');
     }
     
@@ -982,7 +978,8 @@ export async function getAuditLogs(): Promise<any[]> {
 // USER MANAGEMENT ACTIONS
 export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<User> {
   try {
-    if (!isDatabaseAvailable()) {
+    const isAvailable = await isDatabaseAvailable();
+    if (!isAvailable) {
       throw new Error('Base de datos no disponible. No se puede crear el usuario.');
     }
 
@@ -1006,14 +1003,15 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
 
     return newUser;
   } catch (error) {
-    console.error('Error creating user:', error);
-    throw new Error('Error al crear usuario');
+    console.error('❌ Error creando usuario:', error);
+    throw new Error('No se pudo crear el usuario. Verifica la conexión a la base de datos.');
   }
 }
 
 export async function updateUser(userId: string, data: Partial<Omit<User, "id" | "createdAt">>): Promise<User> {
   try {
-    if (!isDatabaseAvailable()) {
+    const isAvailable = await isDatabaseAvailable();
+    if (!isAvailable) {
       throw new Error('Base de datos no disponible. No se puede actualizar el usuario.');
     }
 
@@ -1031,7 +1029,8 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
 
 export async function deleteUser(userId: string): Promise<void> {
   try {
-    if (!isDatabaseAvailable()) {
+    const isAvailable = await isDatabaseAvailable();
+    if (!isAvailable) {
       throw new Error('Base de datos no disponible. No se puede eliminar el usuario.');
     }
 

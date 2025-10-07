@@ -1,23 +1,21 @@
 import { PrismaClient } from '@prisma/client';
 
 // Singleton pattern para evitar múltiples conexiones
-let prisma: PrismaClient | null = null;
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-// Configuración condicional de Prisma
-const createPrismaClient = () => {
-  // Verificar si DATABASE_URL está disponible
-  if (!process.env.DATABASE_URL) {
-    console.warn('DATABASE_URL not found. Using mock data mode.');
-    return null;
-  }
+// Verificar que DATABASE_URL esté configurado
+if (!process.env.DATABASE_URL) {
+  console.error('❌ DATABASE_URL no está configurado en las variables de entorno');
+  throw new Error('DATABASE_URL is required but not found in environment variables');
+}
 
-  // Si ya existe una instancia, reutilizarla
-  if (prisma) {
-    return prisma;
-  }
+console.log('🧩 Prisma conectado a:', process.env.DATABASE_URL);
 
-  prisma = new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['error'] : ['error'],
+// Crear instancia de Prisma con configuración robusta
+export const prisma =
+  globalForPrisma.prisma ||
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
     datasources: {
       db: {
         url: process.env.DATABASE_URL,
@@ -25,20 +23,34 @@ const createPrismaClient = () => {
     },
   });
 
-  return prisma;
-};
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma;
+}
 
-// Función para verificar si la base de datos está disponible
-export const isDatabaseAvailable = (): boolean => {
-  return prisma !== null && !!process.env.DATABASE_URL;
+// Función robusta para verificar disponibilidad de base de datos
+export const isDatabaseAvailable = async (): Promise<boolean> => {
+  try {
+    if (!process.env.DATABASE_URL) {
+      console.warn('⚠️ DATABASE_URL not found. Database unavailable.');
+      return false;
+    }
+
+    // Probar conexión real con una consulta simple
+    await prisma.$queryRaw`SELECT 1`;
+    console.log('✅ Conectado correctamente a Railway');
+    return true;
+  } catch (error) {
+    console.error('❌ Error de conexión a la base de datos:', error);
+    return false;
+  }
 };
 
 // Función para obtener el cliente de Prisma
 export const getPrismaClient = () => {
-  if (!isDatabaseAvailable()) {
-    throw new Error('Database not available. Please configure DATABASE_URL.');
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL is required but not found in environment variables');
   }
-  return createPrismaClient()!;
+  return prisma;
 };
 
 // Exportar la instancia por defecto

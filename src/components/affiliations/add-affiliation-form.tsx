@@ -163,7 +163,7 @@ export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormPro
                         <Shield className="w-5 h-5 text-blue-600" />
                       </div>
                       <div>
-                        <h3 className="font-medium text-sm">Plan Básico</h3>
+                        <h3 className="font-medium text-sm">Tarjeta Saludable</h3>
                         <p className="text-xs text-muted-foreground">Cobertura esencial</p>
                       </div>
                     </div>
@@ -188,7 +188,7 @@ export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormPro
                         <Star className="w-5 h-5 text-yellow-600" />
                       </div>
                       <div>
-                        <h3 className="font-medium text-sm">Plan Premium</h3>
+                        <h3 className="font-medium text-sm">F. Espíritu Santo</h3>
                         <p className="text-xs text-muted-foreground">Cobertura completa</p>
                       </div>
                     </div>

@@ -73,7 +73,7 @@ export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormPro
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      companyId: "",
+      companyId: "none",
       userId: "",
       planId: "default-plan",
       monto: 0,
@@ -114,7 +114,7 @@ export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormPro
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">Paciente Particular</SelectItem>
+                  <SelectItem value="none">Paciente Particular</SelectItem>
                   {companies.map((company) => (
                     <SelectItem key={company.id} value={company.id}>
                       {company.name}

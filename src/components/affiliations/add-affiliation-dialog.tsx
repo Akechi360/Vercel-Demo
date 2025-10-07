@@ -39,7 +39,7 @@ export function AddAffiliationDialog({ onAddAffiliation, onRefresh }: AddAffilia
             console.log('🔍 Creating affiliation with values:', values);
             
             const affiliationData = {
-                companyId: values.companyId || undefined, // Convert empty string to undefined
+                companyId: values.companyId === "none" ? undefined : values.companyId, // Convert "none" to undefined
                 userId: values.userId,
                 planId: values.planId,
                 monto: values.monto,

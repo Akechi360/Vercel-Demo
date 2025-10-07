@@ -40,7 +40,10 @@ export function AfiliacionesPageClient({ initialAffiliations }: AfiliacionesPage
             title="Afiliaciones"
             actions={
                 <div className="flex gap-2">
-                    <AddAffiliationDialog onAddAffiliation={handleAddAffiliation} />
+                    <AddAffiliationDialog 
+                        onAddAffiliation={handleAddAffiliation} 
+                        onRefresh={handleRefreshAffiliations}
+                    />
                 </div>
             }
         />

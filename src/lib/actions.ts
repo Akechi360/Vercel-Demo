@@ -759,8 +759,47 @@ export async function login(credentials: { email: string; password: string }) {
 }
 
 // AFFILIATION ACTIONS
+export async function addAffiliation(affiliationData: {
+  companyId: string;
+  userId: string;
+  planId?: string;
+  monto?: number;
+}): Promise<any> {
+  try {
+    const isAvailable = await isDatabaseAvailable();
+    if (!isAvailable) {
+      throw new Error('Base de datos no disponible. No se puede crear la afiliación.');
+    }
+
+    const prisma = getPrisma();
+    
+    const affiliation = await prisma.affiliation.create({
+      data: {
+        planId: affiliationData.planId || 'default-plan',
+        estado: 'ACTIVA',
+        fechaInicio: new Date(),
+        monto: affiliationData.monto || 0,
+        beneficiarios: undefined,
+        companyId: affiliationData.companyId,
+        userId: affiliationData.userId,
+      },
+      include: {
+        company: true,
+        user: true,
+      },
+    });
+
+    console.log('Affiliation created successfully:', affiliation);
+    return affiliation;
+  } catch (error) {
+    console.error('❌ Error creando afiliación:', error);
+    throw new Error('No se pudo crear la afiliación. Verifica la conexión a la base de datos.');
+  }
+}
+
 export async function getAffiliations(): Promise<any[]> {
   try {
+    console.log('🔍 Fetching affiliations from database...');
     const affiliations = await withDatabase(async (prisma) => {
       return await prisma.affiliation.findMany({
         include: {
@@ -771,7 +810,9 @@ export async function getAffiliations(): Promise<any[]> {
       });
     }, []); // Fallback to empty array
 
-    return affiliations.map((affiliation: any) => ({
+    console.log(`📊 Found ${affiliations.length} affiliations in database`);
+    
+    const mappedAffiliations = affiliations.map((affiliation: any) => ({
       id: affiliation.id,
       planId: affiliation.planId,
       estado: affiliation.estado,
@@ -784,8 +825,11 @@ export async function getAffiliations(): Promise<any[]> {
       company: affiliation.company,
       user: affiliation.user,
     }));
+
+    console.log('✅ Mapped affiliations:', mappedAffiliations);
+    return mappedAffiliations;
   } catch (error) {
-    console.error('Error fetching affiliations:', error);
+    console.error('❌ Error fetching affiliations:', error);
     return [];
   }
 }

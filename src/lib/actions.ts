@@ -163,7 +163,7 @@ export async function addPatient(patientData: {
       const affiliation = await prisma.affiliation.create({
         data: {
           planId: 'default-plan',
-          estado: 'ACTIVA',
+          estado: 'ACTIVA', // This should match the enum value
           fechaInicio: new Date(),
           monto: 0, // Default amount
           beneficiarios: undefined,
@@ -769,7 +769,7 @@ export async function getAffiliations(): Promise<any[]> {
         },
         orderBy: { createdAt: 'desc' },
       });
-    });
+    }, []); // Fallback to empty array
 
     return affiliations.map((affiliation: any) => ({
       id: affiliation.id,

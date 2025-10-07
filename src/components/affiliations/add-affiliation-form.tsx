@@ -35,7 +35,14 @@ const formSchema = z.object({
   companyId: z.string().optional(),
   userId: z.string().min(1, "El usuario es requerido."),
   planId: z.string().min(1, "El plan es requerido."),
-  monto: z.coerce.number().min(0, "El monto debe ser mayor o igual a 0."),
+  monto: z.preprocess(
+    (val) => {
+      if (val === "" || val === null || val === undefined) return 0;
+      const num = Number(val);
+      return isNaN(num) ? 0 : num;
+    },
+    z.number().min(0, "El monto debe ser mayor o igual a 0.")
+  ),
   estado: z.enum(['ACTIVA', 'INACTIVA', 'SUSPENDIDA', 'VENCIDA']).default('ACTIVA'),
 });
 
@@ -177,7 +184,11 @@ export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormPro
                   type="number" 
                   step="0.01" 
                   placeholder="0.00" 
-                  {...field} 
+                  value={isNaN(field.value) ? "" : field.value}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    field.onChange(value === "" ? 0 : parseFloat(value));
+                  }}
                 />
               </FormControl>
               <FormMessage />

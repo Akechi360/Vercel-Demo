@@ -24,7 +24,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { useAuth } from "../layout/auth-provider";
-import { CalendarIcon, Check, Star, Shield } from "lucide-react";
+import { CalendarIcon, Check, Star, Shield, CreditCard, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useCachedData } from "@/hooks/use-cached-data";
@@ -32,6 +32,7 @@ import { useCachedData } from "@/hooks/use-cached-data";
 const formSchema = z.object({
   companyId: z.string().optional(),
   planId: z.string().min(1, "El plan es requerido."),
+  tipoPago: z.string().optional(),
   monto: z.preprocess(
     (val) => {
       if (val === "" || val === null || val === undefined) return 0;
@@ -40,7 +41,7 @@ const formSchema = z.object({
     },
     z.number().min(0, "El monto debe ser mayor o igual a 0.")
   ),
-  estado: z.enum(['ACTIVA', 'INACTIVA', 'SUSPENDIDA', 'VENCIDA']).default('ACTIVA'),
+  estado: z.enum(['ACTIVA', 'INACTIVA', 'SUSPENDIDA', 'VENCIDA', 'ABONO', 'INICIAL']).default('ACTIVA'),
 });
 
 export type FormValues = z.infer<typeof formSchema>;
@@ -59,12 +60,46 @@ export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormPro
     defaultValues: {
       companyId: "none",
       planId: "",
+      tipoPago: "",
       monto: 0,
       estado: "ACTIVA",
     },
   });
 
   const { formState: { isSubmitting } } = form;
+  const { watch, setValue } = form;
+
+  // Watch for changes in planId and tipoPago
+  const planId = watch("planId");
+  const tipoPago = watch("tipoPago");
+
+  // Handle auto-fill of monto based on plan and payment type
+  const handlePlanChange = (newPlanId: string) => {
+    setValue("planId", newPlanId);
+    setValue("tipoPago", ""); // Reset payment type
+    setValue("monto", 0); // Reset amount
+  };
+
+  const handleTipoPagoChange = (newTipoPago: string) => {
+    setValue("tipoPago", newTipoPago);
+    
+    // Auto-fill monto based on plan and payment type
+    let monto = 0;
+    if (newTipoPago === "contado") {
+      monto = planId === "basico" ? 150 : 250;
+    } else if (newTipoPago === "credito") {
+      monto = planId === "basico" ? 50 : 62.50; // First installment
+    }
+    
+    setValue("monto", monto);
+    
+    // Set estado based on payment type
+    if (newTipoPago === "credito") {
+      setValue("estado", "INICIAL");
+    } else {
+      setValue("estado", "ACTIVA");
+    }
+  };
 
   const handleFormSubmit = (values: FormValues) => {
     onSubmit(values);
@@ -155,7 +190,7 @@ export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormPro
                       ? "border-blue-500 bg-blue-50 dark:bg-blue-950" 
                       : "border-gray-200 hover:border-gray-300"
                   )}
-                  onClick={() => field.onChange("basico")}
+                  onClick={() => handlePlanChange("basico")}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -180,7 +215,7 @@ export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormPro
                       ? "border-blue-500 bg-blue-50 dark:bg-blue-950" 
                       : "border-gray-200 hover:border-gray-300"
                   )}
-                  onClick={() => field.onChange("premium")}
+                  onClick={() => handlePlanChange("premium")}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -202,6 +237,78 @@ export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormPro
             </FormItem>
           )}
         />
+
+        {/* Tipo de Pago - Solo aparece cuando se selecciona un plan */}
+        {planId && (
+          <FormField
+            control={form.control}
+            name="tipoPago"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tipo de Pago</FormLabel>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div
+                    className={cn(
+                      "relative p-4 border-2 rounded-lg cursor-pointer transition-all hover:shadow-md",
+                      field.value === "contado" 
+                        ? "border-green-500 bg-green-50 dark:bg-green-950" 
+                        : "border-gray-200 hover:border-gray-300"
+                    )}
+                    onClick={() => handleTipoPagoChange("contado")}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                          <DollarSign className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-sm">Contado</h3>
+                          <p className="text-xs text-muted-foreground">
+                            {planId === "basico" ? "$150.00" : "$250.00"}
+                          </p>
+                        </div>
+                      </div>
+                      {field.value === "contado" && (
+                        <Check className="w-5 h-5 text-green-600" />
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div
+                    className={cn(
+                      "relative p-4 border-2 rounded-lg cursor-pointer transition-all hover:shadow-md",
+                      field.value === "credito" 
+                        ? "border-purple-500 bg-purple-50 dark:bg-purple-950" 
+                        : "border-gray-200 hover:border-gray-300"
+                    )}
+                    onClick={() => handleTipoPagoChange("credito")}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                          <CreditCard className="w-5 h-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-sm">Crédito</h3>
+                          <p className="text-xs text-muted-foreground">
+                            {planId === "basico" 
+                              ? "3 cuotas de $50.00" 
+                              : "4 cuotas de $62.50"
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      {field.value === "credito" && (
+                        <Check className="w-5 h-5 text-purple-600" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormField
           control={form.control}
@@ -239,10 +346,23 @@ export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormPro
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="ACTIVA">Activa</SelectItem>
-                  <SelectItem value="INACTIVA">Inactiva</SelectItem>
-                  <SelectItem value="SUSPENDIDA">Suspendida</SelectItem>
-                  <SelectItem value="VENCIDA">Vencida</SelectItem>
+                  {tipoPago === "credito" ? (
+                    <>
+                      <SelectItem value="INICIAL">Inicial</SelectItem>
+                      <SelectItem value="ABONO">Abono</SelectItem>
+                      <SelectItem value="ACTIVA">Activa</SelectItem>
+                      <SelectItem value="INACTIVA">Inactiva</SelectItem>
+                      <SelectItem value="SUSPENDIDA">Suspendida</SelectItem>
+                      <SelectItem value="VENCIDA">Vencida</SelectItem>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value="ACTIVA">Activa</SelectItem>
+                      <SelectItem value="INACTIVA">Inactiva</SelectItem>
+                      <SelectItem value="SUSPENDIDA">Suspendida</SelectItem>
+                      <SelectItem value="VENCIDA">Vencida</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
               <FormMessage />

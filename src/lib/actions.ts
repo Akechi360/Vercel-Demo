@@ -783,6 +783,7 @@ export async function addAffiliation(affiliationData: {
   companyId?: string;
   userId: string;
   planId?: string;
+  tipoPago?: string;
   monto?: number;
   estado?: string;
 }): Promise<any> {
@@ -797,6 +798,7 @@ export async function addAffiliation(affiliationData: {
     const affiliation = await prisma.affiliation.create({
       data: {
         planId: affiliationData.planId || 'default-plan',
+        tipoPago: affiliationData.tipoPago || null,
         estado: (affiliationData.estado as any) || 'ACTIVA',
         fechaInicio: new Date(),
         monto: affiliationData.monto || 0,

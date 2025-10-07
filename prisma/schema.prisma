@@ -199,6 +199,7 @@ model Payment {
 model Affiliation {
   id            String            @id @default(cuid())
   planId        String
+  tipoPago      String?
   estado        AffiliationStatus @default(ACTIVA)
   fechaInicio   DateTime
   fechaFin      DateTime?
@@ -321,6 +322,8 @@ enum AffiliationStatus {
   INACTIVA
   SUSPENDIDA
   VENCIDA
+  ABONO
+  INICIAL
 }
 
 enum SupplyStatus {

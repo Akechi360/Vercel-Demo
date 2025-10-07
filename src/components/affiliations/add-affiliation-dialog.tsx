@@ -52,8 +52,8 @@ export function AddAffiliationDialog({ onAddAffiliation, onRefresh }: AddAffilia
             
             setOpen(false);
             
-            // Refresh cache and page data to show the new affiliation
-            refreshData();
+            // Only refresh page data to show the new affiliation
+            // Don't refresh companies/users cache as they don't change
             if (onRefresh) {
                 onRefresh();
             }
@@ -81,10 +81,7 @@ export function AddAffiliationDialog({ onAddAffiliation, onRefresh }: AddAffilia
 
     const handleOpenChange = (newOpen: boolean) => {
         setOpen(newOpen);
-        if (!newOpen) {
-            // Only refresh cache when dialog closes - no page reload
-            refreshData();
-        }
+        // No need to refresh cache when closing - keep it for next time
     };
 
     return (

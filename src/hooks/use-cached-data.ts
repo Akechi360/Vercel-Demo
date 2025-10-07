@@ -18,7 +18,7 @@ export function useCachedData() {
     
     // Si tenemos cache válido, usarlo inmediatamente
     if (companiesCache && usersCache && (now - cacheTimestamp) < CACHE_DURATION) {
-      console.log('⚡ Using cached data (instant load)');
+      console.log('⚡ Using cached data (instant load) - Companies:', companiesCache.length, 'Users:', usersCache.length);
       setCompanies(companiesCache);
       setUsers(usersCache);
       setLoading(false);

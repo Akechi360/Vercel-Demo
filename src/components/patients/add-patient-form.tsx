@@ -41,7 +41,10 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
   const [companies, setCompanies] = useState<Company[]>([]);
 
   useEffect(() => {
-    getCompanies().then(setCompanies);
+    getCompanies().then(companies => {
+      console.log('🏢 Available companies:', companies);
+      setCompanies(companies);
+    });
   }, []);
 
   const form = useForm<FormValues>({
@@ -70,6 +73,10 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
         return;
       }
 
+      console.log('🔍 Form values:', values);
+      console.log('🔍 CompanyId from form:', values.companyId);
+      console.log('🔍 Processed companyId:', values.companyId === 'none' ? undefined : values.companyId);
+      
       const newPatient = await addPatient({
         name: values.name,
         age: values.age,

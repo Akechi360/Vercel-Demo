@@ -159,7 +159,9 @@ export async function addPatient(patientData: {
     console.log('User created successfully:', user);
 
     // If companyId is provided, create affiliation
+    console.log('🔍 Checking companyId:', patientData.companyId);
     if (patientData.companyId) {
+      console.log('✅ Creating affiliation for companyId:', patientData.companyId);
       const affiliation = await prisma.affiliation.create({
         data: {
           planId: 'default-plan',
@@ -172,7 +174,9 @@ export async function addPatient(patientData: {
         },
       });
 
-      console.log('Affiliation created successfully:', affiliation);
+      console.log('✅ Affiliation created successfully:', affiliation);
+    } else {
+      console.log('❌ No companyId provided, skipping affiliation creation');
     }
 
     return {

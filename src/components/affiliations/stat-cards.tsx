@@ -6,10 +6,38 @@ import { useMemo } from "react";
 
 type Affiliation = {
     id: string;
-    promotora: string;
-    afiliados: number;
-    ultimaAfiliacion: string;
+    planId: string;
     estado: string;
+    fechaInicio: string;
+    fechaFin?: string | null;
+    monto: number;
+    beneficiarios?: any;
+    companyId?: string | null;
+    userId: string;
+    company?: {
+        id: string;
+        nombre: string;
+        rif: string;
+        direccion: string;
+        telefono: string;
+        email: string;
+        contacto: string;
+        createdAt: string;
+        updatedAt: string;
+    } | null;
+    user?: {
+        id: string;
+        email: string;
+        name: string;
+        password: string;
+        role: string;
+        status: string;
+        createdAt: string;
+        phone: string;
+        lastLogin?: string | null;
+        patientId?: string | null;
+        avatarUrl?: string | null;
+    } | null;
 }
 
 interface AffiliationStatCardsProps {
@@ -19,31 +47,29 @@ interface AffiliationStatCardsProps {
 export function AffiliationStatCards({ affiliations }: AffiliationStatCardsProps) {
 
     const stats = useMemo(() => {
-        const totalPromotoras = affiliations.length;
+        const totalAfiliaciones = affiliations.length;
         
-        const totalAfiliaciones = affiliations.reduce((sum, item) => sum + item.afiliados, 0);
+        const totalMonto = affiliations.reduce((sum, item) => sum + item.monto, 0);
 
-        const topPromotora = affiliations.reduce((top, current) => {
-            return current.afiliados > top.afiliados ? current : top;
-        }, affiliations[0] || { promotora: 'N/A', afiliados: 0 });
+        const afiliacionesActivas = affiliations.filter(item => item.estado === 'ACTIVA').length;
 
         const ultimaAfiliacion = affiliations.reduce((latest, current) => {
-            return new Date(current.ultimaAfiliacion) > new Date(latest) ? current.ultimaAfiliacion : latest;
-        }, affiliations[0]?.ultimaAfiliacion || 'N/A');
+            return new Date(current.fechaInicio) > new Date(latest) ? current.fechaInicio : latest;
+        }, affiliations[0]?.fechaInicio || new Date().toISOString());
 
         return {
-            totalPromotoras,
             totalAfiliaciones,
-            topPromotora,
+            totalMonto,
+            afiliacionesActivas,
             ultimaAfiliacion
         };
     }, [affiliations]);
 
 
     const cardData = [
-        { title: "Total de Promotoras", value: stats.totalPromotoras, icon: Users },
-        { title: "Total de Afiliaciones", value: stats.totalAfiliaciones, icon: BarChart },
-        { title: "Top Promotora", value: `${stats.topPromotora.promotora} (${stats.topPromotora.afiliados})`, icon: Trophy },
+        { title: "Total de Afiliaciones", value: stats.totalAfiliaciones, icon: Users },
+        { title: "Monto Total", value: `$${stats.totalMonto.toFixed(2)}`, icon: BarChart },
+        { title: "Afiliaciones Activas", value: stats.afiliacionesActivas, icon: Trophy },
         { title: "Última Afiliación", value: new Date(stats.ultimaAfiliacion).toLocaleDateString(), icon: Clock },
     ];
 

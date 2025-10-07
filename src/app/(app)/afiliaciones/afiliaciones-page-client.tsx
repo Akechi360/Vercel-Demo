@@ -96,7 +96,9 @@ export function AfiliacionesPageClient({ initialAffiliations }: AfiliacionesPage
                             affiliations.map((item) => (
                                 <TableRow key={item.id} className="hover:bg-muted/50 cursor-pointer">
                                     <TableCell className="font-mono text-xs">{item.id}</TableCell>
-                                    <TableCell className="font-medium">{item.company?.nombre || 'N/A'}</TableCell>
+                                    <TableCell className="font-medium">
+                                        {item.company?.nombre || 'Paciente Particular'}
+                                    </TableCell>
                                     <TableCell>{item.user?.name || 'N/A'}</TableCell>
                                     <TableCell>
                                         <Badge className={cn(

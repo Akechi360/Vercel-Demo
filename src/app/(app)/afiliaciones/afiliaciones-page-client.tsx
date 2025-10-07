@@ -10,7 +10,6 @@ import { AffiliationStatCards } from "@/components/affiliations/stat-cards";
 import { useState } from "react";
 import AffiliationActions from "@/components/affiliations/affiliation-actions";
 import { AddAffiliationDialog } from "@/components/affiliations/add-affiliation-dialog";
-import { createTestAffiliation } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 
 interface AfiliacionesPageClientProps {
@@ -38,42 +37,16 @@ export function AfiliacionesPageClient({ initialAffiliations }: AfiliacionesPage
     window.location.reload();
   };
 
-  const handleCreateTestAffiliation = async () => {
-    try {
-      await createTestAffiliation();
-      toast({
-        title: "Afiliación de prueba creada",
-        description: "Se creó una afiliación de prueba en la base de datos.",
-      });
-      handleRefreshAffiliations();
-    } catch (error) {
-      console.error('Error creating test affiliation:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No se pudo crear la afiliación de prueba.",
-      });
-    }
-  };
   
   return (
     <div className="flex flex-col gap-8">
         <PageHeader 
             title="Afiliaciones"
             actions={
-                <div className="flex gap-2">
-                    <AddAffiliationDialog 
-                        onAddAffiliation={handleAddAffiliation} 
-                        onRefresh={handleRefreshAffiliations}
-                    />
-                    <Button 
-                        variant="outline" 
-                        onClick={handleCreateTestAffiliation}
-                        className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
-                    >
-                        🧪 Crear Test
-                    </Button>
-                </div>
+                <AddAffiliationDialog 
+                    onAddAffiliation={handleAddAffiliation} 
+                    onRefresh={handleRefreshAffiliations}
+                />
             }
         />
         <AffiliationStatCards affiliations={affiliations} />

@@ -62,14 +62,19 @@ export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormPro
   useEffect(() => {
     const loadData = async () => {
       try {
+        console.log('🔍 Loading companies and users...');
         const [companiesData, usersData] = await Promise.all([
           getCompanies(),
           getUsers()
         ]);
+        console.log(`✅ Loaded ${companiesData.length} companies and ${usersData.length} users`);
         setCompanies(companiesData);
         setUsers(usersData);
       } catch (error) {
-        console.error('Error loading data:', error);
+        console.error('❌ Error loading data:', error);
+        // Set empty arrays on error to prevent infinite loading
+        setCompanies([]);
+        setUsers([]);
       } finally {
         setLoading(false);
       }
@@ -98,8 +103,8 @@ export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormPro
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Cargando datos...</p>
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-3"></div>
+          <p className="text-sm text-muted-foreground">Cargando empresas y usuarios...</p>
         </div>
       </div>
     );

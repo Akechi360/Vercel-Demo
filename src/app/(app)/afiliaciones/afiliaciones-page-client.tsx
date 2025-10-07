@@ -11,6 +11,7 @@ import { useState } from "react";
 import AffiliationActions from "@/components/affiliations/affiliation-actions";
 import { AddAffiliationDialog } from "@/components/affiliations/add-affiliation-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 interface AfiliacionesPageClientProps {
   initialAffiliations: any[];
@@ -19,6 +20,7 @@ interface AfiliacionesPageClientProps {
 export function AfiliacionesPageClient({ initialAffiliations }: AfiliacionesPageClientProps) {
   const [affiliations, setAffiliations] = useState(initialAffiliations);
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleRemoveAffiliation = (id: string) => {
     setAffiliations(prev => prev.filter(item => item.id !== id));
@@ -32,9 +34,21 @@ export function AfiliacionesPageClient({ initialAffiliations }: AfiliacionesPage
     setAffiliations(prev => [newAffiliation, ...prev]);
   };
 
-  const handleRefreshAffiliations = () => {
-    // Reload the page to get fresh data from server
-    window.location.reload();
+  const handleRefreshAffiliations = async () => {
+    try {
+      // Use Next.js router refresh for better reliability
+      router.refresh();
+      
+      // Also update local state after a short delay to ensure server data is fresh
+      setTimeout(() => {
+        // This will trigger a re-render with fresh data from the server
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      console.error('Error refreshing affiliations:', error);
+      // Fallback to page reload
+      window.location.reload();
+    }
   };
 
   

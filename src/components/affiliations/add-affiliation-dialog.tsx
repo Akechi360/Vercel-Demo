@@ -53,12 +53,7 @@ export function AddAffiliationDialog({ onAddAffiliation, onRefresh }: AddAffilia
             
             setOpen(false);
             
-            // Only refresh page data to show the new affiliation
-            // Don't refresh companies/users cache as they don't change
-            if (onRefresh) {
-                onRefresh();
-            }
-            
+            // Show success message first
             const isDarkMode = document.documentElement.classList.contains('dark');
             MySwal.fire({
                 title: 'Afiliación creada',
@@ -67,6 +62,11 @@ export function AddAffiliationDialog({ onAddAffiliation, onRefresh }: AddAffilia
                 background: isDarkMode ? '#1e293b' : '#ffffff',
                 color: isDarkMode ? '#f1f5f9' : '#0f172a',
                 confirmButtonColor: '#4f46e5',
+            }).then(() => {
+                // Refresh page data after user acknowledges success
+                if (onRefresh) {
+                    onRefresh();
+                }
             });
         } catch (error) {
             console.error('Error creating affiliation:', error);

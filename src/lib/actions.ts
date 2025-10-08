@@ -845,6 +845,8 @@ export async function getAffiliations(): Promise<any[]> {
       beneficiarios: affiliation.beneficiarios,
       companyId: affiliation.companyId,
       userId: affiliation.userId,
+      tipoPago: affiliation.tipoPago,
+      createdAt: affiliation.createdAt.toISOString(),
       company: affiliation.company,
       user: affiliation.user,
     }));

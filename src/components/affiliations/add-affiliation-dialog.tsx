@@ -53,6 +53,11 @@ export function AddAffiliationDialog({ onAddAffiliation, onRefresh }: AddAffilia
             
             setOpen(false);
             
+            // Add the new affiliation to local state immediately
+            if (onAddAffiliation) {
+                onAddAffiliation(newAffiliation);
+            }
+            
             // Show success message first
             const isDarkMode = document.documentElement.classList.contains('dark');
             MySwal.fire({

@@ -35,8 +35,8 @@ export function AfiliacionesPageClient({ initialAffiliations }: AfiliacionesPage
   };
 
   const handleAddAffiliation = (newAffiliationData: any) => {
-    // Don't add to local state since we'll refresh from server
-    // The server data will be fresh after the refresh
+    // Add the new affiliation to the local state immediately
+    setAffiliations(prev => [newAffiliationData, ...prev]);
   };
 
   const handleRefreshAffiliations = async () => {

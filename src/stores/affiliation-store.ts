@@ -13,6 +13,7 @@ interface AffiliationStore extends AffiliationData {
   loadData: () => Promise<void>;
   clearCache: () => void;
   isDataFresh: () => boolean;
+  addAffiliation: (affiliation: any) => void;
 }
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
@@ -77,5 +78,12 @@ export const useAffiliationStore = create<AffiliationStore>((set, get) => ({
       error: null,
       lastFetch: 0
     });
+  },
+
+  addAffiliation: (affiliation: any) => {
+    // Esta función se puede usar para agregar una nueva afiliación al estado local
+    // si es necesario, pero por ahora no la usaremos ya que las afiliaciones
+    // se manejan en el componente principal
+    console.log('📝 New affiliation added to store:', affiliation);
   }
 }));

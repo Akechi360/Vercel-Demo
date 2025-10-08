@@ -813,7 +813,23 @@ export async function addAffiliation(affiliationData: {
     });
 
     console.log('Affiliation created successfully:', affiliation);
-    return affiliation;
+    
+    // Convert Decimal to Number for serialization
+    return {
+      id: affiliation.id,
+      planId: affiliation.planId,
+      estado: affiliation.estado,
+      fechaInicio: affiliation.fechaInicio.toISOString(),
+      fechaFin: affiliation.fechaFin?.toISOString() || null,
+      monto: Number(affiliation.monto), // Convert Decimal to number
+      beneficiarios: affiliation.beneficiarios,
+      companyId: affiliation.companyId,
+      userId: affiliation.userId,
+      tipoPago: affiliation.tipoPago,
+      createdAt: affiliation.createdAt.toISOString(),
+      company: affiliation.company,
+      user: affiliation.user,
+    };
   } catch (error) {
     console.error('❌ Error creando afiliación:', error);
     throw new Error('No se pudo crear la afiliación. Verifica la conexión a la base de datos.');

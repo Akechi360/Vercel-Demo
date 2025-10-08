@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Stethoscope, Check, Users, ShieldCheck, HeartPulse, Bone, FlaskConical, ZoomIn, Play, MessageSquare, Phone, MapPin, Ambulance, Microscope, Clock } from 'lucide-react';
+import { Stethoscope, Check, Users, ShieldCheck, HeartPulse, Bone, FlaskConical, ZoomIn, Play, MessageSquare, Phone, MapPin, Ambulance, Microscope, Clock, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { AffiliateEnrollment } from '@/components/public/affiliate-enrollment';
@@ -64,6 +64,12 @@ const specialtyCards = [
     title: 'Medicina Interna',
     description:
       'Prevención, diagnóstico y tratamiento de enfermedades en adultos.',
+  },
+  {
+    icon: Activity,
+    title: 'Uroginecología',
+    description:
+      'Prevención de Tratamientos de Avanzada de Trastorno de Piso Pélvico.',
   },
 ];
 

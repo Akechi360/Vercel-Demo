@@ -48,7 +48,7 @@ export function SpecialtyCarousel({ cards }: SpecialtyCarouselProps) {
   const maxIndex = Math.max(0, cards.length - cardsPerView);
   const cardWidth = 100 / cardsPerView; // Percentage width per card
 
-  // Transform for smooth dragging
+  // Transform for smooth dragging with proper constraints
   const dragX = useTransform(x, (latest) => {
     const maxDrag = -(maxIndex * cardWidth);
     return Math.max(maxDrag, Math.min(0, latest));
@@ -88,20 +88,7 @@ export function SpecialtyCarousel({ cards }: SpecialtyCarouselProps) {
     }
   };
 
-  // Auto-play (optional)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (!isDragging) {
-        if (currentIndex >= maxIndex) {
-          goToSlide(0);
-        } else {
-          nextSlide();
-        }
-      }
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [currentIndex, maxIndex, isDragging]);
+  // Auto-play removed as requested
 
   return (
     <div className="relative w-full">
@@ -152,7 +139,10 @@ export function SpecialtyCarousel({ cards }: SpecialtyCarouselProps) {
           className="flex gap-8"
           style={{ x: dragX }}
           drag="x"
-          dragConstraints={{ left: -(maxIndex * cardWidth), right: 0 }}
+          dragConstraints={{ 
+            left: maxIndex > 0 ? -(maxIndex * cardWidth) : 0, 
+            right: 0 
+          }}
           dragElastic={0.1}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
@@ -165,7 +155,10 @@ export function SpecialtyCarousel({ cards }: SpecialtyCarouselProps) {
               <motion.div
                 key={card.title}
                 className="flex-shrink-0"
-                style={{ width: `${cardWidth}%` }}
+                style={{ 
+                  width: `${cardWidth}%`,
+                  minWidth: '280px' // Minimum width to prevent cutting
+                }}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.1 }}

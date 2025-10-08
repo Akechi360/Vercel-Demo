@@ -123,7 +123,7 @@ export default function CompanyList() {
                         {company.status}
                     </Badge>
                   </div>
-                  <CardDescription>RUC: {company.ruc}</CardDescription>
+                  <CardDescription>RIF: {company.ruc}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow space-y-2 text-sm text-muted-foreground">
                     <p>Teléfono: {company.phone || 'No disponible'}</p>

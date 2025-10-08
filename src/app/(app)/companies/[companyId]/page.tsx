@@ -28,7 +28,7 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm text-muted-foreground">
-                    <p><strong>RUC/NIT:</strong> {company.ruc}</p>
+                    <p><strong>RIF:</strong> {company.ruc}</p>
                     <p className="flex items-center gap-2"><Phone className="h-4 w-4" /> {company.phone || 'No disponible'}</p>
                     <p className="flex items-center gap-2"><Mail className="h-4 w-4" /> {company.email || 'No disponible'}</p>
                 </CardContent>

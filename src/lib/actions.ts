@@ -1299,16 +1299,27 @@ export async function addCompany(companyData: {
   address?: string;
 }): Promise<Company> {
   try {
+    // Primero verificar si ya existe una empresa con este RIF
+    const existingCompany = await withDatabase(async (prisma) => {
+      return await prisma.company.findFirst({
+        where: { rif: companyData.ruc }
+      });
+    });
+
+    if (existingCompany) {
+      throw new Error(`Ya existe una empresa con el RIF ${companyData.ruc}. Por favor, verifica el RIF e intenta nuevamente.`);
+    }
+
     const company = await withDatabase(async (prisma) => {
       return await prisma.company.create({
-      data: {
-        nombre: companyData.name,
-        rif: companyData.ruc,
-        direccion: companyData.address || '',
-        telefono: companyData.phone || '',
-        email: companyData.email || '',
-        contacto: '',
-      },
+        data: {
+          nombre: companyData.name,
+          rif: companyData.ruc,
+          direccion: companyData.address || '',
+          telefono: companyData.phone || '',
+          email: companyData.email || '',
+          contacto: '',
+        },
       });
     });
 
@@ -1320,9 +1331,21 @@ export async function addCompany(companyData: {
       email: company.email || '',
       status: 'Activo' as const,
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error adding company:', error);
-    throw new Error('Error al agregar empresa');
+    
+    // Si es un error de restricción única, mostrar mensaje específico
+    if (error.message.includes('Unique constraint failed')) {
+      throw new Error(`Ya existe una empresa con el RIF ${companyData.ruc}. Por favor, verifica el RIF e intenta nuevamente.`);
+    }
+    
+    // Si es nuestro error personalizado, re-lanzarlo
+    if (error.message.includes('Ya existe una empresa')) {
+      throw error;
+    }
+    
+    // Para otros errores, mensaje genérico
+    throw new Error('Error al agregar empresa. Por favor, verifica los datos e intenta nuevamente.');
   }
 }
 

@@ -95,7 +95,7 @@ const pricingPlans = [
         name: "Fondo Espíritu Santo",
         subtitle: "Grupos de 200–500 afiliados",
         features: [
-            "Cobertura del 15% del monto total en atención médica.",
+            "Desde 17.500 hasta 87.000 USD por Grupos",
             "Cobertura anual integral (emergencias, APS, estudios, hospitalización).",
             "Procedimientos quirúrgicos electivos o de emergencia.",
             "Traslados en ambulancia y atención 24/7.",

@@ -4,7 +4,7 @@ export const AFFILIATE_PLANS = [
         id: 'tarjeta-saludable',
         name: "Tarjeta Saludable",
         subtitle: "Individual + 2 Beneficiarios",
-        affiliationFee: 0,
+        affiliationFee: 50,
         paymentModes: {
             contado: {
                 price: 150,

@@ -66,18 +66,20 @@ export function SpecialtyCarousel({ cards }: SpecialtyCarouselProps) {
 
   return (
     <div className="relative w-full">
-      {/* Navigation Buttons */}
+      {/* Navigation Arrows */}
       <div className="flex justify-between items-center mb-6">
-        <Button
-          variant="outline"
-          size="sm"
+        <button
           onClick={prevSlide}
           disabled={currentIndex === 0}
-          className="flex items-center gap-2"
+          className={cn(
+            "p-2 rounded-full transition-all duration-300 hover:bg-primary/10",
+            currentIndex === 0 
+              ? "opacity-50 cursor-not-allowed" 
+              : "hover:scale-110"
+          )}
         >
-          <ChevronLeft className="w-4 h-4" />
-          Anterior
-        </Button>
+          <ChevronLeft className="w-6 h-6 text-primary" />
+        </button>
         
         <div className="flex gap-2">
           {Array.from({ length: maxIndex + 1 }).map((_, index) => (
@@ -94,16 +96,18 @@ export function SpecialtyCarousel({ cards }: SpecialtyCarouselProps) {
           ))}
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
+        <button
           onClick={nextSlide}
           disabled={currentIndex >= maxIndex}
-          className="flex items-center gap-2"
+          className={cn(
+            "p-2 rounded-full transition-all duration-300 hover:bg-primary/10",
+            currentIndex >= maxIndex 
+              ? "opacity-50 cursor-not-allowed" 
+              : "hover:scale-110"
+          )}
         >
-          Siguiente
-          <ChevronRight className="w-4 h-4" />
-        </Button>
+          <ChevronRight className="w-6 h-6 text-primary" />
+        </button>
       </div>
 
       {/* Slides Container */}

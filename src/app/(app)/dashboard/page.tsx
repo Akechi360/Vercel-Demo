@@ -7,7 +7,7 @@ import {
 import { PageHeader } from '@/components/shared/page-header';
 import { useAuth } from '@/components/layout/auth-provider';
 import { usePermissions } from '@/hooks/use-permissions';
-import { getIpssScoresByPatientId, getPatients, getAppointments } from '@/lib/actions';
+import { getIpssScoresByPatientId, getPatients, getAppointments, getAffiliations } from '@/lib/actions';
 import { useEffect, useState } from 'react';
 import type { Patient, Appointment, IpssScore } from '@/lib/types';
 import { isToday, isYesterday, subMonths } from 'date-fns';
@@ -20,6 +20,7 @@ type DashboardStats = {
     latestIpssScore: number | 'N/A';
     monthlyPatientsGrowth: number;
     yesterdayAppointments: number;
+    activeAffiliations: number;
 };
 
 export default function DashboardPage() {
@@ -37,6 +38,7 @@ export default function DashboardPage() {
             let latestIpssScore: number | 'N/A' = 'N/A';
             let monthlyPatientsGrowth = 0;
             let yesterdayAppointments = 0;
+            let activeAffiliations = 0;
 
             if (isAdmin() || isSecretaria() || isDoctor()) {
                 const [patients, appointments] = await Promise.all([getPatients(), getAppointments()]);
@@ -71,8 +73,15 @@ export default function DashboardPage() {
                     latestIpssScore = latestIpss.score;
                 }
             }
+
+            if (isPromotora()) {
+                const affiliations = await getAffiliations();
+                activeAffiliations = affiliations.filter(aff => 
+                    aff.estado === 'ACTIVA' || aff.estado === 'INICIAL' || aff.estado === 'ABONO'
+                ).length;
+            }
             
-            setStats({ totalPatients, todayAppointments, pendingResults, latestIpssScore, monthlyPatientsGrowth, yesterdayAppointments });
+            setStats({ totalPatients, todayAppointments, pendingResults, latestIpssScore, monthlyPatientsGrowth, yesterdayAppointments, activeAffiliations });
         }
         fetchData();
     }, [currentUser]);
@@ -146,10 +155,12 @@ export default function DashboardPage() {
         statCards = [
             {
                 title: "Afiliaciones Activas",
-                value: 0,
+                value: stats.activeAffiliations,
                 iconName: "Handshake",
-                subtext: "Sin afiliaciones registradas",
-                trend: "stale"
+                subtext: stats.activeAffiliations > 0 ? 
+                    `${stats.activeAffiliations} afiliación${stats.activeAffiliations > 1 ? 'es' : ''} activa${stats.activeAffiliations > 1 ? 's' : ''}` : 
+                    "Sin afiliaciones registradas",
+                trend: stats.activeAffiliations > 0 ? "up" : "stale"
             }
         ];
     }

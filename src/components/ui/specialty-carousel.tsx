@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { motion, useMotionValue, useTransform, useAnimation } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -20,11 +20,6 @@ interface SpecialtyCarouselProps {
 export function SpecialtyCarousel({ cards }: SpecialtyCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [cardsPerView, setCardsPerView] = useState(1);
-  const [isDragging, setIsDragging] = useState(false);
-  
-  const carouselRef = useRef<HTMLDivElement>(null);
-  const x = useMotionValue(0);
-  const controls = useAnimation();
 
   // Responsive cards per view
   useEffect(() => {
@@ -46,34 +41,10 @@ export function SpecialtyCarousel({ cards }: SpecialtyCarouselProps) {
   }, []);
 
   const maxIndex = Math.max(0, cards.length - cardsPerView);
-  const cardWidth = 100 / cardsPerView; // Percentage width per card
-
-  // Transform for smooth dragging with proper constraints
-  const dragX = useTransform(x, (latest) => {
-    const maxDrag = -(maxIndex * cardWidth);
-    return Math.max(maxDrag, Math.min(0, latest));
-  });
-
-  const handleDragStart = () => {
-    setIsDragging(true);
-  };
-
-  const handleDragEnd = () => {
-    setIsDragging(false);
-    
-    // Snap to nearest card
-    const currentX = x.get();
-    const cardIndex = Math.round(-currentX / cardWidth);
-    const newIndex = Math.max(0, Math.min(maxIndex, cardIndex));
-    
-    setCurrentIndex(newIndex);
-    controls.start({ x: -newIndex * cardWidth });
-  };
 
   const goToSlide = (index: number) => {
     const newIndex = Math.max(0, Math.min(maxIndex, index));
     setCurrentIndex(newIndex);
-    controls.start({ x: -newIndex * cardWidth });
   };
 
   const nextSlide = () => {
@@ -88,7 +59,10 @@ export function SpecialtyCarousel({ cards }: SpecialtyCarouselProps) {
     }
   };
 
-  // Auto-play removed as requested
+  // Get current slide cards
+  const getCurrentSlideCards = () => {
+    return cards.slice(currentIndex, currentIndex + cardsPerView);
+  };
 
   return (
     <div className="relative w-full">
@@ -132,54 +106,55 @@ export function SpecialtyCarousel({ cards }: SpecialtyCarouselProps) {
         </Button>
       </div>
 
-      {/* Carousel Container */}
+      {/* Slides Container */}
       <div className="relative overflow-hidden">
-        <motion.div
-          ref={carouselRef}
-          className="flex gap-8"
-          style={{ x: dragX }}
-          drag="x"
-          dragConstraints={{ 
-            left: maxIndex > 0 ? -(maxIndex * cardWidth) : 0, 
-            right: 0 
-          }}
-          dragElastic={0.1}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          animate={controls}
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        >
-          {cards.map((card, index) => {
-            const Icon = card.icon;
-            return (
-              <motion.div
-                key={card.title}
-                className="flex-shrink-0"
-                style={{ 
-                  width: `${cardWidth}%`,
-                  minWidth: '280px' // Minimum width to prevent cutting
-                }}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ 
-                  scale: 1.05,
-                  transition: { duration: 0.2 }
-                }}
-              >
-                <Card className="text-center p-6 h-full border-b-4 border-transparent transition-all duration-300 hover:shadow-[0_0_20px_rgba(37,99,235,0.2)] dark:hover:shadow-[0_0_30px_rgba(37,99,235,0.3)] cursor-grab active:cursor-grabbing">
-                  <div className="inline-block p-4 bg-primary/10 rounded-full mb-4">
-                    <Icon className="w-8 h-8 text-primary" />
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">{card.title}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {card.description}
-                  </p>
-                </Card>
-              </motion.div>
-            );
-          })}
-        </motion.div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentIndex}
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
+            transition={{ 
+              type: "spring", 
+              stiffness: 300, 
+              damping: 30,
+              duration: 0.5 
+            }}
+            className="grid gap-8"
+            style={{
+              gridTemplateColumns: `repeat(${cardsPerView}, 1fr)`
+            }}
+          >
+            {getCurrentSlideCards().map((card, index) => {
+              const Icon = card.icon;
+              return (
+                <motion.div
+                  key={`${currentIndex}-${card.title}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ 
+                    delay: index * 0.1,
+                    duration: 0.4
+                  }}
+                  whileHover={{ 
+                    scale: 1.05,
+                    transition: { duration: 0.2 }
+                  }}
+                >
+                  <Card className="text-center p-6 h-full border-b-4 border-transparent transition-all duration-300 hover:shadow-[0_0_20px_rgba(37,99,235,0.2)] dark:hover:shadow-[0_0_30px_rgba(37,99,235,0.3)]">
+                    <div className="inline-block p-4 bg-primary/10 rounded-full mb-4">
+                      <Icon className="w-8 h-8 text-primary" />
+                    </div>
+                    <h3 className="font-bold text-lg mb-2">{card.title}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {card.description}
+                    </p>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {/* Progress Bar */}

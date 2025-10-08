@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Stethoscope, Check, Users, ShieldCheck, HeartPulse, Bone, FlaskConical, ZoomIn, Play, MessageSquare, Phone, MapPin, Ambulance, Microscope, Clock, Activity } from 'lucide-react';
+import { SpecialtyCarousel } from '@/components/ui/specialty-carousel';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { AffiliateEnrollment } from '@/components/public/affiliate-enrollment';
@@ -323,25 +324,10 @@ export default function LandingPage() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, amount: 0.2 }}
-            variants={staggerContainer}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-12"
+            variants={fadeIn()}
+            className="mt-12"
           >
-            {specialtyCards.map((card, index) => {
-              const Icon = card.icon;
-              return (
-                <motion.div key={card.title} variants={fadeIn()}>
-                  <Card className="text-center p-6 h-full border-b-4 border-transparent transition-all duration-300 hover:shadow-[0_0_20px_rgba(37,99,235,0.2)] dark:hover:shadow-[0_0_30px_rgba(37,99,235,0.3)]">
-                    <div className="inline-block p-4 bg-primary/10 rounded-full mb-4">
-                      <Icon className="w-8 h-8 text-primary" />
-                    </div>
-                    <h3 className="font-bold text-lg mb-2">{card.title}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {card.description}
-                    </p>
-                  </Card>
-                </motion.div>
-              );
-            })}
+            <SpecialtyCarousel cards={specialtyCards} />
           </motion.div>
         </div>
       </section>

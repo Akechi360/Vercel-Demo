@@ -841,7 +841,7 @@ export async function getAffiliations(): Promise<any[]> {
       estado: affiliation.estado,
       fechaInicio: affiliation.fechaInicio.toISOString(),
       fechaFin: affiliation.fechaFin?.toISOString() || null,
-      monto: affiliation.monto.toNumber(),
+      monto: Number(affiliation.monto), // Convert Decimal to number
       beneficiarios: affiliation.beneficiarios,
       companyId: affiliation.companyId,
       userId: affiliation.userId,

@@ -27,26 +27,17 @@ export function AfiliacionesPageClient({ initialAffiliations }: AfiliacionesPage
   };
 
   const handleAddAffiliation = (newAffiliationData: any) => {
-    const newAffiliation = {
-      ...newAffiliationData,
-      id: `AF-${String(affiliations.length + 1).padStart(3, '0')}`,
-    };
-    setAffiliations(prev => [newAffiliation, ...prev]);
+    // Don't add to local state since we'll refresh from server
+    // The server data will be fresh after the refresh
   };
 
   const handleRefreshAffiliations = async () => {
     try {
       // Use Next.js router refresh for better reliability
       router.refresh();
-      
-      // Also update local state after a short delay to ensure server data is fresh
-      setTimeout(() => {
-        // This will trigger a re-render with fresh data from the server
-        window.location.reload();
-      }, 1000);
     } catch (error) {
       console.error('Error refreshing affiliations:', error);
-      // Fallback to page reload
+      // Fallback to page reload only if router.refresh fails
       window.location.reload();
     }
   };

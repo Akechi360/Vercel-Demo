@@ -801,7 +801,7 @@ export async function addAffiliation(affiliationData: {
         tipoPago: affiliationData.tipoPago || null,
         estado: (affiliationData.estado as any) || 'ACTIVA',
         fechaInicio: new Date(),
-        monto: affiliationData.monto || 0,
+        monto: new Decimal(affiliationData.monto || 0),
         beneficiarios: undefined,
         companyId: affiliationData.companyId || null, // Allow null for patient particular
         userId: affiliationData.userId,

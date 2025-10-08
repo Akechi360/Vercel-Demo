@@ -152,7 +152,8 @@ function AffiliateEnrollmentContent() {
     if (paymentMode === 'contado') {
         total = selectedPlan.paymentModes.contado.price;
     } else if (selectedInstallment) {
-        total = selectedInstallment.amount;
+        // Para crédito: Cuota de Afiliación + Pago Inicial
+        total = affiliationFee + selectedInstallment.amount;
     }
 
     return (

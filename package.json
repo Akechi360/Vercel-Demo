@@ -3,7 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "description": "Sistema de gestión médica urológica con Next.js, Prisma y PostgreSQL",
-  "keywords": ["medical", "urology", "nextjs", "prisma", "postgresql"],
+  "keywords": [
+    "medical",
+    "urology",
+    "nextjs",
+    "prisma",
+    "postgresql"
+  ],
   "author": "Tu Nombre",
   "license": "MIT",
   "scripts": {
@@ -78,7 +84,7 @@
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.24.2",
-    "zustand": "^4.5.4"
+    "zustand": "^4.5.7"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

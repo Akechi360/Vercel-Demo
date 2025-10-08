@@ -19,7 +19,7 @@ import withReactContent from 'sweetalert2-react-content';
 import { useAuth } from "../layout/auth-provider";
 import { addAffiliation } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
-import { useCachedData } from "@/hooks/use-cached-data";
+import { useAffiliationStore } from "@/stores/affiliation-store";
 
 const MySwal = withReactContent(Swal);
 
@@ -33,7 +33,7 @@ export function AddAffiliationDialog({ onAddAffiliation, onRefresh }: AddAffilia
     const [isLoading, setIsLoading] = useState(false);
     const { currentUser } = useAuth();
     const { toast } = useToast();
-    const { refreshData } = useCachedData();
+    const { clearCache } = useAffiliationStore();
     
     const handleSubmit = async (values: FormValues) => {
         setIsLoading(true);

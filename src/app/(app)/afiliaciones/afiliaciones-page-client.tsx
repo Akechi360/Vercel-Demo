@@ -7,11 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AffiliationStatCards } from "@/components/affiliations/stat-cards";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AffiliationActions from "@/components/affiliations/affiliation-actions";
 import { AddAffiliationDialog } from "@/components/affiliations/add-affiliation-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { useAffiliationStore } from "@/stores/affiliation-store";
 
 interface AfiliacionesPageClientProps {
   initialAffiliations: any[];
@@ -21,6 +22,13 @@ export function AfiliacionesPageClient({ initialAffiliations }: AfiliacionesPage
   const [affiliations, setAffiliations] = useState(initialAffiliations);
   const { toast } = useToast();
   const router = useRouter();
+  const { loadData } = useAffiliationStore();
+
+  // Prefetch silencioso al montar la página
+  useEffect(() => {
+    console.log('🚀 Starting silent prefetch for affiliation modal data...');
+    loadData(); // Carga datos en background sin bloquear UI
+  }, [loadData]);
 
   const handleRemoveAffiliation = (id: string) => {
     setAffiliations(prev => prev.filter(item => item.id !== id));

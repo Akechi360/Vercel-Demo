@@ -1,6 +1,7 @@
 // src/components/affiliations/add-affiliation-form.tsx
 'use client';
 import { useForm } from "react-hook-form";
+import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,7 @@ import { useAuth } from "../layout/auth-provider";
 import { CalendarIcon, Check, Star, Shield, CreditCard, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { useCachedData } from "@/hooks/use-cached-data";
+import { useAffiliationStore } from "@/stores/affiliation-store";
 
 const formSchema = z.object({
   companyId: z.string().optional(),
@@ -53,7 +54,7 @@ interface AddAffiliationFormProps {
 
 export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormProps) {
   const { currentUser } = useAuth();
-  const { companies, users, loading, error } = useCachedData();
+  const { companies, users, loading, error, loadData } = useAffiliationStore();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -68,6 +69,14 @@ export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormPro
 
   const { formState: { isSubmitting } } = form;
   const { watch, setValue } = form;
+
+  // Cargar datos si no están disponibles (fallback)
+  useEffect(() => {
+    if (companies.length === 0 && users.length === 0 && !loading) {
+      console.log('🔄 Loading data as fallback...');
+      loadData();
+    }
+  }, [companies.length, users.length, loading, loadData]);
 
   // Watch for changes in planId and tipoPago
   const planId = watch("planId");

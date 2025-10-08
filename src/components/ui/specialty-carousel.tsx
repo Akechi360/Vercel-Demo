@@ -111,18 +111,18 @@ export function SpecialtyCarousel({ cards }: SpecialtyCarouselProps) {
       </div>
 
       {/* Slides Container */}
-      <div className="relative overflow-hidden">
+      <div className="relative">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentIndex}
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
             transition={{ 
               type: "spring", 
-              stiffness: 300, 
-              damping: 30,
-              duration: 0.5 
+              stiffness: 400, 
+              damping: 25,
+              duration: 0.4 
             }}
             className="grid gap-8"
             style={{
@@ -161,17 +161,6 @@ export function SpecialtyCarousel({ cards }: SpecialtyCarouselProps) {
         </AnimatePresence>
       </div>
 
-      {/* Progress Bar */}
-      <div className="mt-4 w-full bg-muted-foreground/20 rounded-full h-1">
-        <motion.div
-          className="bg-primary h-1 rounded-full"
-          initial={{ width: 0 }}
-          animate={{ 
-            width: `${((currentIndex + 1) / (maxIndex + 1)) * 100}%` 
-          }}
-          transition={{ duration: 0.3 }}
-        />
-      </div>
     </div>
   );
 }

@@ -801,7 +801,7 @@ export async function addAffiliation(affiliationData: {
   tipoPago?: string;
   monto?: number;
   estado?: string;
-}): Promise<any> {
+}): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     console.log('🔍 Creating affiliation with data:', affiliationData);
     
@@ -838,7 +838,7 @@ export async function addAffiliation(affiliationData: {
     console.log('✅ Affiliation created successfully:', affiliation);
     
     // Convert Decimal to Number for serialization
-    return {
+    const result = {
       id: affiliation.id,
       planId: affiliation.planId,
       estado: affiliation.estado,
@@ -853,17 +853,25 @@ export async function addAffiliation(affiliationData: {
       company: affiliation.company,
       user: affiliation.user,
     };
+
+    return { success: true, data: result };
   } catch (error) {
     console.error('❌ Error creando afiliación:', error);
     
     // Mejorar el mensaje de error
+    let errorMessage = 'No se pudo crear la afiliación. Verifica la conexión a la base de datos.';
+    
     if (error instanceof Error && error.message.includes('no existe')) {
-      throw new Error('El usuario seleccionado no existe. Por favor, verifica los datos.');
+      errorMessage = 'El usuario seleccionado no existe. Por favor, verifica los datos.';
     } else if (error instanceof Error && error.message.includes('Foreign key constraint')) {
-      throw new Error('Error de referencia: El usuario o empresa seleccionada no existe.');
-    } else {
-      throw new Error('No se pudo crear la afiliación. Verifica la conexión a la base de datos.');
+      errorMessage = 'Error de referencia: El usuario o empresa seleccionada no existe.';
+    } else if (error instanceof Error && error.message.includes('conexión') || error instanceof Error && error.message.includes('base de datos')) {
+      errorMessage = 'Error de conexión a la base de datos. Intenta nuevamente.';
+    } else if (error instanceof Error && error.message.includes('empresa') || error instanceof Error && error.message.includes('company')) {
+      errorMessage = 'Error de empresa: La empresa seleccionada no existe.';
     }
+    
+    return { success: false, error: errorMessage };
   }
 }
 

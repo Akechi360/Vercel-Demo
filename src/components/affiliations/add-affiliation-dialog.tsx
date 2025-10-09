@@ -47,62 +47,76 @@ export function AddAffiliationDialog({ onAddAffiliation, onRefresh }: AddAffilia
                 estado: values.estado,
             };
 
-            const newAffiliation = await addAffiliation(affiliationData);
+            const result = await addAffiliation(affiliationData);
             
-            setOpen(false);
-            
-            // Add the new affiliation to local state immediately
-            if (onAddAffiliation) {
-                onAddAffiliation(newAffiliation);
-            }
-            
-            // Show success message first
-            const isDarkMode = document.documentElement.classList.contains('dark');
-            MySwal.fire({
-                title: 'Afiliación creada',
-                text: 'La afiliación fue registrada con éxito en la base de datos.',
-                icon: 'success',
-                background: isDarkMode ? '#1e293b' : '#ffffff',
-                color: isDarkMode ? '#f1f5f9' : '#0f172a',
-                confirmButtonColor: '#4f46e5',
-            }).then(() => {
-                // Refresh page data after user acknowledges success
-                if (onRefresh) {
-                    onRefresh();
+            if (result.success && result.data) {
+                setOpen(false);
+                
+                // Add the new affiliation to local state immediately
+                if (onAddAffiliation) {
+                    onAddAffiliation(result.data);
                 }
-            });
+                
+                // Show success message first
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                MySwal.fire({
+                    title: 'Afiliación creada',
+                    text: 'La afiliación fue registrada con éxito en la base de datos.',
+                    icon: 'success',
+                    background: isDarkMode ? '#1e293b' : '#ffffff',
+                    color: isDarkMode ? '#f1f5f9' : '#0f172a',
+                    confirmButtonColor: '#4f46e5',
+                }).then(() => {
+                    // Refresh page data after user acknowledges success
+                    if (onRefresh) {
+                        onRefresh();
+                    }
+                });
+            } else {
+                // Handle error from server
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                const errorMessage = result.error || 'No se pudo crear la afiliación.';
+                
+                // Determine error type and icon
+                let errorTitle = "Error";
+                let errorIcon: 'error' | 'warning' | 'info' = 'error';
+                
+                if (errorMessage.includes('usuario no existe') || errorMessage.includes('Usuario con ID')) {
+                    errorTitle = "Usuario no encontrado";
+                    errorIcon = 'warning';
+                } else if (errorMessage.includes('clave foránea') || errorMessage.includes('Foreign key constraint')) {
+                    errorTitle = "Error de referencia";
+                    errorIcon = 'warning';
+                } else if (errorMessage.includes('conexión') || errorMessage.includes('base de datos')) {
+                    errorTitle = "Error de conexión";
+                    errorIcon = 'error';
+                } else if (errorMessage.includes('empresa') || errorMessage.includes('company')) {
+                    errorTitle = "Error de empresa";
+                    errorIcon = 'warning';
+                }
+                
+                MySwal.fire({
+                    title: errorTitle,
+                    text: errorMessage,
+                    icon: errorIcon,
+                    background: isDarkMode ? '#1e293b' : '#ffffff',
+                    color: isDarkMode ? '#f1f5f9' : '#0f172a',
+                    confirmButtonColor: errorIcon === 'error' ? '#dc2626' : '#f59e0b',
+                    confirmButtonText: 'Entendido'
+                });
+            }
         } catch (error) {
             console.error('Error creating affiliation:', error);
             
-            // Convert toast errors to SweetAlert for better visual consistency
+            // Fallback error handling for unexpected errors
             const isDarkMode = document.documentElement.classList.contains('dark');
-            const errorMessage = error instanceof Error ? error.message : "No se pudo crear la afiliación.";
-            
-            // Determine error type and icon
-            let errorTitle = "Error";
-            let errorIcon: 'error' | 'warning' | 'info' = 'error';
-            
-            if (errorMessage.includes('usuario no existe') || errorMessage.includes('Usuario con ID')) {
-                errorTitle = "Usuario no encontrado";
-                errorIcon = 'warning';
-            } else if (errorMessage.includes('clave foránea') || errorMessage.includes('Foreign key constraint')) {
-                errorTitle = "Error de referencia";
-                errorIcon = 'warning';
-            } else if (errorMessage.includes('conexión') || errorMessage.includes('base de datos')) {
-                errorTitle = "Error de conexión";
-                errorIcon = 'error';
-            } else if (errorMessage.includes('empresa') || errorMessage.includes('company')) {
-                errorTitle = "Error de empresa";
-                errorIcon = 'warning';
-            }
-            
             MySwal.fire({
-                title: errorTitle,
-                text: errorMessage,
-                icon: errorIcon,
+                title: 'Error inesperado',
+                text: 'Ocurrió un error inesperado. Por favor, intenta nuevamente.',
+                icon: 'error',
                 background: isDarkMode ? '#1e293b' : '#ffffff',
                 color: isDarkMode ? '#f1f5f9' : '#0f172a',
-                confirmButtonColor: errorIcon === 'error' ? '#dc2626' : '#f59e0b',
+                confirmButtonColor: '#dc2626',
                 confirmButtonText: 'Entendido'
             });
         } finally {

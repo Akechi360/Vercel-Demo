@@ -48,8 +48,8 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
           setIsRestricted(false);
         }
         
-        // Force a page refresh to get fresh data from server
-        router.refresh();
+        // Update the current user data in state
+        console.log('🔄 Updating current user data with:', updatedUser);
       } else if (updatedUser) {
         // Even if it's not the current user, we should refresh to get updated data
         console.log('🔄 Other user updated, refreshing page to get fresh data...');

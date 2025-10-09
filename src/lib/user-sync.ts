@@ -52,20 +52,8 @@ export function syncUserData(updatedUser: {
     window.dispatchEvent(event);
     console.log('✅ Event dispatched successfully');
     
-    // Force a page refresh to get fresh data from server
-    if (typeof window !== 'undefined') {
-      // Small delay to allow the event to be processed
-      setTimeout(() => {
-        // Use router.refresh() instead of window.location.reload() for better UX
-        if (window.location.pathname.includes('/settings/users')) {
-          // If we're on the users page, just refresh the current page
-          window.location.reload();
-        } else {
-          // For other pages, use a more gentle refresh
-          window.location.reload();
-        }
-      }, 500); // Increased delay to allow event processing
-    }
+    // No need to reload the page - let the event system handle updates
+    console.log('✅ User data sync completed without page reload');
   } catch (error) {
     console.error('❌ Error syncing user data:', error);
   }

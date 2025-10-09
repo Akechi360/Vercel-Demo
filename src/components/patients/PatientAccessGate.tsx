@@ -16,40 +16,90 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
   const router = useRouter();
 
   useEffect(() => {
-    if (isAuthenticated && currentUser) {
-      // Check if user is a patient with inactive status OR without a patient record
-      if (currentUser.role === 'patient' && (currentUser.status === 'INACTIVE' || !currentUser.patientId)) {
-        setIsRestricted(true);
-      } else {
-        setIsRestricted(false);
-      }
-    } else {
+    if (!isAuthenticated || !currentUser) {
       setIsRestricted(false);
+      setIsLoading(false);
+      return;
     }
-    setIsLoading(false);
+
+    // Fetch fresh user status from server instead of using localStorage
+    const checkUserStatus = async () => {
+      try {
+        const response = await fetch(`/api/user/status?userId=${currentUser.id}`);
+        if (response.ok) {
+          const userStatus = await response.json();
+          
+          // Check if user is a patient with restricted access using fresh data
+          const shouldRestrict = userStatus.role === 'patient' && 
+            (userStatus.status === 'INACTIVE' || !userStatus.patientId);
+          
+          if (shouldRestrict) {
+            setIsRestricted(true);
+          } else {
+            setIsRestricted(false);
+          }
+        } else {
+          // Fallback to localStorage data if API fails
+          const shouldRestrict = currentUser.role === 'patient' && 
+            (currentUser.status === 'INACTIVE' || !currentUser.patientId);
+          
+          if (shouldRestrict) {
+            setIsRestricted(true);
+          } else {
+            setIsRestricted(false);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user status:', error);
+        // Fallback to localStorage data if API fails
+        const shouldRestrict = currentUser.role === 'patient' && 
+          (currentUser.status === 'INACTIVE' || !currentUser.patientId);
+        
+        if (shouldRestrict) {
+          setIsRestricted(true);
+        } else {
+          setIsRestricted(false);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkUserStatus();
   }, [currentUser, isAuthenticated]);
 
   // Listen for user data updates from admin changes
   useEffect(() => {
-    const handleUserDataUpdate = (event: CustomEvent) => {
+    const handleUserDataUpdate = async (event: CustomEvent) => {
       console.log('🔄 User data updated, rechecking restrictions...', event.detail);
       
       // Update current user data from the event
       const updatedUser = event.detail;
       
-      // If this is the current user, update their data and re-evaluate restrictions
+      // If this is the current user, fetch fresh data from server
       if (updatedUser && updatedUser.id === currentUser?.id) {
-        console.log('🔄 Current user updated, re-evaluating restrictions...');
+        console.log('🔄 Current user updated, fetching fresh data from server...');
         
-        // Force re-evaluation of restrictions with updated data
-        if (updatedUser.role === 'patient' && (updatedUser.status === 'INACTIVE' || !updatedUser.patientId)) {
-          setIsRestricted(true);
-        } else {
-          setIsRestricted(false);
+        try {
+          const response = await fetch(`/api/user/status?userId=${currentUser.id}`);
+          if (response.ok) {
+            const userStatus = await response.json();
+            
+            // Re-evaluate restrictions with fresh server data
+            const shouldRestrict = userStatus.role === 'patient' && 
+              (userStatus.status === 'INACTIVE' || !userStatus.patientId);
+            
+            if (shouldRestrict) {
+              setIsRestricted(true);
+            } else {
+              setIsRestricted(false);
+            }
+            
+            console.log('🔄 Restrictions updated with fresh server data:', userStatus);
+          }
+        } catch (error) {
+          console.error('Error fetching fresh user status:', error);
         }
-        
-        // Update the current user data in state
-        console.log('🔄 Updating current user data with:', updatedUser);
       } else if (updatedUser) {
         // Even if it's not the current user, we should refresh to get updated data
         console.log('🔄 Other user updated, but not refreshing to avoid issues...');

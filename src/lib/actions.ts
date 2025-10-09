@@ -1395,6 +1395,47 @@ export async function getCurrentUserFresh(userId: string): Promise<User | null> 
   }
 }
 
+// Get current user status for access control - Server Component only
+export async function getUserStatusForAccess(userId: string): Promise<{
+  id: string;
+  role: string;
+  status: string;
+  patientId: string | null;
+} | null> {
+  try {
+    const { unstable_noStore: noStore } = await import('next/cache');
+    noStore();
+
+    const user = await withDatabase(async (prisma) => {
+      return await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          role: true,
+          status: true,
+          patientId: true,
+        },
+      });
+    });
+    return user;
+  } catch (error) {
+    console.error('Error fetching user status for access:', error);
+    return null;
+  }
+}
+
+// Get current user ID from request headers (for server-side auth)
+export async function getCurrentUserIdFromRequest(): Promise<string | null> {
+  try {
+    // This is a simplified version - in a real app you'd get this from cookies/session
+    // For now, we'll use a different approach
+    return null;
+  } catch (error) {
+    console.error('Error getting current user ID from request:', error);
+    return null;
+  }
+}
+
 export async function updateUser(userId: string, data: Partial<Omit<User, "id" | "createdAt">>): Promise<User> {
   try {
     console.log('🔄 updateUser called with userId:', userId);

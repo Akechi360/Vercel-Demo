@@ -803,31 +803,28 @@ export async function addAffiliation(affiliationData: {
   estado?: string;
 }): Promise<any> {
   try {
-    const isAvailable = await isDatabaseAvailable();
-    if (!isAvailable) {
-      throw new Error('Base de datos no disponible. No se puede crear la afiliación.');
-    }
-
-    const prisma = getPrisma();
+    console.log('🔍 Creating affiliation with data:', affiliationData);
     
-    const affiliation = await prisma.affiliation.create({
-      data: {
-        planId: affiliationData.planId || 'default-plan',
-        tipoPago: affiliationData.tipoPago || null,
-        estado: (affiliationData.estado as any) || 'ACTIVA',
-        fechaInicio: new Date(),
-        monto: new Decimal(affiliationData.monto || 0),
-        beneficiarios: undefined,
-        companyId: affiliationData.companyId || null, // Allow null for patient particular
-        userId: affiliationData.userId,
-      },
-      include: {
-        company: true,
-        user: true,
-      },
+    const affiliation = await withDatabase(async (prisma) => {
+      return await prisma.affiliation.create({
+        data: {
+          planId: affiliationData.planId || 'default-plan',
+          tipoPago: affiliationData.tipoPago || null,
+          estado: (affiliationData.estado as any) || 'ACTIVA',
+          fechaInicio: new Date(),
+          monto: new Decimal(affiliationData.monto || 0),
+          beneficiarios: undefined,
+          companyId: affiliationData.companyId || null, // Allow null for patient particular
+          userId: affiliationData.userId,
+        },
+        include: {
+          company: true,
+          user: true,
+        },
+      });
     });
 
-    console.log('Affiliation created successfully:', affiliation);
+    console.log('✅ Affiliation created successfully:', affiliation);
     
     // Convert Decimal to Number for serialization
     return {

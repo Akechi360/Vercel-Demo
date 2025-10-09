@@ -311,6 +311,7 @@ enum UserRole {
   PROMOTORA
 }
 
+
 enum AppointmentType {
   CONSULTA
   SEGUIMIENTO

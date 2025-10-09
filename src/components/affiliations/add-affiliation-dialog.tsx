@@ -18,7 +18,6 @@ import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import { useAuth } from "../layout/auth-provider";
 import { addAffiliation } from "@/lib/actions";
-import { useToast } from "@/hooks/use-toast";
 import { useAffiliationStore } from "@/stores/affiliation-store";
 
 const MySwal = withReactContent(Swal);
@@ -32,7 +31,6 @@ export function AddAffiliationDialog({ onAddAffiliation, onRefresh }: AddAffilia
     const [open, setOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const { currentUser } = useAuth();
-    const { toast } = useToast();
     const { clearCache } = useAffiliationStore();
     
     const handleSubmit = async (values: FormValues) => {
@@ -75,10 +73,37 @@ export function AddAffiliationDialog({ onAddAffiliation, onRefresh }: AddAffilia
             });
         } catch (error) {
             console.error('Error creating affiliation:', error);
-            toast({
-                variant: "destructive",
-                title: "Error",
-                description: error instanceof Error ? error.message : "No se pudo crear la afiliación.",
+            
+            // Convert toast errors to SweetAlert for better visual consistency
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            const errorMessage = error instanceof Error ? error.message : "No se pudo crear la afiliación.";
+            
+            // Determine error type and icon
+            let errorTitle = "Error";
+            let errorIcon: 'error' | 'warning' | 'info' = 'error';
+            
+            if (errorMessage.includes('usuario no existe') || errorMessage.includes('Usuario con ID')) {
+                errorTitle = "Usuario no encontrado";
+                errorIcon = 'warning';
+            } else if (errorMessage.includes('clave foránea') || errorMessage.includes('Foreign key constraint')) {
+                errorTitle = "Error de referencia";
+                errorIcon = 'warning';
+            } else if (errorMessage.includes('conexión') || errorMessage.includes('base de datos')) {
+                errorTitle = "Error de conexión";
+                errorIcon = 'error';
+            } else if (errorMessage.includes('empresa') || errorMessage.includes('company')) {
+                errorTitle = "Error de empresa";
+                errorIcon = 'warning';
+            }
+            
+            MySwal.fire({
+                title: errorTitle,
+                text: errorMessage,
+                icon: errorIcon,
+                background: isDarkMode ? '#1e293b' : '#ffffff',
+                color: isDarkMode ? '#f1f5f9' : '#0f172a',
+                confirmButtonColor: errorIcon === 'error' ? '#dc2626' : '#f59e0b',
+                confirmButtonText: 'Entendido'
             });
         } finally {
             setIsLoading(false);

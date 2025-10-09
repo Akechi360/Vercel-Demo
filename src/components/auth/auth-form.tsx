@@ -21,6 +21,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { login, createUser } from '@/lib/actions';
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
+
+const MySwal = withReactContent(Swal);
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Dirección de correo inválida.' }),
@@ -82,7 +86,17 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
             localStorage.setItem("user", JSON.stringify(result.user));
             router.push('/dashboard');
         } else {
-            toast({ variant: "destructive", title: "Fallo en el inicio de sesión", description: result.error });
+            // Convert login error to SweetAlert
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            MySwal.fire({
+                title: 'Error de inicio de sesión',
+                text: result.error,
+                icon: 'error',
+                background: isDarkMode ? '#1e293b' : '#ffffff',
+                color: isDarkMode ? '#f1f5f9' : '#0f172a',
+                confirmButtonColor: '#dc2626',
+                confirmButtonText: 'Entendido'
+            });
         }
     } else if (mode === 'register') {
         try {
@@ -106,10 +120,18 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
             setMode('login');
             reset();
         } catch (error) {
-            toast({ 
-                variant: "destructive", 
-                title: "Error al crear cuenta", 
-                description: error instanceof Error ? error.message : "Error desconocido" 
+            // Convert registration error to SweetAlert
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            const errorMessage = error instanceof Error ? error.message : "Error desconocido al crear la cuenta.";
+            
+            MySwal.fire({
+                title: 'Error al crear cuenta',
+                text: errorMessage,
+                icon: 'error',
+                background: isDarkMode ? '#1e293b' : '#ffffff',
+                color: isDarkMode ? '#f1f5f9' : '#0f172a',
+                confirmButtonColor: '#dc2626',
+                confirmButtonText: 'Entendido'
             });
         }
     } else if (mode === 'forgot-password') {

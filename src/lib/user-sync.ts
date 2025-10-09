@@ -9,12 +9,20 @@ export function syncUserData(updatedUser: {
   status: string;
   patientId?: string | null;
 }) {
+  console.log('🚀 syncUserData called with:', updatedUser);
+  
   try {
     // Get current user from localStorage
     const currentUserJson = localStorage.getItem('user');
-    if (!currentUserJson) return;
+    console.log('📱 Current user from localStorage:', currentUserJson);
+    
+    if (!currentUserJson) {
+      console.log('❌ No current user found in localStorage');
+      return;
+    }
 
     const currentUser = JSON.parse(currentUserJson);
+    console.log('👤 Parsed current user:', currentUser);
     
     // If this is the same user, update their data
     if (currentUser.id === updatedUser.id) {
@@ -34,9 +42,15 @@ export function syncUserData(updatedUser: {
     // ALWAYS dispatch the event, regardless of whether it's the current user
     // This allows other components to react to any user changes
     console.log('🔄 Dispatching userDataUpdated event for user:', updatedUser.id);
-    window.dispatchEvent(new CustomEvent('userDataUpdated', { 
+    console.log('📡 Event detail being dispatched:', updatedUser);
+    
+    const event = new CustomEvent('userDataUpdated', { 
       detail: updatedUser 
-    }));
+    });
+    
+    console.log('📤 Event created:', event);
+    window.dispatchEvent(event);
+    console.log('✅ Event dispatched successfully');
     
     // Force a page refresh to get fresh data from server
     if (typeof window !== 'undefined') {

@@ -164,9 +164,17 @@ export default function UsersManagementPage() {
         setSelectedUser(null);
         
         // Sync user data in localStorage if this affects the current user
-        console.log('🔄 Calling syncUserData with:', updatedUser);
-        syncUserData(updatedUser);
-        console.log('✅ syncUserData called successfully');
+        console.log('🔄 About to call syncUserData with:', updatedUser);
+        console.log('🔄 Updated user ID:', updatedUser.id);
+        console.log('🔄 Updated user status:', updatedUser.status);
+        console.log('🔄 Updated user role:', updatedUser.role);
+        
+        try {
+          syncUserData(updatedUser);
+          console.log('✅ syncUserData called successfully');
+        } catch (error) {
+          console.error('❌ Error calling syncUserData:', error);
+        }
         
         // Usuario actualizado exitosamente
       } catch (error) {

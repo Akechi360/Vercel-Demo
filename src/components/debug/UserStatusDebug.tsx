@@ -22,6 +22,22 @@ export function UserStatusDebug() {
     };
   }, []);
 
+  const testEvent = () => {
+    console.log('🧪 Testing manual event dispatch...');
+    const testUser = {
+      id: 'test-user-id',
+      name: 'Test User',
+      email: 'test@example.com',
+      role: 'patient',
+      status: 'ACTIVE',
+      patientId: null
+    };
+    
+    const event = new CustomEvent('userDataUpdated', { detail: testUser });
+    window.dispatchEvent(event);
+    console.log('🧪 Test event dispatched');
+  };
+
   if (process.env.NODE_ENV !== 'development') {
     return null;
   }
@@ -34,6 +50,14 @@ export function UserStatusDebug() {
       </div>
       <div className="mb-2">
         <strong>Patient ID:</strong> {currentUser?.patientId || 'None'}
+      </div>
+      <div className="mb-2">
+        <button 
+          onClick={testEvent}
+          className="bg-blue-600 text-white px-2 py-1 rounded text-xs"
+        >
+          Test Event
+        </button>
       </div>
       <div>
         <strong>Recent Events:</strong>

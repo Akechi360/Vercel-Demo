@@ -137,13 +137,15 @@ export default function UsersManagementPage() {
   const handleUpdateUser = async () => {
     if (selectedUser) {
       try {
-        console.log('Updating user:', selectedUser.id, {
+        console.log('🔄 Starting user update process...');
+        console.log('📝 Updating user:', selectedUser.id, {
           name: selectedUser.name,
           email: selectedUser.email,
           role: selectedUser.role,
           status: selectedUser.status,
         });
         
+        console.log('📞 Calling updateUser function...');
         const updatedUser = await updateUser(selectedUser.id, {
           name: selectedUser.name,
           email: selectedUser.email,
@@ -151,7 +153,9 @@ export default function UsersManagementPage() {
           status: selectedUser.status,
         });
         
-        console.log('User updated successfully:', updatedUser);
+        console.log('✅ User updated successfully:', updatedUser);
+        console.log('🔍 Updated user type:', typeof updatedUser);
+        console.log('🔍 Updated user keys:', Object.keys(updatedUser));
         console.log('Current users before update:', users);
         
         const updatedUsers = users.map(user => 
@@ -168,12 +172,16 @@ export default function UsersManagementPage() {
         console.log('🔄 Updated user ID:', updatedUser.id);
         console.log('🔄 Updated user status:', updatedUser.status);
         console.log('🔄 Updated user role:', updatedUser.role);
+        console.log('🔄 Updated user patientId:', updatedUser.patientId);
         
         try {
+          console.log('📞 Calling syncUserData function...');
           syncUserData(updatedUser);
           console.log('✅ syncUserData called successfully');
         } catch (error) {
           console.error('❌ Error calling syncUserData:', error);
+          console.error('❌ Error details:', error.message);
+          console.error('❌ Error stack:', error.stack);
         }
         
         // Usuario actualizado exitosamente

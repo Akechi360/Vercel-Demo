@@ -1397,14 +1397,22 @@ export async function getCurrentUserFresh(userId: string): Promise<User | null> 
 
 export async function updateUser(userId: string, data: Partial<Omit<User, "id" | "createdAt">>): Promise<User> {
   try {
-    console.log('🔄 Updating user:', userId, 'with data:', data);
+    console.log('🔄 updateUser called with userId:', userId);
+    console.log('🔄 updateUser called with data:', data);
+    console.log('🔄 updateUser data type:', typeof data);
+    console.log('🔄 updateUser data keys:', Object.keys(data));
     
     const updatedUser = await withDatabase(async (prisma) => {
-      return await prisma.user.update({
+      console.log('🔄 Inside withDatabase, calling prisma.user.update...');
+      const result = await prisma.user.update({
         where: { id: userId },
         data,
       });
+      console.log('✅ prisma.user.update completed:', result);
+      return result;
     });
+    
+    console.log('✅ withDatabase completed, updatedUser:', updatedUser);
 
     // If status or role was changed, revalidate relevant routes
     if (data.status || data.role) {

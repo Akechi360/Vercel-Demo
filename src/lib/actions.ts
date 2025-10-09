@@ -806,6 +806,17 @@ export async function addAffiliation(affiliationData: {
     console.log('🔍 Creating affiliation with data:', affiliationData);
     
     const affiliation = await withDatabase(async (prisma) => {
+      // Verificar que el usuario existe
+      const userExists = await prisma.user.findUnique({
+        where: { id: affiliationData.userId }
+      });
+      
+      if (!userExists) {
+        throw new Error(`Usuario con ID ${affiliationData.userId} no existe`);
+      }
+      
+      console.log('✅ User exists:', userExists.name);
+      
       return await prisma.affiliation.create({
         data: {
           planId: affiliationData.planId || 'default-plan',
@@ -844,7 +855,15 @@ export async function addAffiliation(affiliationData: {
     };
   } catch (error) {
     console.error('❌ Error creando afiliación:', error);
-    throw new Error('No se pudo crear la afiliación. Verifica la conexión a la base de datos.');
+    
+    // Mejorar el mensaje de error
+    if (error instanceof Error && error.message.includes('no existe')) {
+      throw new Error('El usuario seleccionado no existe. Por favor, verifica los datos.');
+    } else if (error instanceof Error && error.message.includes('Foreign key constraint')) {
+      throw new Error('Error de referencia: El usuario o empresa seleccionada no existe.');
+    } else {
+      throw new Error('No se pudo crear la afiliación. Verifica la conexión a la base de datos.');
+    }
   }
 }
 

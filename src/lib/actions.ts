@@ -1347,15 +1347,13 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
 
 export async function updateUser(userId: string, data: Partial<Omit<User, "id" | "createdAt">>): Promise<User> {
   try {
-    const isAvailable = await isDatabaseAvailable();
-    if (!isAvailable) {
-      throw new Error('Base de datos no disponible. No se puede actualizar el usuario.');
-    }
-
-    const prisma = getPrisma();
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data,
+    console.log('🔄 Updating user:', userId, 'with data:', data);
+    
+    const updatedUser = await withDatabase(async (prisma) => {
+      return await prisma.user.update({
+        where: { id: userId },
+        data,
+      });
     });
 
     // If status or role was changed, revalidate relevant routes

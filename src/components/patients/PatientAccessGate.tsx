@@ -38,12 +38,12 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
   }, [currentUser, mutate]);
 
   // Check if user should be restricted based on fresh server data
-  // ONLY restrict patients, never restrict admins, doctors, promotoras, etc.
+  // ONLY restrict patients with INACTIVE status, never restrict ACTIVE patients
   const isRestricted = userStatus && 
     userStatus.role === 'patient' && 
-    (userStatus.status === 'INACTIVE' || !userStatus.patientId);
+    userStatus.status === 'INACTIVE';
 
-  // Debug logging to ensure admins are not restricted
+  // Debug logging to ensure correct restriction logic
   console.log('🔍 PatientAccessGate restriction check:', {
     userStatus,
     role: userStatus?.role,
@@ -51,10 +51,11 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
     patientId: userStatus?.patientId,
     isRestricted,
     isAdmin: userStatus?.role === 'admin' || userStatus?.role === 'master',
+    restrictionLogic: userStatus?.role === 'patient' && userStatus?.status === 'INACTIVE',
   });
 
-  // Show loading state while fetching user status
-  if (isLoading) {
+  // Show loading state only on initial load, not on every refresh
+  if (isLoading && !userStatus) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -65,18 +66,14 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
     );
   }
 
-  // If there's an error fetching user status, show error
+  // If there's an error fetching user status, use localStorage fallback
   if (error) {
     console.error('❌ Error fetching user status:', error);
-    console.error('❌ Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-    });
     
     // Fallback to localStorage data if API fails
     if (currentUser) {
       const shouldRestrict = currentUser.role === 'patient' && 
-        (currentUser.status === 'INACTIVE' || !currentUser.patientId);
+        currentUser.status === 'INACTIVE';
       
       if (shouldRestrict) {
         return <RestrictedNotice />;

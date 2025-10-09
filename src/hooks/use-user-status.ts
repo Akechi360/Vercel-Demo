@@ -56,12 +56,12 @@ export function useUserStatus(userId?: string): UseUserStatusReturn {
     shouldFetch ? `/api/user/status?userId=${targetUserId}` : null,
     fetcher,
     {
-      refreshInterval: 30000, // Refresh every 30 seconds
-      revalidateOnFocus: true, // Revalidate when window gains focus
+      refreshInterval: 0, // Disable automatic refresh - only refresh on events
+      revalidateOnFocus: false, // Don't revalidate on focus to avoid constant loading
       revalidateOnReconnect: true, // Revalidate when network reconnects
-      dedupingInterval: 5000, // Dedupe requests within 5 seconds
-      errorRetryCount: 3, // Retry failed requests 3 times
-      errorRetryInterval: 5000, // Wait 5 seconds between retries
+      dedupingInterval: 10000, // Dedupe requests within 10 seconds
+      errorRetryCount: 2, // Retry failed requests 2 times
+      errorRetryInterval: 10000, // Wait 10 seconds between retries
     }
   );
 

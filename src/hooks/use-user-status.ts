@@ -16,11 +16,25 @@ interface UseUserStatusReturn {
 }
 
 const fetcher = async (url: string): Promise<UserStatus> => {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error('Failed to fetch user status');
+  console.log('🔍 SWR fetcher called with URL:', url);
+  
+  try {
+    const response = await fetch(url);
+    console.log('🔍 Fetch response status:', response.status);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('❌ Fetch failed:', response.status, errorData);
+      throw new Error(`Failed to fetch user status: ${response.status} - ${errorData.error || 'Unknown error'}`);
+    }
+    
+    const data = await response.json();
+    console.log('✅ SWR fetcher success:', data);
+    return data;
+  } catch (error) {
+    console.error('❌ SWR fetcher error:', error);
+    throw error;
   }
-  return response.json();
 };
 
 export function useUserStatus(): UseUserStatusReturn {

@@ -1403,11 +1403,15 @@ export async function getUserStatusForAccess(userId: string): Promise<{
   patientId: string | null;
 } | null> {
   try {
+    console.log('🔍 getUserStatusForAccess called with userId:', userId);
+    
     const { unstable_noStore: noStore } = await import('next/cache');
     noStore();
+    console.log('🔍 unstable_noStore applied');
 
     const user = await withDatabase(async (prisma) => {
-      return await prisma.user.findUnique({
+      console.log('🔍 Inside withDatabase, calling prisma.user.findUnique...');
+      const result = await prisma.user.findUnique({
         where: { id: userId },
         select: {
           id: true,
@@ -1416,10 +1420,18 @@ export async function getUserStatusForAccess(userId: string): Promise<{
           patientId: true,
         },
       });
+      console.log('🔍 prisma.user.findUnique result:', result);
+      return result;
     });
+    
+    console.log('✅ getUserStatusForAccess returning:', user);
     return user;
   } catch (error) {
-    console.error('Error fetching user status for access:', error);
+    console.error('❌ Error fetching user status for access:', error);
+    console.error('❌ Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return null;
   }
 }

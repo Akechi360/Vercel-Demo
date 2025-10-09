@@ -56,8 +56,23 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
 
   // If there's an error fetching user status, show error
   if (error) {
-    console.error('Error fetching user status:', error);
-    // Fallback to showing children if there's an error
+    console.error('❌ Error fetching user status:', error);
+    console.error('❌ Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    
+    // Fallback to localStorage data if API fails
+    if (currentUser) {
+      const shouldRestrict = currentUser.role === 'patient' && 
+        (currentUser.status === 'INACTIVE' || !currentUser.patientId);
+      
+      if (shouldRestrict) {
+        return <RestrictedNotice />;
+      }
+    }
+    
+    // If no fallback data, show children
     return <>{children}</>;
   }
 

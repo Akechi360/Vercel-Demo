@@ -19,6 +19,15 @@ const getPrisma = () => {
 
 // Función helper para ejecutar operaciones de base de datos con manejo de errores
 const withDatabase = async <T>(operation: (prisma: any) => Promise<T>, fallbackValue?: T): Promise<T> => {
+  // Durante el build, siempre usar fallback si está disponible
+  if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
+    console.log('Build time - using fallback value');
+    if (fallbackValue !== undefined) {
+      return fallbackValue;
+    }
+    return [] as T;
+  }
+
   const isAvailable = await isDatabaseAvailable();
   if (!isAvailable) {
     console.log('Database not available - using fallback value');

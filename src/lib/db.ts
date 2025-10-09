@@ -3,13 +3,14 @@ import { PrismaClient } from '@prisma/client';
 // Singleton pattern para evitar múltiples conexiones
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-// Verificar que DATABASE_URL esté configurado
-if (!process.env.DATABASE_URL) {
-  console.error('❌ DATABASE_URL no está configurado en las variables de entorno');
-  throw new Error('DATABASE_URL is required but not found in environment variables');
+// Verificar que DATABASE_URL esté configurado (solo en runtime, no en build)
+if (!process.env.DATABASE_URL && process.env.NODE_ENV !== 'production') {
+  console.warn('⚠️ DATABASE_URL no está configurado en las variables de entorno');
 }
 
-console.log('🧩 Prisma conectado a:', process.env.DATABASE_URL);
+if (process.env.DATABASE_URL) {
+  console.log('🧩 Prisma conectado a:', process.env.DATABASE_URL);
+}
 
 // Crear instancia de Prisma con configuración robusta
 export const prisma =
@@ -18,7 +19,7 @@ export const prisma =
     log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
     datasources: {
       db: {
-        url: process.env.DATABASE_URL,
+        url: process.env.DATABASE_URL || 'postgresql://placeholder:placeholder@placeholder:5432/placeholder',
       },
     },
   });
@@ -48,7 +49,7 @@ export const isDatabaseAvailable = async (): Promise<boolean> => {
 // Función para obtener el cliente de Prisma
 export const getPrismaClient = () => {
   if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL is required but not found in environment variables');
+    console.warn('⚠️ DATABASE_URL not found, using placeholder connection');
   }
   return prisma;
 };

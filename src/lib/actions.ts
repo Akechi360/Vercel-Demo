@@ -355,6 +355,7 @@ export async function getDoctors(): Promise<Doctor[]> {
 // COMPANY ACTIONS
 export async function getCompanies(): Promise<Company[]> {
   try {
+    console.log('🔍 Fetching companies from database...');
     const companies = await withDatabase(async (prisma) => {
       return await prisma.company.findMany({
         select: {
@@ -367,9 +368,11 @@ export async function getCompanies(): Promise<Company[]> {
         },
         orderBy: { createdAt: 'desc' },
       });
-    });
+    }, []); // Fallback to empty array
 
-    return companies.map((company: any) => ({
+    console.log(`📊 Found ${companies.length} companies in database`);
+    
+    const mappedCompanies = companies.map((company: any) => ({
       id: company.id,
       name: company.nombre,
       ruc: company.rif,
@@ -377,8 +380,11 @@ export async function getCompanies(): Promise<Company[]> {
       email: company.email || '',
       status: 'Activo' as const,
     }));
+
+    console.log('✅ Mapped companies:', mappedCompanies);
+    return mappedCompanies;
   } catch (error) {
-    console.error('Error fetching companies:', error);
+    console.error('❌ Error fetching companies:', error);
     return [];
   }
 }

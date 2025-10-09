@@ -38,9 +38,20 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
   }, [currentUser, mutate]);
 
   // Check if user should be restricted based on fresh server data
+  // ONLY restrict patients, never restrict admins, doctors, promotoras, etc.
   const isRestricted = userStatus && 
     userStatus.role === 'patient' && 
     (userStatus.status === 'INACTIVE' || !userStatus.patientId);
+
+  // Debug logging to ensure admins are not restricted
+  console.log('🔍 PatientAccessGate restriction check:', {
+    userStatus,
+    role: userStatus?.role,
+    status: userStatus?.status,
+    patientId: userStatus?.patientId,
+    isRestricted,
+    isAdmin: userStatus?.role === 'admin' || userStatus?.role === 'master',
+  });
 
   // Show loading state while fetching user status
   if (isLoading) {

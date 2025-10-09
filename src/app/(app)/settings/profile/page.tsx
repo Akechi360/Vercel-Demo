@@ -7,13 +7,11 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/components/layout/auth-provider"
 import { useState, useRef } from "react"
-import { useToast } from "@/hooks/use-toast"
 import { updateUser } from "@/lib/actions"
 import { Upload, X } from "lucide-react"
 
 export default function ProfilePage() {
   const { currentUser } = useAuth();
-  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,17 +32,10 @@ export default function ProfilePage() {
         avatarUrl: formData.avatarUrl,
       });
       
-      toast({
-        title: "Perfil actualizado",
-        description: "Tu información se ha guardado correctamente.",
-      });
+      // Perfil actualizado exitosamente
       setIsEditing(false);
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No se pudo actualizar el perfil. Inténtalo de nuevo.",
-      });
+      console.error('Error updating profile:', error);
     } finally {
       setIsLoading(false);
     }
@@ -66,21 +57,13 @@ export default function ProfilePage() {
     // Validar tipo de archivo
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      toast({
-        variant: "destructive",
-        title: "Tipo de archivo no válido",
-        description: "Solo se permiten archivos JPG, PNG y WebP.",
-      });
+      // Tipo de archivo no válido
       return;
     }
 
     // Validar tamaño (2MB)
     if (file.size > 2 * 1024 * 1024) {
-      toast({
-        variant: "destructive",
-        title: "Archivo demasiado grande",
-        description: "El archivo debe ser menor a 2MB.",
-      });
+      // Archivo demasiado grande
       return;
     }
 

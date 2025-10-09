@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getUsers, createUser, updateUser, deleteUser as deleteUserAction } from '@/lib/actions';
+import { syncUserData } from '@/lib/user-sync';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,6 @@ import {
   Phone,
   Calendar
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/layout/auth-provider';
 import { usePermissions } from '@/hooks/use-permissions';
 import Swal from 'sweetalert2';
@@ -57,7 +57,6 @@ export default function UsersManagementPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const { toast } = useToast();
   const { currentUser } = useAuth();
   const { isAdmin, isSecretaria } = usePermissions();
   const MySwal = withReactContent(Swal);
@@ -69,15 +68,11 @@ export default function UsersManagementPage() {
         const usersData = await getUsers();
         setUsers(usersData);
       } catch (error) {
-        if (error instanceof Error) {
-          toast({ variant: "destructive", title: "Error", description: error.message });
-        } else {
-          toast({ variant: "destructive", title: "Error desconocido" });
-        }
+        console.error('Error loading users:', error);
       }
     };
     loadUsers();
-  }, [toast]);
+  }, []);
 
   const [newUser, setNewUser] = useState({
     name: '',
@@ -167,16 +162,13 @@ export default function UsersManagementPage() {
         setUsers(updatedUsers);
         setIsEditDialogOpen(false);
         setSelectedUser(null);
-        toast({
-          title: "Usuario actualizado",
-          description: "Los cambios se han guardado correctamente.",
-        });
+        
+        // Sync user data in localStorage if this affects the current user
+        syncUserData(updatedUser);
+        
+        // Usuario actualizado exitosamente
       } catch (error) {
-        if (error instanceof Error) {
-          toast({ variant: "destructive", title: "Error", description: error.message });
-        } else {
-          toast({ variant: "destructive", title: "Error desconocido" });
-        }
+        console.error('Error updating user:', error);
       }
     }
   };
@@ -198,16 +190,9 @@ export default function UsersManagementPage() {
       setUsers([...users, userData]);
       setNewUser({ name: '', email: '', role: 'secretaria', phone: '' });
       setIsCreateDialogOpen(false);
-      toast({
-        title: "Usuario creado",
-        description: "El nuevo usuario ha sido agregado al sistema.",
-      });
+      // Usuario creado exitosamente
     } catch (error) {
-      if (error instanceof Error) {
-        toast({ variant: "destructive", title: "Error", description: error.message });
-      } else {
-        toast({ variant: "destructive", title: "Error desconocido" });
-      }
+      console.error('Error creating user:', error);
     }
   };
 
@@ -231,16 +216,9 @@ export default function UsersManagementPage() {
         try {
           await deleteUserAction(userId);
           setUsers(users.filter(user => user.id !== userId));
-          toast({
-            title: "Usuario eliminado ✅",
-            description: `${userToDelete?.name} ha sido eliminado exitosamente del sistema.`,
-          });
+          // Usuario eliminado exitosamente
         } catch (error) {
-          if (error instanceof Error) {
-            toast({ variant: "destructive", title: "Error", description: error.message });
-          } else {
-            toast({ variant: "destructive", title: "Error desconocido" });
-          }
+          console.error('Error deleting user:', error);
         }
       }
     });

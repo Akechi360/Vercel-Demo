@@ -15,18 +15,31 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-import { addPatient, getCompanies, testDatabaseConnection } from '@/lib/actions';
+import { Badge } from '@/components/ui/badge';
+import { addPatient, addPatientFromUser, getCompanies, listSelectablePatientUsers, testDatabaseConnection } from '@/lib/actions';
 import { usePatientStore } from '@/lib/store/patient-store';
 import type { Company } from '@/lib/types';
 
 const formSchema = z.object({
-  name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
+  userSelection: z.enum(['new', 'existing'], { required_error: 'Seleccione una opción.' }),
+  userId: z.string().optional(),
+  name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.').optional(),
   age: z.coerce.number().min(1, 'La edad debe ser mayor a 0.').max(120, 'La edad es inválida.'),
   gender: z.enum(['Masculino', 'Femenino', 'Otro'], { required_error: 'Seleccione un género.' }),
   phone: z.string().optional(),
   email: z.string().email('Dirección de correo inválida.').optional().or(z.literal('')),
   companyId: z.string().optional(),
+}).refine((data) => {
+  if (data.userSelection === 'existing' && !data.userId) {
+    return false;
+  }
+  if (data.userSelection === 'new' && !data.name) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'Complete todos los campos requeridos.',
+  path: ['userSelection']
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -36,20 +49,41 @@ interface AddPatientFormProps {
 }
 
 export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
-  const { toast } = useToast();
   const { addPatient: addPatientToStore } = usePatientStore();
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [selectableUsers, setSelectableUsers] = useState<Array<{
+    id: string;
+    name: string;
+    email: string;
+    status: string;
+  }>>([]);
 
   useEffect(() => {
-    getCompanies().then(companies => {
-      console.log('🏢 Available companies:', companies);
-      setCompanies(companies);
-    });
+    const loadData = async () => {
+      try {
+        const [companiesData, usersData] = await Promise.all([
+          getCompanies(),
+          listSelectablePatientUsers()
+        ]);
+        
+        console.log('🏢 Available companies:', companiesData);
+        console.log('👥 Available users:', usersData);
+        
+        setCompanies(companiesData);
+        setSelectableUsers(usersData);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    };
+    
+    loadData();
   }, []);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      userSelection: 'new',
+      userId: '',
       name: '',
       age: undefined,
       phone: '',
@@ -65,11 +99,7 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
       // Test database connection first
       const isConnected = await testDatabaseConnection();
       if (!isConnected) {
-        toast({
-          variant: 'destructive',
-          title: 'Error de Conexión',
-          description: 'No se puede conectar a la base de datos. Verifique la configuración.',
-        });
+        // Error de conexión a la base de datos
         return;
       }
 
@@ -77,29 +107,34 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
       console.log('🔍 CompanyId from form:', values.companyId);
       console.log('🔍 Processed companyId:', values.companyId === 'none' ? undefined : values.companyId);
       
-      const newPatient = await addPatient({
-        name: values.name,
-        age: values.age,
-        gender: values.gender,
-        contact: {
-            phone: values.phone || '',
-            email: values.email || '',
-        },
-        companyId: values.companyId === 'none' ? undefined : values.companyId,
-      });
+      let newPatient;
+      
+      if (values.userSelection === 'existing' && values.userId) {
+        // Create patient from existing user
+        newPatient = await addPatientFromUser(values.userId, {
+          age: values.age,
+          gender: values.gender,
+          companyId: values.companyId === 'none' ? undefined : values.companyId,
+        });
+      } else {
+        // Create new patient with manual data
+        newPatient = await addPatient({
+          name: values.name!,
+          age: values.age,
+          gender: values.gender,
+          contact: {
+              phone: values.phone || '',
+              email: values.email || '',
+          },
+          companyId: values.companyId === 'none' ? undefined : values.companyId,
+        });
+      }
+      
       addPatientToStore(newPatient);
-      toast({
-        title: 'Paciente Agregado',
-        description: `${newPatient.name} ha sido añadido a la lista.`,
-      });
+      // Paciente agregado exitosamente
       onSuccess();
     } catch (error) {
       console.error('Error in onSubmit:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'No se pudo agregar al paciente.',
-      });
     }
   };
 
@@ -108,17 +143,73 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
-          name="name"
+          name="userSelection"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Nombre Completo</FormLabel>
-              <FormControl>
-                <Input placeholder="Ej: Juan Pérez" {...field} />
-              </FormControl>
+              <FormLabel>Tipo de Paciente</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccione una opción..." />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="new">Nuevo Paciente</SelectItem>
+                  <SelectItem value="existing">Usuario Existente</SelectItem>
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
         />
+        
+        {form.watch('userSelection') === 'existing' && (
+          <FormField
+            control={form.control}
+            name="userId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Seleccionar Usuario</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccione un usuario..." />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {selectableUsers.map(user => (
+                      <SelectItem key={user.id} value={user.id}>
+                        <div className="flex items-center justify-between w-full">
+                          <span>{user.name} ({user.email})</span>
+                          <Badge variant={user.status === 'ACTIVE' ? 'default' : 'secondary'} className="ml-2">
+                            {user.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+        
+        {form.watch('userSelection') === 'new' && (
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nombre Completo</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ej: Juan Pérez" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}

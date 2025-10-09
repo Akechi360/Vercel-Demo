@@ -1,6 +1,7 @@
 import AppHeader from './app-header';
 import Nav from './nav';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
+import { PatientAccessGate } from '@/components/patients/PatientAccessGate';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -13,7 +14,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <AppHeader />
           <main className="flex-1 py-4 md:py-6 lg:py-8">
             <div className="mx-auto w-full max-w-7xl px-4 md:px-6 lg:px-8">
+              <PatientAccessGate>
                 {children}
+              </PatientAccessGate>
             </div>
           </main>
         </div>

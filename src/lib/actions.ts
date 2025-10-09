@@ -398,6 +398,201 @@ export async function getCompanies(): Promise<Company[]> {
   }
 }
 
+// Get users with role "patient" that don't have a Patient record yet
+export async function listSelectablePatientUsers(): Promise<Array<{
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+}>> {
+  try {
+    console.log('🔍 Fetching selectable patient users...');
+    
+    const users = await withDatabase(async (prisma) => {
+      return await prisma.user.findMany({
+        where: {
+          role: 'patient', // Only users with patient role
+          patientId: null, // Users that don't have a Patient record yet
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          status: true
+        },
+        orderBy: { name: 'asc' }
+      });
+    }, []);
+
+    console.log(`📊 Found ${users.length} selectable patient users`);
+    return users;
+  } catch (error) {
+    console.error('❌ Error fetching selectable patient users:', error);
+    return [];
+  }
+}
+
+// Get current user with status for server-side authentication checks
+export async function getCurrentUserWithStatus(userId: string): Promise<{
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+} | null> {
+  try {
+    console.log('🔍 Getting current user with status for userId:', userId);
+    
+    const user = await withDatabase(async (prisma) => {
+      return await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          status: true
+        }
+      });
+    });
+
+    if (!user) {
+      console.log('❌ User not found');
+      return null;
+    }
+
+    console.log('✅ User found:', { id: user.id, name: user.name, role: user.role, status: user.status });
+    return user;
+  } catch (error) {
+    console.error('❌ Error getting current user with status:', error);
+    return null;
+  }
+}
+
+// Create patient from existing user
+export async function addPatientFromUser(userId: string, patientData: {
+  age: number;
+  gender: 'Masculino' | 'Femenino' | 'Otro';
+  bloodType?: string;
+  companyId?: string;
+}): Promise<Patient> {
+  try {
+    console.log('addPatientFromUser called with userId:', userId, 'and data:', JSON.stringify(patientData, null, 2));
+    
+    const isAvailable = await isDatabaseAvailable();
+    if (!isAvailable) {
+      throw new Error('Database not available. Please configure DATABASE_URL in your environment variables.');
+    }
+    
+    const prisma = getPrisma();
+    await prisma.$connect();
+    console.log('Database connection successful');
+    
+    // Get the user first
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        status: true
+      }
+    });
+    
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    }
+    
+    if (user.status !== 'ACTIVE') {
+      throw new Error('El usuario no está activo');
+    }
+    
+    // Check if user already has a Patient record
+    const existingPatient = await prisma.patient.findFirst({
+      where: {
+        OR: [
+          { email: user.email },
+          { nombre: user.name }
+        ]
+      }
+    });
+    
+    if (existingPatient) {
+      throw new Error('El usuario ya tiene un registro de paciente');
+    }
+    
+    // Validate required fields
+    if (!patientData.age || patientData.age <= 0) {
+      throw new Error('La edad debe ser mayor a 0');
+    }
+    if (!patientData.gender) {
+      throw new Error('El género es requerido');
+    }
+    
+    const [nombre, apellido] = user.name.split(' ', 2);
+    const fechaNacimiento = new Date(Date.now() - patientData.age * 365.25 * 24 * 60 * 60 * 1000);
+    
+    console.log('Creating patient from user with data:', {
+      nombre: nombre || user.name,
+      apellido: apellido || '',
+      cedula: `V-${Date.now()}`,
+      fechaNacimiento,
+      telefono: user.phone || '',
+      email: user.email,
+      direccion: '',
+    });
+    
+    // Create patient
+    const patient = await prisma.patient.create({
+      data: {
+        nombre: nombre || user.name,
+        apellido: apellido || '',
+        cedula: `V-${Date.now()}`, // Generate temporary ID
+        fechaNacimiento,
+        telefono: user.phone || '',
+        email: user.email,
+        direccion: '', // Default empty address
+      },
+    });
+    
+    console.log('Patient created successfully:', patient);
+
+    // Update user with patientId
+    await prisma.user.update({
+      where: { id: userId },
+      data: { patientId: patient.id }
+    });
+
+    console.log('User updated with patientId:', patient.id);
+
+    // If companyId is provided, create affiliation
+    if (patientData.companyId) {
+      console.log('🔍 Creating affiliation for company:', patientData.companyId);
+      
+      const affiliation = await prisma.affiliation.create({
+        data: {
+          planId: 'default-plan',
+          tipoPago: null,
+          estado: 'ACTIVA',
+          fechaInicio: new Date(),
+          monto: new Decimal(0),
+          beneficiarios: null,
+          companyId: patientData.companyId,
+          userId: userId,
+        },
+      });
+      
+      console.log('Affiliation created successfully:', affiliation);
+    }
+    
+    return patient;
+  } catch (error) {
+    console.error('Error creating patient from user:', error);
+    throw error;
+  }
+}
+
 // ESTUDIO ACTIONS
 export async function getEstudios(): Promise<Estudio[]> {
   try {
@@ -754,6 +949,8 @@ export async function login(credentials: { email: string; password: string }) {
         name: 'Master Administrator',
         email: 'master@urovital.com',
         role: 'admin',
+        status: 'ACTIVE',
+        patientId: null,
       },
     };
   }
@@ -785,6 +982,8 @@ export async function login(credentials: { email: string; password: string }) {
         name: user.name,
         email: user.email,
         role: user.role.toLowerCase() as 'admin' | 'doctor' | 'user',
+        status: user.status,
+        patientId: user.patientId,
       },
     };
   } catch (error) {
@@ -858,17 +1057,30 @@ export async function addAffiliation(affiliationData: {
   } catch (error) {
     console.error('❌ Error creando afiliación:', error);
     
-    // Mejorar el mensaje de error
+    // Mejorar el mensaje de error con más casos específicos
     let errorMessage = 'No se pudo crear la afiliación. Verifica la conexión a la base de datos.';
     
-    if (error instanceof Error && error.message.includes('no existe')) {
-      errorMessage = 'El usuario seleccionado no existe. Por favor, verifica los datos.';
-    } else if (error instanceof Error && error.message.includes('Foreign key constraint')) {
-      errorMessage = 'Error de referencia: El usuario o empresa seleccionada no existe.';
-    } else if (error instanceof Error && error.message.includes('conexión') || error instanceof Error && error.message.includes('base de datos')) {
-      errorMessage = 'Error de conexión a la base de datos. Intenta nuevamente.';
-    } else if (error instanceof Error && error.message.includes('empresa') || error instanceof Error && error.message.includes('company')) {
-      errorMessage = 'Error de empresa: La empresa seleccionada no existe.';
+    if (error instanceof Error) {
+      const errorMsg = error.message.toLowerCase();
+      
+      if (errorMsg.includes('no existe') || errorMsg.includes('usuario con id')) {
+        errorMessage = 'El usuario seleccionado no existe. Por favor, verifica los datos.';
+      } else if (errorMsg.includes('foreign key constraint') || errorMsg.includes('clave foránea')) {
+        errorMessage = 'Error de referencia: El usuario o empresa seleccionada no existe.';
+      } else if (errorMsg.includes('conexión') || errorMsg.includes('base de datos') || errorMsg.includes('connection')) {
+        errorMessage = 'Error de conexión a la base de datos. Intenta nuevamente.';
+      } else if (errorMsg.includes('empresa') || errorMsg.includes('company')) {
+        errorMessage = 'Error de empresa: La empresa seleccionada no existe.';
+      } else if (errorMsg.includes('permission') || errorMsg.includes('permiso')) {
+        errorMessage = 'No tienes permisos para realizar esta acción.';
+      } else if (errorMsg.includes('validation') || errorMsg.includes('validación')) {
+        errorMessage = 'Los datos proporcionados no son válidos. Verifica la información.';
+      } else if (errorMsg.includes('duplicate') || errorMsg.includes('duplicado')) {
+        errorMessage = 'Ya existe una afiliación con estos datos.';
+      } else {
+        // Para errores no específicos, mostrar un mensaje más amigable
+        errorMessage = 'No se pudo crear la afiliación. Por favor, verifica los datos e intenta nuevamente.';
+      }
     }
     
     return { success: false, error: errorMessage };
@@ -1141,10 +1353,38 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
     }
 
     const prisma = getPrisma();
-    return await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: userId },
       data,
     });
+
+    // If status or role was changed, revalidate relevant routes
+    if (data.status || data.role) {
+      console.log('🔄 User status or role changed, revalidating routes...');
+      // Revalidate patient-related pages to update access gates and dropdowns
+      try {
+        const { revalidatePath } = await import('next/cache');
+        revalidatePath('/patients');
+        revalidatePath('/dashboard');
+        revalidatePath('/appointments');
+        revalidatePath('/settings/users'); // Revalidate users page to update dropdowns
+        console.log('✅ Routes revalidated after user change');
+      } catch (revalidateError) {
+        console.warn('⚠️ Could not revalidate paths:', revalidateError);
+      }
+    }
+
+    // Return updated user data for client-side synchronization
+    return {
+      ...updatedUser,
+      // Ensure the response includes all necessary fields for client sync
+      id: updatedUser.id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      status: updatedUser.status,
+      patientId: updatedUser.patientId,
+    };
   } catch (error) {
     console.error('Error updating user:', error);
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido';

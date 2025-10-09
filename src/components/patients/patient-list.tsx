@@ -25,7 +25,6 @@ import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 import { getInitials } from '@/lib/utils';
 import { Search, UserPlus, Filter, Download, Trash2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
@@ -54,7 +53,6 @@ export default function PatientList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const router = useRouter();
-  const { toast } = useToast();
   const { patients, removePatient } = usePatientStore();
   const companies = useCompanyStore((state) => state.companies);
   const companyMap = useMemo(() => new Map(companies.map(c => [c.id, c.name])), [companies]);
@@ -77,16 +75,9 @@ export default function PatientList() {
                 try {
                     await deletePatient(patientId);
                     removePatient(patientId);
-                    toast({
-                        title: "Paciente eliminado ✅",
-                        description: "El paciente ha sido eliminado exitosamente.",
-                    });
+                    // Paciente eliminado exitosamente
                 } catch (error) {
-                    toast({
-                        variant: "destructive",
-                        title: "Error",
-                        description: "No se pudo eliminar al paciente.",
-                    });
+                    console.error('Error deleting patient:', error);
                 }
             }
         });
@@ -139,17 +130,9 @@ export default function PatientList() {
 
       doc.save(`pacientes-${format(exportTime, 'yyyy-MM-dd')}.pdf`);
       
-      toast({
-        title: "Exportación a PDF completada",
-        description: "La descarga de la lista de pacientes ha comenzado.",
-      });
+      // Exportación a PDF completada
 
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error en la exportación",
-        description: "No se pudo generar el archivo PDF.",
-      });
       console.error("Failed to export patients list to PDF:", error);
     }
   };
@@ -181,17 +164,9 @@ export default function PatientList() {
         link.click();
         document.body.removeChild(link);
         
-        toast({
-            title: "Exportación a CSV completada",
-            description: "La descarga del archivo CSV ha comenzado.",
-        });
+        // Exportación a CSV completada
 
     } catch (error) {
-        toast({
-            variant: "destructive",
-            title: "Error en la exportación",
-            description: "No se pudo generar el archivo CSV.",
-        });
         console.error("Failed to export patients list to CSV:", error);
     }
   };

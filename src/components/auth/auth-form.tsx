@@ -19,7 +19,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
 import { login, createUser } from '@/lib/actions';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
@@ -55,7 +54,6 @@ const formSchemas = {
 
 export default function AuthForm({ mode: initialMode }: AuthFormProps) {
   const [mode, setMode] = useState<AuthMode>(initialMode);
-  const { toast } = useToast();
   const router = useRouter();
 
   const getDefaultValues = (currentMode: AuthMode) => {
@@ -82,7 +80,6 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
     if (mode === 'login') {
         const result = await login(values as z.infer<typeof loginSchema>);
         if (result.success && result.user) {
-            toast({ title: "Inicio de sesión exitoso", description: "Redirigiendo al panel..." });
             localStorage.setItem("user", JSON.stringify(result.user));
             router.push('/dashboard');
         } else {
@@ -113,10 +110,6 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
                 avatarUrl: null // Se usará el valor por defecto de Prisma
             });
             
-            toast({ 
-                title: "¡Cuenta creada exitosamente!", 
-                description: "Ahora puedes iniciar sesión con tus credenciales." 
-            });
             setMode('login');
             reset();
         } catch (error) {
@@ -135,7 +128,8 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
             });
         }
     } else if (mode === 'forgot-password') {
-        toast({ title: "¡Simulación de recuperación exitosa!", description: `Datos: ${JSON.stringify(values)}` });
+        // Simulación de recuperación de contraseña
+        console.log('Datos de recuperación:', values);
     }
   };
 

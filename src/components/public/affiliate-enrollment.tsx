@@ -138,7 +138,32 @@ function AffiliateEnrollmentContent() {
         });
         setCurrentStep(4);
     } catch (error) {
-        // Handle submission error
+        console.error('Error submitting affiliate enrollment:', error);
+        
+        // Handle submission error with specific messages
+        const isDarkMode = document.documentElement.classList.contains('dark');
+        let errorMessage = 'No se pudo enviar la solicitud. Por favor, intenta nuevamente.';
+        
+        if (error instanceof Error) {
+            const errorMsg = error.message.toLowerCase();
+            if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+                errorMessage = 'Error de conexión. Verifica tu internet e intenta nuevamente.';
+            } else if (errorMsg.includes('timeout')) {
+                errorMessage = 'La operación tardó demasiado. Intenta nuevamente.';
+            } else if (errorMsg.includes('validation') || errorMsg.includes('validación')) {
+                errorMessage = 'Los datos proporcionados no son válidos. Verifica la información.';
+            }
+        }
+        
+        MySwal.fire({
+            title: 'Error al enviar solicitud',
+            text: errorMessage,
+            icon: 'error',
+            background: isDarkMode ? '#1e293b' : '#ffffff',
+            color: isDarkMode ? '#f1f5f9' : '#0f172a',
+            confirmButtonColor: '#dc2626',
+            confirmButtonText: 'Entendido'
+        });
     }
   };
 

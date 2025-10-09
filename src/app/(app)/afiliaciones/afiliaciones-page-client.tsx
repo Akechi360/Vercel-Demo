@@ -10,7 +10,6 @@ import { AffiliationStatCards } from "@/components/affiliations/stat-cards";
 import { useState, useEffect } from "react";
 import AffiliationActions from "@/components/affiliations/affiliation-actions";
 import { AddAffiliationDialog } from "@/components/affiliations/add-affiliation-dialog";
-import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useAffiliationStore } from "@/stores/affiliation-store";
 
@@ -20,7 +19,6 @@ interface AfiliacionesPageClientProps {
 
 export function AfiliacionesPageClient({ initialAffiliations }: AfiliacionesPageClientProps) {
   const [affiliations, setAffiliations] = useState(initialAffiliations);
-  const { toast } = useToast();
   const router = useRouter();
   const { loadData } = useAffiliationStore();
 

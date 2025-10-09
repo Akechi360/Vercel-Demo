@@ -110,9 +110,23 @@ export function AddAffiliationDialog({ onAddAffiliation, onRefresh }: AddAffilia
             
             // Fallback error handling for unexpected errors
             const isDarkMode = document.documentElement.classList.contains('dark');
+            let errorMessage = 'Ocurrió un error inesperado. Por favor, intenta nuevamente.';
+            
+            // Try to extract a more specific error message
+            if (error instanceof Error) {
+                const errorMsg = error.message.toLowerCase();
+                if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+                    errorMessage = 'Error de conexión. Verifica tu internet e intenta nuevamente.';
+                } else if (errorMsg.includes('timeout')) {
+                    errorMessage = 'La operación tardó demasiado. Intenta nuevamente.';
+                } else if (errorMsg.includes('unauthorized') || errorMsg.includes('forbidden')) {
+                    errorMessage = 'No tienes permisos para realizar esta acción.';
+                }
+            }
+            
             MySwal.fire({
                 title: 'Error inesperado',
-                text: 'Ocurrió un error inesperado. Por favor, intenta nuevamente.',
+                text: errorMessage,
                 icon: 'error',
                 background: isDarkMode ? '#1e293b' : '#ffffff',
                 color: isDarkMode ? '#f1f5f9' : '#0f172a',

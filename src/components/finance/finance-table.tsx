@@ -9,7 +9,6 @@ import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 import { getInitials } from '@/lib/utils';
 import { Search, MoreHorizontal, FileDown, FileText, Edit, Ban, Plus } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
@@ -58,7 +57,6 @@ export function FinanceTable({
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todos');
   const [currentPage, setCurrentPage] = useState(1);
-  const { toast } = useToast();
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -171,17 +169,9 @@ export function FinanceTable({
 
       doc.save(`reporte-financiero-${format(exportTime, 'yyyy-MM-dd')}.pdf`);
       
-      toast({
-        title: "Exportación a PDF completada",
-        description: "La descarga del reporte financiero ha comenzado.",
-      });
+      // Exportación a PDF completada
 
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error en la exportación",
-        description: "No se pudo generar el archivo PDF.",
-      });
       console.error("Failed to export financial report to PDF:", error);
     }
   };
@@ -347,10 +337,7 @@ export function FinanceTable({
             )
           );
           
-          toast({
-            title: "Comprobante anulado correctamente",
-            description: "El comprobante ha sido anulado exitosamente.",
-          });
+          // Comprobante anulado correctamente
           
           MySwal.fire({
               title: 'Anulado', 
@@ -362,11 +349,6 @@ export function FinanceTable({
           });
         } catch (error) {
           console.error('Error annulling receipt:', error);
-          toast({
-            variant: "destructive",
-            title: "Error al anular comprobante",
-            description: "No se pudo anular el comprobante. Inténtalo de nuevo.",
-          });
         }
       }
     });
@@ -444,11 +426,6 @@ export function FinanceTable({
 
     } catch (error) {
       console.error('Error generating PDF:', error);
-      toast({
-        variant: "destructive",
-        title: "Error al generar PDF",
-        description: "No se pudo generar el archivo PDF.",
-      });
     }
   };
 

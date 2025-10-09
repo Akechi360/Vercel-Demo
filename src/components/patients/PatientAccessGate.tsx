@@ -52,8 +52,8 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
         console.log('🔄 Updating current user data with:', updatedUser);
       } else if (updatedUser) {
         // Even if it's not the current user, we should refresh to get updated data
-        console.log('🔄 Other user updated, refreshing page to get fresh data...');
-        router.refresh();
+        console.log('🔄 Other user updated, but not refreshing to avoid issues...');
+        // router.refresh(); // Commented out to avoid unnecessary refreshes
       }
     };
 

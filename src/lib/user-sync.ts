@@ -34,6 +34,14 @@ export function syncUserData(updatedUser: {
       window.dispatchEvent(new CustomEvent('userDataUpdated', { 
         detail: syncedUser 
       }));
+      
+      // Force a page refresh to get fresh data from server
+      if (typeof window !== 'undefined') {
+        // Small delay to allow the event to be processed
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
+      }
     }
   } catch (error) {
     console.error('❌ Error syncing user data:', error);

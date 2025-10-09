@@ -3,6 +3,7 @@
 import { useAuth } from '@/components/layout/auth-provider';
 import { RestrictedNotice } from './RestrictedNotice';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface PatientAccessGateProps {
   children: React.ReactNode;
@@ -12,6 +13,7 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
   const { currentUser, isAuthenticated } = useAuth();
   const [isRestricted, setIsRestricted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     if (isAuthenticated && currentUser) {
@@ -31,13 +33,19 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
   useEffect(() => {
     const handleUserDataUpdate = (event: CustomEvent) => {
       console.log('🔄 User data updated, rechecking restrictions...', event.detail);
-      // Force re-evaluation of restrictions
-      if (isAuthenticated && currentUser) {
-        if (currentUser.role === 'patient' && (currentUser.status === 'INACTIVE' || !currentUser.patientId)) {
+      
+      // Update current user data from the event
+      const updatedUser = event.detail;
+      if (updatedUser && updatedUser.id === currentUser?.id) {
+        // Force re-evaluation of restrictions with updated data
+        if (updatedUser.role === 'patient' && (updatedUser.status === 'INACTIVE' || !updatedUser.patientId)) {
           setIsRestricted(true);
         } else {
           setIsRestricted(false);
         }
+        
+        // Force a page refresh to get fresh data from server
+        router.refresh();
       }
     };
 
@@ -46,7 +54,7 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
     return () => {
       window.removeEventListener('userDataUpdated', handleUserDataUpdate as EventListener);
     };
-  }, [currentUser, isAuthenticated]);
+  }, [currentUser, isAuthenticated, router]);
 
   // Show loading state while checking authentication
   if (isLoading) {

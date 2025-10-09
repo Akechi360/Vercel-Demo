@@ -1364,6 +1364,37 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
   }
 }
 
+// Get current user with fresh data (no cache)
+export async function getCurrentUserFresh(userId: string): Promise<User | null> {
+  try {
+    const { unstable_noStore: noStore } = await import('next/cache');
+    noStore();
+    
+    const user = await withDatabase(async (prisma) => {
+      return await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          status: true,
+          phone: true,
+          lastLogin: true,
+          patientId: true,
+          avatarUrl: true,
+          createdAt: true,
+        },
+      });
+    });
+
+    return user;
+  } catch (error) {
+    console.error('Error fetching fresh user data:', error);
+    return null;
+  }
+}
+
 export async function updateUser(userId: string, data: Partial<Omit<User, "id" | "createdAt">>): Promise<User> {
   try {
     console.log('🔄 Updating user:', userId, 'with data:', data);
@@ -1381,10 +1412,11 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
       // Revalidate patient-related pages to update access gates and dropdowns
       try {
         const { revalidatePath } = await import('next/cache');
-        revalidatePath('/patients');
-        revalidatePath('/dashboard');
-        revalidatePath('/appointments');
-        revalidatePath('/settings/users'); // Revalidate users page to update dropdowns
+        revalidatePath('/(app)/patients');
+        revalidatePath('/(app)/dashboard');
+        revalidatePath('/(app)/appointments');
+        revalidatePath('/(app)/settings/users');
+        revalidatePath('/(app)/afiliaciones');
         console.log('✅ Routes revalidated after user change');
       } catch (revalidateError) {
         console.warn('⚠️ Could not revalidate paths:', revalidateError);

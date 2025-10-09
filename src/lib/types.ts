@@ -234,10 +234,39 @@ export interface Estudio {
 
 export interface Affiliation {
     id: string;
-    promotora: string;
-    afiliados: number;
-    ultimaAfiliacion: string;
+    planId: string;
+    tipoPago?: string;
     estado: string;
+    fechaInicio: string;
+    fechaFin?: string | null;
+    monto: number;
+    beneficiarios?: any;
+    companyId?: string | null;
+    userId: string;
+    createdAt: string;
+    company?: {
+        id: string;
+        nombre: string;
+        rif: string;
+        direccion?: string;
+        telefono?: string;
+        email?: string;
+        contacto?: string;
+        createdAt: string;
+        updatedAt: string;
+    } | null;
+    user?: {
+        id: string;
+        email: string;
+        name: string;
+        role: string;
+        status: string;
+        createdAt: string;
+        phone?: string | null;
+        lastLogin?: string | null;
+        patientId?: string | null;
+        avatarUrl?: string | null;
+    } | null;
 }
 
 export interface AffiliateLead {

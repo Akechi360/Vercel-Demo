@@ -275,7 +275,7 @@ export async function getAppointments(): Promise<Appointment[]> {
 }
 
 // USER ACTIONS
-export async function getUsers(): Promise<User[]> {
+export async function getUsers(): Promise<any[]> {
   try {
     if (!isDatabaseAvailable()) {
       console.log('Database not available - returning empty array');

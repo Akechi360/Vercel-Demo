@@ -108,11 +108,6 @@ export async function addPatient(patientData: {
       throw new Error('Database not available. Please configure DATABASE_URL in your environment variables.');
     }
     
-    const prisma = getPrisma();
-    // Test database connection
-    await prisma.$connect();
-    console.log('Database connection successful');
-    
     // Validate required fields
     if (!patientData.name || patientData.name.trim().length === 0) {
       throw new Error('El nombre es requerido');
@@ -137,72 +132,76 @@ export async function addPatient(patientData: {
       direccion: '',
     });
     
-    // Create patient
-    const patient = await prisma.patient.create({
-      data: {
-        nombre: nombre || patientData.name,
-        apellido: apellido || '',
-        cedula: `V-${Date.now()}`, // Generate temporary ID
-        fechaNacimiento,
-        telefono: patientData.contact.phone,
-        email: patientData.contact.email,
-        direccion: '', // Default empty address
-      },
-    });
-    
-    console.log('Patient created successfully:', patient);
-
-    // Create user for the patient
-    const user = await prisma.user.create({
-      data: {
-        name: patientData.name,
-        email: patientData.contact.email || `${patient.id}@patient.local`,
-        password: 'temp-password', // Temporary password, should be changed
-        role: 'patient',
-        status: 'ACTIVE',
-        phone: patientData.contact.phone,
-        patientId: patient.id,
-      },
-    });
-
-    console.log('User created successfully:', user);
-
-    // If companyId is provided, create affiliation
-    console.log('🔍 Checking companyId:', patientData.companyId);
-    if (patientData.companyId) {
-      console.log('✅ Creating affiliation for companyId:', patientData.companyId);
-      const affiliation = await prisma.affiliation.create({
+    // Create patient using withDatabase
+    const result = await withDatabase(async (prisma) => {
+      const patient = await prisma.patient.create({
         data: {
-          planId: 'default-plan',
-          estado: 'ACTIVA', // This should match the enum value
-          fechaInicio: new Date(),
-          monto: 0, // Default amount
-          beneficiarios: undefined,
-          companyId: patientData.companyId,
-          userId: user.id,
+          nombre: nombre || patientData.name,
+          apellido: apellido || '',
+          cedula: `V-${Date.now()}`, // Generate temporary ID
+          fechaNacimiento,
+          telefono: patientData.contact.phone,
+          email: patientData.contact.email,
+          direccion: '', // Default empty address
+        },
+      });
+      
+      console.log('Patient created successfully:', patient);
+
+      // Create user for the patient
+      const user = await prisma.user.create({
+        data: {
+          name: patientData.name,
+          email: patientData.contact.email || `${patient.id}@patient.local`,
+          password: 'temp-password', // Temporary password, should be changed
+          role: 'patient',
+          status: 'ACTIVE',
+          phone: patientData.contact.phone,
+          patientId: patient.id,
         },
       });
 
-      console.log('✅ Affiliation created successfully:', affiliation);
-    } else {
-      console.log('❌ No companyId provided, skipping affiliation creation');
-    }
+      console.log('User created successfully:', user);
 
-    return {
-      id: patient.id,
-      name: `${patient.nombre} ${patient.apellido}`,
-      cedula: patient.cedula,
-      age: patientData.age,
-      gender: patientData.gender,
-      bloodType: patientData.bloodType ?? 'O+', // Default blood type
-      status: 'Activo' as const,
-      lastVisit: patient.createdAt.toISOString(),
-      contact: {
-        phone: patient.telefono || '',
-        email: patient.email || '',
-      },
-      companyId: patientData.companyId,
-    };
+      // If companyId is provided, create affiliation
+      console.log('🔍 Checking companyId:', patientData.companyId);
+      if (patientData.companyId) {
+        console.log('✅ Creating affiliation for companyId:', patientData.companyId);
+        const affiliation = await prisma.affiliation.create({
+          data: {
+            planId: 'default-plan',
+            estado: 'ACTIVA', // This should match the enum value
+            fechaInicio: new Date(),
+            monto: 0, // Default amount
+            beneficiarios: undefined,
+            companyId: patientData.companyId,
+            userId: user.id,
+          },
+        });
+
+        console.log('✅ Affiliation created successfully:', affiliation);
+      } else {
+        console.log('❌ No companyId provided, skipping affiliation creation');
+      }
+
+      return {
+        id: patient.id,
+        name: `${patient.nombre} ${patient.apellido}`,
+        cedula: patient.cedula,
+        age: patientData.age,
+        gender: patientData.gender,
+        bloodType: patientData.bloodType ?? 'O+', // Default blood type
+        status: 'Activo' as const,
+        lastVisit: patient.createdAt.toISOString(),
+        contact: {
+          phone: patient.telefono || '',
+          email: patient.email || '',
+        },
+        companyId: patientData.companyId,
+      };
+    });
+
+    return result;
   } catch (error) {
     console.error('Error adding patient:', error);
     console.error('Error details:', {
@@ -577,7 +576,7 @@ export async function addPatientFromUser(userId: string, patientData: {
           estado: 'ACTIVA',
           fechaInicio: new Date(),
           monto: new Decimal(0),
-          beneficiarios: null,
+          beneficiarios: undefined,
           companyId: patientData.companyId,
           userId: userId,
         },
@@ -586,7 +585,23 @@ export async function addPatientFromUser(userId: string, patientData: {
       console.log('Affiliation created successfully:', affiliation);
     }
     
-    return patient;
+    // Map Prisma Patient to expected Patient type
+    const mappedPatient: Patient = {
+      id: patient.id,
+      name: patient.nombre,
+      cedula: patient.cedula,
+      age: patientData.age,
+      gender: patientData.gender,
+      bloodType: patientData.bloodType || '',
+      status: 'Activo',
+      contact: {
+        phone: patient.telefono || '',
+        email: patient.email || '',
+      },
+      lastVisit: patient.createdAt.toISOString(),
+    };
+
+    return mappedPatient;
   } catch (error) {
     console.error('Error creating patient from user:', error);
     throw error;

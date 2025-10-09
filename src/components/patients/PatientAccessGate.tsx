@@ -13,7 +13,7 @@ interface PatientAccessGateProps {
 
 export function PatientAccessGate({ children }: PatientAccessGateProps) {
   const { currentUser, isAuthenticated } = useAuth();
-  const { userStatus, isLoading, error, mutate } = useUserStatus();
+  const { userStatus, isLoading, error, mutate } = useUserStatus(currentUser?.id);
   const router = useRouter();
 
   // Listen for user data updates from admin changes and trigger SWR revalidation

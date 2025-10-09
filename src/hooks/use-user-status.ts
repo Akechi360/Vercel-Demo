@@ -37,11 +37,23 @@ const fetcher = async (url: string): Promise<UserStatus> => {
   }
 };
 
-export function useUserStatus(): UseUserStatusReturn {
+export function useUserStatus(userId?: string): UseUserStatusReturn {
   const { currentUser, isAuthenticated } = useAuth();
   
+  // Use provided userId or fallback to currentUser.id
+  const targetUserId = userId || currentUser?.id;
+  const shouldFetch = isAuthenticated && targetUserId;
+  
+  console.log('🔍 useUserStatus called with:', {
+    providedUserId: userId,
+    currentUserId: currentUser?.id,
+    targetUserId,
+    isAuthenticated,
+    shouldFetch,
+  });
+  
   const { data, error, isLoading, mutate } = useSWR(
-    isAuthenticated && currentUser ? `/api/user/status?userId=${currentUser.id}` : null,
+    shouldFetch ? `/api/user/status?userId=${targetUserId}` : null,
     fetcher,
     {
       refreshInterval: 30000, // Refresh every 30 seconds

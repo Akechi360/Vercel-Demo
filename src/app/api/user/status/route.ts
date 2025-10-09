@@ -8,6 +8,8 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
     
     console.log('🔍 User ID from params:', userId);
+    console.log('🔍 Full URL:', request.url);
+    console.log('🔍 Search params:', Object.fromEntries(searchParams.entries()));
 
     if (!userId) {
       console.log('❌ No user ID provided');

@@ -2,6 +2,7 @@ import AppHeader from './app-header';
 import Nav from './nav';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import { PatientAccessGate } from '@/components/patients/PatientAccessGate';
+import { UserStatusDebug } from '@/components/debug/UserStatusDebug';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -19,6 +20,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </PatientAccessGate>
             </div>
           </main>
+          <UserStatusDebug />
         </div>
       </SidebarInset>
     </SidebarProvider>

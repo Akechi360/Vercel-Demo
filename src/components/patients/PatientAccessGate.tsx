@@ -36,7 +36,11 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
       
       // Update current user data from the event
       const updatedUser = event.detail;
+      
+      // If this is the current user, update their data and re-evaluate restrictions
       if (updatedUser && updatedUser.id === currentUser?.id) {
+        console.log('🔄 Current user updated, re-evaluating restrictions...');
+        
         // Force re-evaluation of restrictions with updated data
         if (updatedUser.role === 'patient' && (updatedUser.status === 'INACTIVE' || !updatedUser.patientId)) {
           setIsRestricted(true);
@@ -45,6 +49,10 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
         }
         
         // Force a page refresh to get fresh data from server
+        router.refresh();
+      } else if (updatedUser) {
+        // Even if it's not the current user, we should refresh to get updated data
+        console.log('🔄 Other user updated, refreshing page to get fresh data...');
         router.refresh();
       }
     };

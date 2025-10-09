@@ -29,19 +29,28 @@ export function syncUserData(updatedUser: {
       
       localStorage.setItem('user', JSON.stringify(syncedUser));
       console.log('✅ User data synced in localStorage:', syncedUser);
-      
-      // Trigger a custom event to notify components of the change
-      window.dispatchEvent(new CustomEvent('userDataUpdated', { 
-        detail: syncedUser 
-      }));
-      
-      // Force a page refresh to get fresh data from server
-      if (typeof window !== 'undefined') {
-        // Small delay to allow the event to be processed
-        setTimeout(() => {
+    }
+    
+    // ALWAYS dispatch the event, regardless of whether it's the current user
+    // This allows other components to react to any user changes
+    console.log('🔄 Dispatching userDataUpdated event for user:', updatedUser.id);
+    window.dispatchEvent(new CustomEvent('userDataUpdated', { 
+      detail: updatedUser 
+    }));
+    
+    // Force a page refresh to get fresh data from server
+    if (typeof window !== 'undefined') {
+      // Small delay to allow the event to be processed
+      setTimeout(() => {
+        // Use router.refresh() instead of window.location.reload() for better UX
+        if (window.location.pathname.includes('/settings/users')) {
+          // If we're on the users page, just refresh the current page
           window.location.reload();
-        }, 100);
-      }
+        } else {
+          // For other pages, use a more gentle refresh
+          window.location.reload();
+        }
+      }, 500); // Increased delay to allow event processing
     }
   } catch (error) {
     console.error('❌ Error syncing user data:', error);

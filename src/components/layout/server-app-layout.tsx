@@ -2,7 +2,6 @@ import AppHeader from './app-header';
 import Nav from './nav';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import { ServerPatientAccessGate } from '@/components/patients/ServerPatientAccessGate';
-import { UserStatusDebug } from '@/components/debug/UserStatusDebug';
 
 interface ServerAppLayoutProps {
   children: React.ReactNode;
@@ -25,7 +24,6 @@ export default function ServerAppLayout({ children, userId }: ServerAppLayoutPro
               </ServerPatientAccessGate>
             </div>
           </main>
-          <UserStatusDebug />
         </div>
       </SidebarInset>
     </SidebarProvider>

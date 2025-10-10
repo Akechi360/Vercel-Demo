@@ -191,6 +191,55 @@ export default function UsersManagementPage() {
     }
   };
 
+  // Función para cambiar el estado de un usuario directamente
+  const cambiarEstadoUsuario = async (userId: string, nuevoEstado: 'ACTIVE' | 'INACTIVE') => {
+    try {
+      console.log('🔄 Cambiando estado de usuario:', userId, 'a:', nuevoEstado);
+      
+      const response = await fetch('/api/user/status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, status: nuevoEstado }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al cambiar el estado del usuario');
+      }
+
+      const updatedUser = await response.json();
+      console.log('✅ Estado actualizado exitosamente:', updatedUser);
+
+      // Actualizar la lista de usuarios localmente
+      const updatedUsers = users.map(user => 
+        user.id === userId ? { ...user, status: nuevoEstado } : user
+      );
+      setUsers(updatedUsers);
+
+      // Mostrar confirmación
+      const isDarkMode = document.documentElement.classList.contains('dark');
+      MySwal.fire({
+        title: 'Estado actualizado',
+        text: `El usuario ha sido ${nuevoEstado === 'ACTIVE' ? 'activado' : 'desactivado'} exitosamente.`,
+        icon: 'success',
+        background: isDarkMode ? '#1e293b' : '#ffffff',
+        color: isDarkMode ? '#f1f5f9' : '#0f172a',
+      });
+
+    } catch (error) {
+      console.error('❌ Error al cambiar estado del usuario:', error);
+      
+      const isDarkMode = document.documentElement.classList.contains('dark');
+      MySwal.fire({
+        title: 'Error',
+        text: error instanceof Error ? error.message : 'Error al cambiar el estado del usuario',
+        icon: 'error',
+        background: isDarkMode ? '#1e293b' : '#ffffff',
+        color: isDarkMode ? '#f1f5f9' : '#0f172a',
+      });
+    }
+  };
+
   const handleCreateUser = async () => {
     try {
       const userData = await createUser({
@@ -457,6 +506,16 @@ export default function UsersManagementPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      {/* Botón para cambiar estado */}
+                      {canEditUser(user) && (
+                        <Button
+                          variant={user.status === 'ACTIVE' ? 'destructive' : 'default'}
+                          size="sm"
+                          onClick={() => cambiarEstadoUsuario(user.id, user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE')}
+                        >
+                          {user.status === 'ACTIVE' ? 'Desactivar' : 'Activar'}
+                        </Button>
+                      )}
                       {canEditUser(user) && (
                         <Button
                           variant="outline"

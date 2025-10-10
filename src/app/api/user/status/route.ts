@@ -49,3 +49,53 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    console.log('🔍 API PATCH /api/user/status called');
+    const body = await request.json();
+    const { userId, status } = body;
+    
+    console.log('🔍 PATCH request body:', { userId, status });
+
+    if (!userId || !status) {
+      console.log('❌ Missing required fields');
+      return NextResponse.json({ error: 'User ID and status are required' }, { status: 400 });
+    }
+
+    if (!['ACTIVE', 'INACTIVE'].includes(status)) {
+      console.log('❌ Invalid status value');
+      return NextResponse.json({ error: 'Status must be ACTIVE or INACTIVE' }, { status: 400 });
+    }
+
+    console.log('🔍 Calling updateUser with userId:', userId, 'status:', status);
+    
+    // Import updateUser function
+    const { updateUser } = await import('@/lib/actions');
+    
+    // Update user status
+    const updatedUser = await updateUser(userId, { status });
+    
+    console.log('✅ User status updated successfully:', updatedUser);
+
+    const response = {
+      id: updatedUser.id,
+      role: updatedUser.role,
+      status: updatedUser.status,
+      patientId: updatedUser.patientId,
+    };
+    
+    console.log('✅ Returning updated user status:', response);
+    return NextResponse.json(response);
+  } catch (error) {
+    console.error('❌ Error updating user status:', error);
+    console.error('❌ Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
+}

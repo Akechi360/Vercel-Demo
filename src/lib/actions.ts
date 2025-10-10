@@ -368,7 +368,6 @@ export async function getUserDetails(userId: string): Promise<any> {
         patientId: true,
         avatarUrl: true,
         createdAt: true,
-        updatedAt: true,
         // Relaciones solo cuando se necesitan
         patient: {
           select: {

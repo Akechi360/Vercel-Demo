@@ -70,22 +70,27 @@ export default function UsersManagementPage() {
   const { isAdmin, isSecretaria } = usePermissions();
   const MySwal = withReactContent(Swal);
   
-  // Hook para cargar detalles de usuario (lazy loading)
+  // Hook para cargar detalles de usuario (lazy loading) - solo se inicializa cuando se necesita
   const { userDetails, isLoading: isLoadingDetails, error: detailsError, loadUserDetails, clearUserDetails } = useUserDetails();
 
   // Load users from database with pagination
   const loadUsers = async (page: number = currentPage) => {
     try {
       setIsLoading(true);
+      const startTime = performance.now();
       console.log(`🔄 Loading users - page: ${page}, size: ${pageSize}`);
       
       const result = await getUsers(page, pageSize);
       
-      console.log(`✅ Users loaded:`, {
+      const endTime = performance.now();
+      const loadTime = endTime - startTime;
+      
+      console.log(`✅ Users loaded in ${loadTime.toFixed(2)}ms:`, {
         users: result.users.length,
         total: result.total,
         totalPages: result.totalPages,
         currentPage: result.currentPage,
+        loadTime: `${loadTime.toFixed(2)}ms`,
       });
       
       setUsers(result.users);

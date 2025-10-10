@@ -297,6 +297,8 @@ export async function getUsers(page: number = 0, pageSize: number = 50): Promise
     const skip = page * pageSize;
     
     // Obtener usuarios con paginación - solo campos mínimos para el listado
+    const queryStartTime = performance.now();
+    
     const [users, total] = await Promise.all([
       prisma.user.findMany({
         skip,
@@ -317,9 +319,12 @@ export async function getUsers(page: number = 0, pageSize: number = 50): Promise
       prisma.user.count(),
     ]);
     
+    const queryEndTime = performance.now();
+    const queryTime = queryEndTime - queryStartTime;
+    
     const totalPages = Math.ceil(total / pageSize);
     
-    console.log(`📊 Users pagination: page ${page}, size ${pageSize}, total ${total}, pages ${totalPages}`);
+    console.log(`📊 Users pagination: page ${page}, size ${pageSize}, total ${total}, pages ${totalPages}, queryTime: ${queryTime.toFixed(2)}ms`);
     
     return {
       users,

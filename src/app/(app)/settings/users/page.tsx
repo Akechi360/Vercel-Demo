@@ -57,22 +57,78 @@ export default function UsersManagementPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  
+  // Estados de paginación
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize] = useState(50);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  
   const { currentUser } = useAuth();
   const { isAdmin, isSecretaria } = usePermissions();
   const MySwal = withReactContent(Swal);
 
-  // Load users from database
+  // Load users from database with pagination
+  const loadUsers = async (page: number = currentPage) => {
+    try {
+      setIsLoading(true);
+      console.log(`🔄 Loading users - page: ${page}, size: ${pageSize}`);
+      
+      const result = await getUsers(page, pageSize);
+      
+      console.log(`✅ Users loaded:`, {
+        users: result.users.length,
+        total: result.total,
+        totalPages: result.totalPages,
+        currentPage: result.currentPage,
+      });
+      
+      setUsers(result.users);
+      setTotalPages(result.totalPages);
+      setTotalUsers(result.total);
+      setCurrentPage(result.currentPage);
+    } catch (error) {
+      console.error('Error loading users:', error);
+      setUsers([]);
+      setTotalPages(0);
+      setTotalUsers(0);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load users on component mount and when page changes
   useEffect(() => {
-    const loadUsers = async () => {
-      try {
-        const usersData = await getUsers();
-        setUsers(usersData);
-      } catch (error) {
-        console.error('Error loading users:', error);
-      }
-    };
     loadUsers();
-  }, []);
+  }, [currentPage]);
+
+  // Funciones de navegación de páginas
+  const goToPage = (page: number) => {
+    if (page >= 0 && page < totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages - 1) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 0) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const goToFirstPage = () => {
+    setCurrentPage(0);
+  };
+
+  const goToLastPage = () => {
+    setCurrentPage(totalPages - 1);
+  };
 
   const [newUser, setNewUser] = useState({
     name: '',
@@ -390,7 +446,7 @@ export default function UsersManagementPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Usuarios</p>
-                <p className="text-2xl font-bold">{users.length}</p>
+                <p className="text-2xl font-bold">{totalUsers}</p>
               </div>
               <Users className="h-8 w-8 text-blue-600" />
             </div>
@@ -400,10 +456,10 @@ export default function UsersManagementPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Administradores</p>
-                <p className="text-2xl font-bold">{users.filter(u => u.role === 'admin').length}</p>
+                <p className="text-sm font-medium text-muted-foreground">Página Actual</p>
+                <p className="text-2xl font-bold">{currentPage + 1} / {totalPages}</p>
               </div>
-              <Shield className="h-8 w-8 text-red-600" />
+              <Users className="h-8 w-8 text-orange-600" />
             </div>
           </CardContent>
         </Card>
@@ -411,8 +467,8 @@ export default function UsersManagementPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Doctores</p>
-                <p className="text-2xl font-bold">{users.filter(u => u.role === 'doctor').length}</p>
+                <p className="text-sm font-medium text-muted-foreground">Usuarios en Página</p>
+                <p className="text-2xl font-bold">{users.length}</p>
               </div>
               <Users className="h-8 w-8 text-green-600" />
             </div>
@@ -422,8 +478,8 @@ export default function UsersManagementPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Usuarios Activos</p>
-                <p className="text-2xl font-bold">{users.filter(u => u.status === 'ACTIVE').length}</p>
+                <p className="text-sm font-medium text-muted-foreground">Estado de Carga</p>
+                <p className="text-2xl font-bold">{isLoading ? 'Cargando...' : 'Listo'}</p>
               </div>
               <Users className="h-8 w-8 text-purple-600" />
             </div>
@@ -452,19 +508,27 @@ export default function UsersManagementPage() {
             </div>
           </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Usuario</TableHead>
-                <TableHead>Rol</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Último Acceso</TableHead>
-                <TableHead>Fecha de Registro</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.map((user) => (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                <p className="text-sm text-muted-foreground">Cargando usuarios...</p>
+              </div>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Usuario</TableHead>
+                  <TableHead>Rol</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Último Acceso</TableHead>
+                  <TableHead>Fecha de Registro</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
                     <div>
@@ -538,8 +602,78 @@ export default function UsersManagementPage() {
                   </TableCell>
                 </TableRow>
               ))}
-            </TableBody>
-          </Table>
+              </TableBody>
+            </Table>
+          )}
+          
+          {/* Controles de paginación */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-4 border-t">
+              <div className="flex items-center space-x-2">
+                <p className="text-sm text-muted-foreground">
+                  Mostrando {users.length} de {totalUsers} usuarios
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToFirstPage}
+                  disabled={currentPage === 0 || isLoading}
+                >
+                  Primera
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToPreviousPage}
+                  disabled={currentPage === 0 || isLoading}
+                >
+                  Anterior
+                </Button>
+                
+                {/* Números de página */}
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const startPage = Math.max(0, Math.min(currentPage - 2, totalPages - 5));
+                    const pageNum = startPage + i;
+                    
+                    if (pageNum >= totalPages) return null;
+                    
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => goToPage(pageNum)}
+                        disabled={isLoading}
+                        className="w-8 h-8 p-0"
+                      >
+                        {pageNum + 1}
+                      </Button>
+                    );
+                  })}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToNextPage}
+                  disabled={currentPage === totalPages - 1 || isLoading}
+                >
+                  Siguiente
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToLastPage}
+                  disabled={currentPage === totalPages - 1 || isLoading}
+                >
+                  Última
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

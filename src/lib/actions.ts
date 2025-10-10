@@ -274,31 +274,68 @@ export async function getAppointments(): Promise<Appointment[]> {
 }
 
 // USER ACTIONS
-export async function getUsers(): Promise<any[]> {
+export async function getUsers(page: number = 0, pageSize: number = 50): Promise<{
+  users: any[];
+  total: number;
+  totalPages: number;
+  currentPage: number;
+}> {
   try {
     if (!isDatabaseAvailable()) {
       console.log('Database not available - returning empty array');
-      return [];
+      return {
+        users: [],
+        total: 0,
+        totalPages: 0,
+        currentPage: page,
+      };
     }
+    
     const prisma = getPrisma();
-    return await prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        status: true,
-        phone: true,
-        lastLogin: true,
-        patientId: true,
-        avatarUrl: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    
+    // Calcular skip
+    const skip = page * pageSize;
+    
+    // Obtener usuarios con paginación
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        skip,
+        take: pageSize,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          status: true,
+          phone: true,
+          lastLogin: true,
+          patientId: true,
+          avatarUrl: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.user.count(),
+    ]);
+    
+    const totalPages = Math.ceil(total / pageSize);
+    
+    console.log(`📊 Users pagination: page ${page}, size ${pageSize}, total ${total}, pages ${totalPages}`);
+    
+    return {
+      users,
+      total,
+      totalPages,
+      currentPage: page,
+    };
   } catch (error) {
     console.error('Error fetching users:', error);
-    return [];
+    return {
+      users: [],
+      total: 0,
+      totalPages: 0,
+      currentPage: page,
+    };
   }
 }
 

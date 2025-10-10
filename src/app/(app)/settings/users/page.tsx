@@ -99,6 +99,8 @@ export default function UsersManagementPage() {
       setCurrentPage(result.currentPage);
     } catch (error) {
       console.error('Error loading users:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error al cargar usuarios';
+      console.error('Error details:', errorMessage);
       setUsers([]);
       setTotalPages(0);
       setTotalUsers(0);
@@ -250,13 +252,17 @@ export default function UsersManagementPage() {
           console.log('✅ syncUserData called successfully');
         } catch (error) {
           console.error('❌ Error calling syncUserData:', error);
-          console.error('❌ Error details:', error.message);
-          console.error('❌ Error stack:', error.stack);
+          const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+          const errorStack = error instanceof Error ? error.stack : 'No stack available';
+          console.error('❌ Error details:', errorMessage);
+          console.error('❌ Error stack:', errorStack);
         }
         
         // Usuario actualizado exitosamente
       } catch (error) {
         console.error('Error updating user:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Error al actualizar usuario';
+        console.error('Error details:', errorMessage);
       }
     }
   };
@@ -298,6 +304,8 @@ export default function UsersManagementPage() {
 
     } catch (error) {
       console.error('❌ Error al cambiar estado del usuario:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error al cambiar estado del usuario';
+      console.error('Error details:', errorMessage);
       
       const isDarkMode = document.documentElement.classList.contains('dark');
       MySwal.fire({
@@ -330,6 +338,8 @@ export default function UsersManagementPage() {
       // Usuario creado exitosamente
     } catch (error) {
       console.error('Error creating user:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error al crear usuario';
+      console.error('Error details:', errorMessage);
     }
   };
 
@@ -356,6 +366,8 @@ export default function UsersManagementPage() {
           // Usuario eliminado exitosamente
         } catch (error) {
           console.error('Error deleting user:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Error al eliminar usuario';
+          console.error('Error details:', errorMessage);
         }
       }
     });

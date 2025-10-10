@@ -384,10 +384,10 @@ export async function getUserDetails(userId: string): Promise<any> {
         payments: {
           select: {
             id: true,
-            amount: true,
-            status: true,
+            monto: true,
+            estado: true,
             createdAt: true,
-            paymentMethod: true,
+            metodo: true,
           },
           orderBy: { createdAt: 'desc' },
           take: 5, // Solo los últimos 5 pagos
@@ -395,12 +395,12 @@ export async function getUserDetails(userId: string): Promise<any> {
         appointments: {
           select: {
             id: true,
-            date: true,
-            status: true,
-            type: true,
+            fecha: true,
+            estado: true,
+            tipo: true,
             createdAt: true,
           },
-          orderBy: { date: 'desc' },
+          orderBy: { fecha: 'desc' },
           take: 5, // Solo las últimas 5 citas
         },
       },

@@ -25,6 +25,12 @@ const fetcher = async (url: string): Promise<UserStatus> => {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('❌ Fetch failed:', response.status, errorData);
+      
+      // Handle 404 specifically - user not found
+      if (response.status === 404) {
+        throw new Error(`User not found: ${errorData.error || 'User does not exist in database'}`);
+      }
+      
       throw new Error(`Failed to fetch user status: ${response.status} - ${errorData.error || 'Unknown error'}`);
     }
     
@@ -38,17 +44,18 @@ const fetcher = async (url: string): Promise<UserStatus> => {
 };
 
 export function useUserStatus(userId?: string): UseUserStatusReturn {
-  const { currentUser, isAuthenticated } = useAuth();
+  const { currentUser, isAuthenticated, loading } = useAuth();
   
   // Use provided userId or fallback to currentUser.id
   const targetUserId = userId || currentUser?.id;
-  const shouldFetch = isAuthenticated && targetUserId;
+  const shouldFetch = isAuthenticated && targetUserId && !loading;
   
   console.log('🔍 useUserStatus called with:', {
     providedUserId: userId,
     currentUserId: currentUser?.id,
     targetUserId,
     isAuthenticated,
+    loading,
     shouldFetch,
   });
   

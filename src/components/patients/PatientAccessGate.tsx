@@ -12,7 +12,7 @@ interface PatientAccessGateProps {
 }
 
 export function PatientAccessGate({ children }: PatientAccessGateProps) {
-  const { currentUser, isAuthenticated } = useAuth();
+  const { currentUser, isAuthenticated, loading } = useAuth();
   const { userStatus, isLoading, error, mutate } = useUserStatus(currentUser?.id);
   const router = useRouter();
 
@@ -54,8 +54,8 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
     restrictionLogic: userStatus?.role === 'patient' && userStatus?.status === 'INACTIVE',
   });
 
-  // Show loading state only on initial load, not on every refresh
-  if (isLoading && !userStatus) {
+  // Show loading state while authenticating or fetching user status
+  if (loading || (isLoading && !userStatus)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -66,26 +66,25 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
     );
   }
 
-  // If there's an error fetching user status, use localStorage fallback
-  if (error) {
-    console.error('❌ Error fetching user status:', error);
-    
-    // Fallback to localStorage data if API fails
-    if (currentUser) {
-      const shouldRestrict = currentUser.role === 'patient' && 
-        currentUser.status === 'INACTIVE';
-      
-      if (shouldRestrict) {
-        return <RestrictedNotice />;
-      }
-    }
-    
-    // If no fallback data, show children
+  // If user is not authenticated, show children (let AuthProvider handle redirect)
+  if (!isAuthenticated || !currentUser) {
     return <>{children}</>;
   }
 
-  // If user is not authenticated, show children (let AuthProvider handle redirect)
-  if (!isAuthenticated || !currentUser) {
+  // If there's an error fetching user status, use localStorage fallback
+  if (error) {
+    console.error('❌ Error fetching user status:', error);
+    console.log('🔄 Using localStorage fallback for user:', currentUser);
+    
+    // Fallback to localStorage data if API fails
+    const shouldRestrict = currentUser.role === 'patient' && 
+      currentUser.status === 'INACTIVE';
+    
+    if (shouldRestrict) {
+      return <RestrictedNotice />;
+    }
+    
+    // If no restriction needed, show children
     return <>{children}</>;
   }
 

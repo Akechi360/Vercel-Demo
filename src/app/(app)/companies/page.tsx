@@ -6,9 +6,13 @@ export default async function CompaniesPage() {
   const initialCompanies = await getCompanies();
   const affiliations = await getAffiliations();
 
-  const companiesWithPatientCount = initialCompanies.map(company => {
+  // Safe array validation to prevent build errors
+  const safeCompanies = Array.isArray(initialCompanies) ? initialCompanies : [];
+  const safeAffiliations = Array.isArray(affiliations) ? affiliations : [];
+
+  const companiesWithPatientCount = safeCompanies.map(company => {
     // Count active affiliations for this company
-    const patientCount = affiliations.filter(affiliation => 
+    const patientCount = safeAffiliations.filter(affiliation => 
       affiliation.companyId === company.id && 
       affiliation.estado === 'ACTIVA'
     ).length;

@@ -42,9 +42,14 @@ export default function DashboardPage() {
 
             if (isAdmin() || isSecretaria() || isDoctor()) {
                 const [patients, appointments] = await Promise.all([getPatients(), getAppointments()]);
-                totalPatients = patients.length;
-                todayAppointments = appointments.filter(a => isToday(new Date(a.date))).length;
-                yesterdayAppointments = appointments.filter(a => isYesterday(new Date(a.date))).length;
+                
+                // Safe array validation to prevent build errors
+                const safePatients = Array.isArray(patients) ? patients : [];
+                const safeAppointments = Array.isArray(appointments) ? appointments : [];
+                
+                totalPatients = safePatients.length;
+                todayAppointments = safeAppointments.filter(a => isToday(new Date(a.date))).length;
+                yesterdayAppointments = safeAppointments.filter(a => isYesterday(new Date(a.date))).length;
                 pendingResults = 0; // Will be calculated from lab results when available
                 
                 // Calculate monthly growth (patients added this month vs last month)
@@ -53,12 +58,12 @@ export default function DashboardPage() {
                 const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
                 const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
                 
-                const thisMonthPatients = patients.filter(p => {
+                const thisMonthPatients = safePatients.filter(p => {
                     const createdDate = new Date(p.lastVisit || new Date());
                     return createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear;
                 }).length;
                 
-                const lastMonthPatients = patients.filter(p => {
+                const lastMonthPatients = safePatients.filter(p => {
                     const createdDate = new Date(p.lastVisit || new Date());
                     return createdDate.getMonth() === lastMonth && createdDate.getFullYear() === lastMonthYear;
                 }).length;
@@ -76,7 +81,8 @@ export default function DashboardPage() {
 
             if (isPromotora()) {
                 const affiliations = await getAffiliations();
-                activeAffiliations = affiliations.filter(aff => 
+                const safeAffiliations = Array.isArray(affiliations) ? affiliations : [];
+                activeAffiliations = safeAffiliations.filter(aff => 
                     aff.estado === 'ACTIVA' || aff.estado === 'INICIAL' || aff.estado === 'ABONO'
                 ).length;
             }

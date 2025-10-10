@@ -29,16 +29,24 @@ export default async function FinanzasPage() {
         getReceipts(),
     ]);
 
-  const doctors = users.filter(u => u.role === 'doctor');
+  // Safe array validation to prevent build errors
+  const safeUsers = Array.isArray(users) ? users : [];
+  const safePatients = Array.isArray(patients) ? patients : [];
+  const safePayments = Array.isArray(initialPayments) ? initialPayments : [];
+  const safePaymentTypes = Array.isArray(paymentTypes) ? paymentTypes : [];
+  const safePaymentMethods = Array.isArray(paymentMethods) ? paymentMethods : [];
+  const safeReceipts = Array.isArray(receipts) ? receipts : [];
+
+  const doctors = safeUsers.filter(u => u.role === 'doctor');
   
   return (
     <FinancePageClient
-      initialPayments={initialPayments}
-      patients={patients}
+      initialPayments={safePayments}
+      patients={safePatients}
       doctors={doctors}
-      paymentTypes={paymentTypes}
-      paymentMethods={paymentMethods}
-      receipts={receipts}
+      paymentTypes={safePaymentTypes}
+      paymentMethods={safePaymentMethods}
+      receipts={safeReceipts}
     />
   );
 }

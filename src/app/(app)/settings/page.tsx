@@ -46,12 +46,15 @@ export default function GeneralSettingsPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [users, patients, appointments, payments] = await Promise.all([
+        const [usersResult, patients, appointments, payments] = await Promise.all([
           getUsers(),
           getPatients(),
           getAppointments(),
           getPayments()
         ]);
+
+        // Extraer el array de usuarios del objeto paginado
+        const users = usersResult.users;
 
         // Safe array validation to prevent build errors
         const safeUsers = Array.isArray(users) ? users : [];

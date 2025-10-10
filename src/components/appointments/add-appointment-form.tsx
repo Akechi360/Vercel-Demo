@@ -41,11 +41,13 @@ export function AddAppointmentForm({ onFormSubmit }: AddAppointmentFormProps) {
 
   useEffect(() => {
     async function fetchData() {
-        const [patientsData, usersData] = await Promise.all([
+        const [patientsData, usersResult] = await Promise.all([
             getPatients(),
             getUsers()
         ]);
         setPatients(patientsData);
+        // Extraer el array de usuarios del objeto paginado
+        const usersData = usersResult.users;
         setDoctors(usersData.filter(u => u.role === 'doctor'));
     }
     fetchData();

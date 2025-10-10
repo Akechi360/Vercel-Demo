@@ -18,7 +18,7 @@ export default async function FinanzasPage() {
         patients,
         paymentTypes,
         paymentMethods,
-        users,
+        usersResult,
         receipts,
     ] = await Promise.all([
         getPayments(),
@@ -28,6 +28,9 @@ export default async function FinanzasPage() {
         getUsers(),
         getReceipts(),
     ]);
+
+  // Extraer el array de usuarios del objeto paginado
+  const users = usersResult.users;
 
   // Safe array validation to prevent build errors
   const safeUsers = Array.isArray(users) ? users : [];

@@ -18,10 +18,11 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
 
   // Listen for user data updates from admin changes and trigger SWR revalidation
   useEffect(() => {
-    const handleUserDataUpdate = async (event: CustomEvent) => {
-      console.log('🔄 User data updated, triggering SWR revalidation...', event.detail);
+    const handleUserDataUpdate = async (event: unknown) => {
+      const customEvent = event as CustomEvent;
+      console.log('🔄 User data updated, triggering SWR revalidation...', customEvent.detail);
       
-      const updatedUser = event.detail;
+      const updatedUser = customEvent.detail;
       
       // If this is the current user, trigger SWR revalidation
       if (updatedUser && updatedUser.id === currentUser?.id) {

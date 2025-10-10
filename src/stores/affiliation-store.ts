@@ -45,10 +45,13 @@ export const useAffiliationStore = create<AffiliationStore>((set, get) => ({
       console.log('🔄 Loading fresh data in parallel...');
       
       // Ejecutar todas las llamadas en paralelo
-      const [companiesData, usersData] = await Promise.all([
+      const [companiesData, usersResult] = await Promise.all([
         getCompanies(),
         getUsers()
       ]);
+
+      // Extraer el array de usuarios del objeto paginado
+      const usersData = usersResult.users;
 
       set({
         companies: companiesData,
@@ -60,10 +63,11 @@ export const useAffiliationStore = create<AffiliationStore>((set, get) => ({
 
       console.log(`✅ Loaded ${companiesData.length} companies and ${usersData.length} users`);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error al cargar los datos';
       console.error('❌ Error loading affiliation data:', error);
       set({
         loading: false,
-        error: 'Error al cargar los datos',
+        error: errorMessage,
         companies: [],
         users: []
       });

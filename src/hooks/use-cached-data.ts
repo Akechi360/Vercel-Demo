@@ -30,10 +30,13 @@ export function useCachedData() {
       setLoading(true);
       setError(null);
 
-      const [companiesData, usersData] = await Promise.all([
+      const [companiesData, usersResult] = await Promise.all([
         getCompanies(),
         getUsers()
       ]);
+
+      // Extraer el array de usuarios del objeto paginado
+      const usersData = usersResult.users;
 
       // Actualizar cache
       companiesCache = companiesData;
@@ -44,8 +47,9 @@ export function useCachedData() {
       setUsers(usersData);
       console.log(`✅ Loaded ${companiesData.length} companies and ${usersData.length} users`);
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al cargar los datos';
       console.error('❌ Error loading data:', err);
-      setError('Error al cargar los datos');
+      setError(errorMessage);
       setCompanies([]);
       setUsers([]);
     } finally {

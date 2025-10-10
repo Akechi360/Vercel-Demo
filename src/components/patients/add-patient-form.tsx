@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { addPatient, addPatientFromUser, getCompanies, listSelectablePatientUsers, testDatabaseConnection } from '@/lib/actions';
 import { usePatientStore } from '@/lib/store/patient-store';
 import type { Company } from '@/lib/types';
+import Swal from 'sweetalert2';
 
 const formSchema = z.object({
   userSelection: z.enum(['new', 'existing'], { required_error: 'Seleccione una opción.' }),
@@ -57,10 +58,12 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
     email: string;
     status: string;
   }>>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
       try {
+        setIsLoadingData(true);
         const [companiesData, usersData] = await Promise.all([
           getCompanies(),
           listSelectablePatientUsers()
@@ -72,7 +75,17 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
         setCompanies(companiesData);
         setSelectableUsers(usersData);
       } catch (error) {
-        console.error('Error loading data:', error);
+        console.error('❌ Error loading data:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Error desconocido al cargar los datos';
+        
+        Swal.fire({
+          title: 'Error de Carga',
+          text: `No se pudieron cargar los datos: ${errorMessage}`,
+          icon: 'error',
+          confirmButtonText: 'Entendido'
+        });
+      } finally {
+        setIsLoadingData(false);
       }
     };
     
@@ -95,13 +108,22 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
   const {formState: { isSubmitting } } = form;
 
   const onSubmit = async (values: FormValues) => {
+    console.log('🚀 onSubmit function called with values:', values);
     try {
       // Test database connection first
+      console.log('🔍 Testing database connection...');
       const isConnected = await testDatabaseConnection();
       if (!isConnected) {
-        // Error de conexión a la base de datos
+        console.error('❌ Database connection failed');
+        await Swal.fire({
+          title: 'Error de Conexión',
+          text: 'No se pudo conectar a la base de datos. Por favor, intente nuevamente.',
+          icon: 'error',
+          confirmButtonText: 'Entendido'
+        });
         return;
       }
+      console.log('✅ Database connection successful');
 
       console.log('🔍 Form values:', values);
       console.log('🔍 CompanyId from form:', values.companyId);
@@ -131,12 +153,41 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
       }
       
       addPatientToStore(newPatient);
+      console.log('✅ Patient added successfully:', newPatient);
+      
+      // Mostrar mensaje de éxito
+      await Swal.fire({
+        title: '¡Éxito!',
+        text: 'El paciente ha sido agregado correctamente.',
+        icon: 'success',
+        confirmButtonText: 'Entendido'
+      });
+      
       // Paciente agregado exitosamente
       onSuccess();
     } catch (error) {
-      console.error('Error in onSubmit:', error);
+      console.error('❌ Error in onSubmit:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al agregar el paciente';
+      
+      await Swal.fire({
+        title: 'Error',
+        text: `No se pudo agregar el paciente: ${errorMessage}`,
+        icon: 'error',
+        confirmButtonText: 'Entendido'
+      });
     }
   };
+
+  if (isLoadingData) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando datos del formulario...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Form {...form}>

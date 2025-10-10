@@ -296,22 +296,21 @@ export async function getUsers(page: number = 0, pageSize: number = 50): Promise
     // Calcular skip
     const skip = page * pageSize;
     
-    // Obtener usuarios con paginación
+    // Obtener usuarios con paginación - solo campos mínimos para el listado
     const [users, total] = await Promise.all([
       prisma.user.findMany({
         skip,
         take: pageSize,
         select: {
           id: true,
-          email: true,
           name: true,
+          email: true,
           role: true,
           status: true,
           phone: true,
           lastLogin: true,
-          patientId: true,
-          avatarUrl: true,
           createdAt: true,
+          avatarUrl: true,
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -336,6 +335,77 @@ export async function getUsers(page: number = 0, pageSize: number = 50): Promise
       totalPages: 0,
       currentPage: page,
     };
+  }
+}
+
+// Obtener detalles completos de un usuario específico (lazy loading)
+export async function getUserDetails(userId: string): Promise<any> {
+  try {
+    if (!isDatabaseAvailable()) {
+      console.log('Database not available - returning null');
+      return null;
+    }
+    
+    const prisma = getPrisma();
+    
+    console.log(`🔍 Loading detailed data for user: ${userId}`);
+    
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        status: true,
+        phone: true,
+        lastLogin: true,
+        patientId: true,
+        avatarUrl: true,
+        createdAt: true,
+        updatedAt: true,
+        // Relaciones solo cuando se necesitan
+        patient: {
+          select: {
+            id: true,
+            nombre: true,
+            apellido: true,
+            cedula: true,
+            fechaNacimiento: true,
+            telefono: true,
+            direccion: true,
+          }
+        },
+        payments: {
+          select: {
+            id: true,
+            amount: true,
+            status: true,
+            createdAt: true,
+            paymentMethod: true,
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 5, // Solo los últimos 5 pagos
+        },
+        appointments: {
+          select: {
+            id: true,
+            date: true,
+            status: true,
+            type: true,
+            createdAt: true,
+          },
+          orderBy: { date: 'desc' },
+          take: 5, // Solo las últimas 5 citas
+        },
+      },
+    });
+    
+    console.log(`✅ User details loaded for: ${userId}`);
+    return user;
+  } catch (error) {
+    console.error('Error fetching user details:', error);
+    return null;
   }
 }
 

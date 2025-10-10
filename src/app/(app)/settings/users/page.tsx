@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { getUsers, createUser, updateUser, deleteUser as deleteUserAction } from '@/lib/actions';
 import { syncUserData } from '@/lib/user-sync';
+import { useUserDetails } from '@/hooks/use-user-details';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -68,6 +69,9 @@ export default function UsersManagementPage() {
   const { currentUser } = useAuth();
   const { isAdmin, isSecretaria } = usePermissions();
   const MySwal = withReactContent(Swal);
+  
+  // Hook para cargar detalles de usuario (lazy loading)
+  const { userDetails, isLoading: isLoadingDetails, error: detailsError, loadUserDetails, clearUserDetails } = useUserDetails();
 
   // Load users from database with pagination
   const loadUsers = async (page: number = currentPage) => {
@@ -185,7 +189,12 @@ export default function UsersManagementPage() {
     return status === 'ACTIVE' ? 'default' : 'secondary';
   };
 
-  const handleEditUser = (user: User) => {
+  const handleEditUser = async (user: User) => {
+    console.log(`🔄 Opening edit dialog for user: ${user.id}`);
+    
+    // Cargar detalles completos del usuario (lazy loading)
+    await loadUserDetails(user.id);
+    
     setSelectedUser(user);
     setIsEditDialogOpen(true);
   };
@@ -678,7 +687,12 @@ export default function UsersManagementPage() {
       </Card>
 
       {/* Dialog para editar usuario */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        setIsEditDialogOpen(open);
+        if (!open) {
+          clearUserDetails();
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Usuario</DialogTitle>
@@ -686,8 +700,68 @@ export default function UsersManagementPage() {
               Modifica la información y permisos del usuario.
             </DialogDescription>
           </DialogHeader>
-          {selectedUser && (
+          
+          {isLoadingDetails ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                <p className="text-sm text-muted-foreground">Cargando detalles del usuario...</p>
+              </div>
+            </div>
+          ) : detailsError ? (
+            <div className="text-center py-8">
+              <p className="text-red-600">Error al cargar detalles: {detailsError}</p>
+            </div>
+          ) : selectedUser && (
             <div className="space-y-4">
+              {/* Información adicional del usuario (lazy loaded) */}
+              {userDetails && (
+                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                  <h4 className="font-medium text-sm">Información Adicional</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-gray-600">Último acceso:</span>
+                      <span className="ml-2">
+                        {userDetails.lastLogin 
+                          ? new Date(userDetails.lastLogin).toLocaleDateString()
+                          : 'Nunca'
+                        }
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Registrado:</span>
+                      <span className="ml-2">
+                        {new Date(userDetails.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    {userDetails.patient && (
+                      <div className="col-span-2">
+                        <span className="text-gray-600">Paciente:</span>
+                        <span className="ml-2">
+                          {userDetails.patient.nombre} {userDetails.patient.apellido} (C.I: {userDetails.patient.cedula})
+                        </span>
+                      </div>
+                    )}
+                    {userDetails.payments && userDetails.payments.length > 0 && (
+                      <div className="col-span-2">
+                        <span className="text-gray-600">Últimos pagos:</span>
+                        <span className="ml-2">
+                          {userDetails.payments.length} pagos registrados
+                        </span>
+                      </div>
+                    )}
+                    {userDetails.appointments && userDetails.appointments.length > 0 && (
+                      <div className="col-span-2">
+                        <span className="text-gray-600">Citas:</span>
+                        <span className="ml-2">
+                          {userDetails.appointments.length} citas registradas
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
               <div className="space-y-2">
                 <Label htmlFor="editUserName">Nombre Completo</Label>
                 <Input

@@ -16,6 +16,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
+    // Handle master admin user (hardcoded user)
+    if (userId === 'master-admin') {
+      console.log('🔍 Master admin user detected, returning hardcoded status');
+      const response = {
+        id: 'master-admin',
+        role: 'admin',
+        status: 'ACTIVE',
+        patientId: null,
+      };
+      console.log('✅ Returning master admin status:', response);
+      return NextResponse.json(response);
+    }
+
     console.log('🔍 Calling getUserStatusForAccess with userId:', userId);
     
     // Get fresh user status from database
@@ -66,6 +79,18 @@ export async function PATCH(request: NextRequest) {
     if (!['ACTIVE', 'INACTIVE'].includes(status)) {
       console.log('❌ Invalid status value');
       return NextResponse.json({ error: 'Status must be ACTIVE or INACTIVE' }, { status: 400 });
+    }
+
+    // Handle master admin user (cannot be modified)
+    if (userId === 'master-admin') {
+      console.log('🔍 Master admin user cannot be modified');
+      return NextResponse.json({ 
+        error: 'Master admin user cannot be modified',
+        id: 'master-admin',
+        role: 'admin',
+        status: 'ACTIVE',
+        patientId: null,
+      }, { status: 403 });
     }
 
     console.log('🔍 Calling updateUser with userId:', userId, 'status:', status);

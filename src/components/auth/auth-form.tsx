@@ -103,7 +103,7 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
                 email: registerValues.email,
                 password: registerValues.password,
                 role: 'patient', // Default role for new users
-                status: 'ACTIVE',
+                status: 'INACTIVE', // Usuarios requieren aprobación del administrador
                 phone: null,
                 lastLogin: null,
                 patientId: null,

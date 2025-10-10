@@ -93,7 +93,8 @@ export async function addPatient(patientData: {
   name: string;
   age: number;
   gender: 'Masculino' | 'Femenino' | 'Otro';
-  bloodType?: string;
+  bloodType: string;
+  cedula: string;
   contact: {
     phone: string;
     email: string;
@@ -125,7 +126,7 @@ export async function addPatient(patientData: {
     console.log('Creating patient with data:', {
       nombre: nombre || patientData.name,
       apellido: apellido || '',
-      cedula: `V-${Date.now()}`,
+      cedula: patientData.cedula,
       fechaNacimiento,
       telefono: patientData.contact.phone,
       email: patientData.contact.email,
@@ -138,7 +139,7 @@ export async function addPatient(patientData: {
         data: {
           nombre: nombre || patientData.name,
           apellido: apellido || '',
-          cedula: `V-${Date.now()}`, // Generate temporary ID
+          cedula: patientData.cedula,
           fechaNacimiento,
           telefono: patientData.contact.phone,
           email: patientData.contact.email,
@@ -190,7 +191,7 @@ export async function addPatient(patientData: {
         cedula: patient.cedula,
         age: patientData.age,
         gender: patientData.gender,
-        bloodType: patientData.bloodType ?? 'O+', // Default blood type
+        bloodType: patientData.bloodType,
         status: 'Activo' as const,
         lastVisit: patient.createdAt.toISOString(),
         contact: {
@@ -587,7 +588,8 @@ export async function getCurrentUserWithStatus(userId: string): Promise<{
 export async function addPatientFromUser(userId: string, patientData: {
   age: number;
   gender: 'Masculino' | 'Femenino' | 'Otro';
-  bloodType?: string;
+  bloodType: string;
+  cedula: string;
   companyId?: string;
 }): Promise<Patient> {
   try {
@@ -650,7 +652,7 @@ export async function addPatientFromUser(userId: string, patientData: {
     console.log('Creating patient from user with data:', {
       nombre: nombre || user.name,
       apellido: apellido || '',
-      cedula: `V-${Date.now()}`,
+      cedula: patientData.cedula,
       fechaNacimiento,
       telefono: user.phone || '',
       email: user.email,
@@ -662,7 +664,7 @@ export async function addPatientFromUser(userId: string, patientData: {
       data: {
         nombre: nombre || user.name,
         apellido: apellido || '',
-        cedula: `V-${Date.now()}`, // Generate temporary ID
+        cedula: patientData.cedula,
         fechaNacimiento,
         telefono: user.phone || '',
         email: user.email,
@@ -707,13 +709,14 @@ export async function addPatientFromUser(userId: string, patientData: {
       cedula: patient.cedula,
       age: patientData.age,
       gender: patientData.gender,
-      bloodType: patientData.bloodType || '',
+      bloodType: patientData.bloodType,
       status: 'Activo',
       contact: {
         phone: patient.telefono || '',
         email: patient.email || '',
       },
       lastVisit: patient.createdAt.toISOString(),
+      companyId: patientData.companyId,
     };
 
     return mappedPatient;

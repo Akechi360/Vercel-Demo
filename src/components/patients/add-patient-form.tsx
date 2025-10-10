@@ -24,9 +24,11 @@ import Swal from 'sweetalert2';
 const formSchema = z.object({
   userSelection: z.enum(['new', 'existing'], { required_error: 'Seleccione una opción.' }),
   userId: z.string().optional(),
-  name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.').optional(),
+  name: z.string().optional(),
   age: z.coerce.number().min(1, 'La edad debe ser mayor a 0.').max(120, 'La edad es inválida.'),
   gender: z.enum(['Masculino', 'Femenino', 'Otro'], { required_error: 'Seleccione un género.' }),
+  bloodType: z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'], { required_error: 'Seleccione un tipo de sangre.' }),
+  cedula: z.string().min(1, 'La cédula es requerida.').regex(/^[VvEeJj]-\d{7,8}$/, 'Formato de cédula inválido (V-12345678, E-12345678, J-12345678)'),
   phone: z.string().optional(),
   email: z.string().email('Dirección de correo inválida.').optional().or(z.literal('')),
   companyId: z.string().optional(),
@@ -34,7 +36,7 @@ const formSchema = z.object({
   if (data.userSelection === 'existing' && !data.userId) {
     return false;
   }
-  if (data.userSelection === 'new' && !data.name) {
+  if (data.userSelection === 'new' && (!data.name || data.name.length < 3)) {
     return false;
   }
   return true;
@@ -50,6 +52,7 @@ interface AddPatientFormProps {
 }
 
 export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
+  console.log('🎯 AddPatientForm component rendered');
   const { addPatient: addPatientToStore } = usePatientStore();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectableUsers, setSelectableUsers] = useState<Array<{
@@ -99,6 +102,9 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
       userId: '',
       name: '',
       age: undefined,
+      gender: undefined,
+      bloodType: undefined,
+      cedula: '',
       phone: '',
       email: '',
       companyId: '',
@@ -109,6 +115,8 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
 
   const onSubmit = async (values: FormValues) => {
     console.log('🚀 onSubmit function called with values:', values);
+    console.log('🚀 Form is valid:', form.formState.isValid);
+    console.log('🚀 Form errors:', form.formState.errors);
     try {
       // Test database connection first
       console.log('🔍 Testing database connection...');
@@ -136,6 +144,8 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
         newPatient = await addPatientFromUser(values.userId, {
           age: values.age,
           gender: values.gender,
+          bloodType: values.bloodType,
+          cedula: values.cedula,
           companyId: values.companyId === 'none' ? undefined : values.companyId,
         });
       } else {
@@ -144,6 +154,8 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
           name: values.name!,
           age: values.age,
           gender: values.gender,
+          bloodType: values.bloodType,
+          cedula: values.cedula,
           contact: {
               phone: values.phone || '',
               email: values.email || '',
@@ -298,6 +310,50 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
             )}
           />
         </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="bloodType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tipo de Sangre</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccione..." />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="A+">A+</SelectItem>
+                    <SelectItem value="A-">A-</SelectItem>
+                    <SelectItem value="B+">B+</SelectItem>
+                    <SelectItem value="B-">B-</SelectItem>
+                    <SelectItem value="AB+">AB+</SelectItem>
+                    <SelectItem value="AB-">AB-</SelectItem>
+                    <SelectItem value="O+">O+</SelectItem>
+                    <SelectItem value="O-">O-</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="cedula"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Cédula de Identidad</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ej: V-12345678" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
         <FormField
           control={form.control}
           name="phone"
@@ -350,7 +406,15 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
 
         <div className="flex justify-end gap-2 pt-4">
           <Button type="button" variant="secondary" onClick={onSuccess}>Cancelar</Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button 
+            type="submit" 
+            disabled={isSubmitting}
+            onClick={() => {
+              console.log('🔘 Button clicked!');
+              console.log('🔘 Form values:', form.getValues());
+              console.log('🔘 Form errors:', form.formState.errors);
+            }}
+          >
             {isSubmitting ? 'Guardando...' : 'Guardar Paciente'}
           </Button>
         </div>

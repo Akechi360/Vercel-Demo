@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ClipboardPlus, CalendarPlus, FileDown } from "lucide-react";
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/accessible-dialog";
 import { ConsultationForm, ConsultationFormValues } from "./consultation-form";
 import type { Patient, Appointment, Consultation, IpssScore } from "@/lib/types";
 import { addConsultation } from "@/lib/actions";

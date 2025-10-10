@@ -8,7 +8,7 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger,
-  } from "@/components/ui/dialog"
+  } from "@/components/ui/accessible-dialog"
 import { ConsultationForm, ConsultationFormValues } from "./consultation-form";
 import type { Patient } from "@/lib/types";
 import { addConsultation } from "@/lib/actions";

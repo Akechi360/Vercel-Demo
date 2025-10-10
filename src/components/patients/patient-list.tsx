@@ -36,7 +36,7 @@ import { addUroVitalLogo } from '@/lib/pdf-helpers';
 import { usePatientStore } from '@/lib/store/patient-store';
 import { useCompanyStore } from '@/lib/store/company-store';
 import { AddPatientForm } from './add-patient-form';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../ui/accessible-dialog';
 import { format } from 'date-fns';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';

@@ -53,32 +53,41 @@ export default function GeneralSettingsPage() {
           getPayments()
         ]);
 
+        // Safe array validation to prevent build errors
+        const safeUsers = Array.isArray(users) ? users : [];
+        const safePatients = Array.isArray(patients) ? patients : [];
+        const safeAppointments = Array.isArray(appointments) ? appointments : [];
+        const safePayments = Array.isArray(payments) ? payments : [];
+
         // Calcular estadísticas del mes actual
         const currentMonth = new Date().getMonth();
         const currentYear = new Date().getFullYear();
         
-        const monthlyAppointments = appointments.filter(apt => {
+        const monthlyAppointments = safeAppointments.filter(apt => {
           const aptDate = new Date(apt.date);
           return aptDate.getMonth() === currentMonth && aptDate.getFullYear() === currentYear;
         });
 
-        const monthlyPayments = payments.filter(payment => {
+        const monthlyPayments = safePayments.filter(payment => {
           const paymentDate = new Date(payment.date);
           return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
         });
 
-        const totalIncome = monthlyPayments.reduce((sum, payment) => sum + payment.monto, 0);
+        const totalIncome = monthlyPayments.reduce((sum, payment) => {
+          const amount = typeof payment.monto === 'number' ? payment.monto : 0;
+          return sum + amount;
+        }, 0);
 
         setStats([
           { 
             label: 'Usuarios Registrados', 
-            value: users.length.toLocaleString(), 
+            value: safeUsers.length.toLocaleString(), 
             icon: Users, 
             color: 'text-blue-600' 
           },
           { 
             label: 'Pacientes Activos', 
-            value: patients.filter(p => p.status === 'Activo').length.toLocaleString(), 
+            value: safePatients.filter(p => p.status === 'Activo').length.toLocaleString(), 
             icon: Users, 
             color: 'text-green-600' 
           },
@@ -97,6 +106,13 @@ export default function GeneralSettingsPage() {
         ]);
       } catch (error) {
         console.error('Error fetching statistics:', error);
+        // Set default stats on error
+        setStats([
+          { label: 'Usuarios Registrados', value: '0', icon: Users, color: 'text-blue-600' },
+          { label: 'Pacientes Activos', value: '0', icon: Users, color: 'text-green-600' },
+          { label: 'Citas del Mes', value: '0', icon: Calendar, color: 'text-purple-600' },
+          { label: 'Ingresos del Mes', value: '$0', icon: CreditCard, color: 'text-orange-600' },
+        ]);
       }
     };
 

@@ -1,0 +1,22 @@
+{
+  "placeholderImages": [
+    {
+      "id": "default-avatar",
+      "description": "Avatar por defecto para usuarios",
+      "imageUrl": "/images/placeholder-avatar.png",
+      "imageHint": "Imagen de avatar genérica"
+    },
+    {
+      "id": "default-patient",
+      "description": "Imagen por defecto para pacientes",
+      "imageUrl": "/images/placeholder-patient.png", 
+      "imageHint": "Imagen de paciente genérica"
+    },
+    {
+      "id": "default-doctor",
+      "description": "Imagen por defecto para doctores",
+      "imageUrl": "/images/placeholder-doctor.png",
+      "imageHint": "Imagen de doctor genérica"
+    }
+  ]
+}

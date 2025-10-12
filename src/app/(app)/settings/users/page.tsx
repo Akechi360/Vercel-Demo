@@ -180,6 +180,7 @@ export default function UsersManagementPage() {
       case 'admin':
         return 'destructive';
       case 'doctor':
+      case 'Doctor':
         return 'default';
       case 'secretaria':
         return 'secondary';
@@ -574,7 +575,7 @@ export default function UsersManagementPage() {
                   <TableCell>
                     <Badge variant={getRoleBadgeVariant(user.role)}>
                       {user.role === 'admin' ? 'Administrador' : 
-                       user.role === 'doctor' ? 'Doctor' : 
+                       user.role === 'doctor' || user.role === 'Doctor' ? 'Doctor' : 
                        user.role === 'secretaria' ? 'Secretaria' :
                        user.role === 'patient' ? 'Paciente' :
                        user.role === 'promotora' ? 'Promotora' : 'Desconocido'}

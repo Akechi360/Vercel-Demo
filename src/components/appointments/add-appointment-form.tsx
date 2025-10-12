@@ -12,9 +12,9 @@ import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Patient, User } from "@/lib/types";
+import type { Patient, User, Doctor } from "@/lib/types";
 import { useEffect, useState } from "react";
-import { getPatients, getUsers } from "@/lib/actions";
+import { getPatients, getUsers, getDoctors } from "@/lib/actions";
 import { Textarea } from "../ui/textarea";
 import { useAuth } from "../layout/auth-provider";
 
@@ -35,20 +35,18 @@ interface AddAppointmentFormProps {
 export function AddAppointmentForm({ onFormSubmit }: AddAppointmentFormProps) {
   const { currentUser } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
-  const [doctors, setDoctors] = useState<User[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
 
   const isPatient = currentUser?.role === 'patient';
 
   useEffect(() => {
     async function fetchData() {
-        const [patientsData, usersResult] = await Promise.all([
+        const [patientsData, doctorsData] = await Promise.all([
             getPatients(),
-            getUsers()
+            getDoctors()
         ]);
         setPatients(patientsData);
-        // Extraer el array de usuarios del objeto paginado
-        const usersData = usersResult.users;
-        setDoctors(usersData.filter(u => u.role === 'doctor'));
+        setDoctors(doctorsData);
     }
     fetchData();
   }, []);
@@ -107,7 +105,7 @@ export function AddAppointmentForm({ onFormSubmit }: AddAppointmentFormProps) {
                     </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                    {doctors.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                    {doctors.map(d => <SelectItem key={d.id} value={d.id}>{d.nombre} {d.apellido}</SelectItem>)}
                 </SelectContent>
                 </Select>
                 <FormMessage />

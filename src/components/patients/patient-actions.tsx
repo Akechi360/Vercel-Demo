@@ -24,6 +24,7 @@ import { MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import { deletePatient, updatePatient, getCompanies } from '@/lib/actions';
+import { useSweetAlertTheme, getSweetAlertConfig, getSweetAlertWarningConfig } from '@/hooks/use-sweetalert-theme';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -52,6 +53,7 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [companies, setCompanies] = useState<any[]>([]);
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
+  const sweetAlertTheme = useSweetAlertTheme();
 
   const form = useForm<EditPatientFormValues>({
     resolver: zodResolver(editPatientSchema),
@@ -67,7 +69,6 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
   });
 
   const handleDelete = () => {
-    const isDarkMode = document.documentElement.classList.contains('dark');
     MySwal.fire({
       title: '¿Eliminar paciente?',
       text: 'Esta acción es irreversible. El paciente y todos sus datos asociados serán eliminados del sistema.',
@@ -75,10 +76,7 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
       showCancelButton: true,
       confirmButtonText: 'Eliminar',
       cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#dc2626',
-      cancelButtonColor: '#6b7280',
-      background: isDarkMode ? '#1e293b' : '#ffffff',
-      color: isDarkMode ? '#f1f5f9' : '#0f172a',
+      ...getSweetAlertWarningConfig(sweetAlertTheme),
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
@@ -89,9 +87,8 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
             title: 'Eliminado',
             text: 'El paciente ha sido eliminado exitosamente.',
             icon: 'success',
-            background: isDarkMode ? '#1e293b' : '#ffffff',
-            color: isDarkMode ? '#f1f5f9' : '#0f172a',
-            confirmButtonColor: '#10b981',
+            confirmButtonText: 'Entendido',
+            ...getSweetAlertConfig(sweetAlertTheme),
           });
         } catch (error) {
           console.error('Error deleting patient:', error);
@@ -99,9 +96,8 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
             title: 'Error',
             text: 'No se pudo eliminar el paciente. Intente nuevamente.',
             icon: 'error',
-            background: isDarkMode ? '#1e293b' : '#ffffff',
-            color: isDarkMode ? '#f1f5f9' : '#0f172a',
-            confirmButtonColor: '#dc2626',
+            confirmButtonText: 'Entendido',
+            ...getSweetAlertConfig(sweetAlertTheme),
           });
         }
       }
@@ -136,25 +132,21 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
       onPatientUpdated?.(updatedPatient);
       setIsEditOpen(false);
 
-      const isDarkMode = document.documentElement.classList.contains('dark');
       MySwal.fire({
         title: 'Actualizado',
         text: 'Los datos del paciente han sido actualizados exitosamente.',
         icon: 'success',
-        background: isDarkMode ? '#1e293b' : '#ffffff',
-        color: isDarkMode ? '#f1f5f9' : '#0f172a',
-        confirmButtonColor: '#10b981',
+        confirmButtonText: 'Entendido',
+        ...getSweetAlertConfig(sweetAlertTheme),
       });
     } catch (error) {
       console.error('Error updating patient:', error);
-      const isDarkMode = document.documentElement.classList.contains('dark');
       MySwal.fire({
         title: 'Error',
         text: 'No se pudieron actualizar los datos del paciente. Intente nuevamente.',
         icon: 'error',
-        background: isDarkMode ? '#1e293b' : '#ffffff',
-        color: isDarkMode ? '#f1f5f9' : '#0f172a',
-        confirmButtonColor: '#dc2626',
+        confirmButtonText: 'Entendido',
+        ...getSweetAlertConfig(sweetAlertTheme),
       });
     }
   };

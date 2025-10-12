@@ -26,7 +26,7 @@ export default function PatientHistoryPage({ params }: { params: Promise<{ patie
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const canViewHistory = can('patients:write') || currentUser?.patientId === patientId;
+  const canViewHistory = can('patients:write') || currentUser?.userId === patientId;
 
   useEffect(() => {
     if (!canViewHistory) {

@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { Stethoscope, LogIn } from 'lucide-react';
+import { Stethoscope, LogIn, Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
@@ -54,6 +54,7 @@ const formSchemas = {
 
 export default function AuthForm({ mode: initialMode }: AuthFormProps) {
   const [mode, setMode] = useState<AuthMode>(initialMode);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   const getDefaultValues = (currentMode: AuthMode) => {
@@ -159,6 +160,7 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
 
   const handleModeChange = (newMode: AuthMode) => {
     setMode(newMode);
+    setShowPassword(false); // Reset password visibility when changing modes
     // Reset form with new default values for the new mode
     reset(getDefaultValues(newMode));
   }
@@ -232,7 +234,26 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
                             )}
                         </div>
                         <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} />
+                          <div className="relative">
+                            <Input 
+                              type={showPassword ? 'text' : 'password'} 
+                              placeholder="••••••••" 
+                              {...field} 
+                              className="pr-10"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                              tabIndex={-1}
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>

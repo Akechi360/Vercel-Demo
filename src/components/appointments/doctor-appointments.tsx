@@ -35,6 +35,7 @@ import { getInitials } from '@/lib/utils';
 import { es } from 'date-fns/locale';
 import { format } from 'date-fns';
 import { useAppointmentStore } from '@/lib/store/appointment-store';
+import { AppointmentActions } from './appointment-actions';
 
 interface DoctorAppointmentsProps {
   initialPatients: Patient[];
@@ -224,6 +225,19 @@ export function DoctorAppointments({
                           <FileText className="mr-2 h-4 w-4" />
                           Informes
                         </Button>
+                        <AppointmentActions
+                          appointment={appt}
+                          onAppointmentUpdated={(updatedAppointment) => {
+                            // Actualizar el store con la cita modificada
+                            const { updateAppointment } = useAppointmentStore.getState();
+                            updateAppointment(updatedAppointment);
+                          }}
+                          onAppointmentDeleted={(appointmentId) => {
+                            // Eliminar la cita del store
+                            const { removeAppointment } = useAppointmentStore.getState();
+                            removeAppointment(appointmentId);
+                          }}
+                        />
                       </div>
                     </CardContent>
                   </Card>

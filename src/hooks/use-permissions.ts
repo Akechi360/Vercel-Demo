@@ -86,7 +86,7 @@ export function usePermissions() {
   };
 
   const isDoctor = (): boolean => {
-    return user?.role === 'doctor';
+    return user?.role === 'doctor' || user?.role === 'Doctor';
   };
 
   const isPatient = (): boolean => {

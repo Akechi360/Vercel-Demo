@@ -17,9 +17,12 @@ export async function POST(request: NextRequest) {
     console.log('📝 Datos recibidos:', { name: body.name, email: body.email, role: body.role });
     
     // Validate request body
+    console.log('🔍 Validando datos...');
     const validatedData = registerSchema.parse(body);
+    console.log('✅ Datos validados:', validatedData);
     
     // Create user with validated data
+    console.log('🔄 Llamando a createUser...');
     const newUser = await createUser({
       name: validatedData.name,
       email: validatedData.email,

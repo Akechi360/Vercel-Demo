@@ -1830,8 +1830,14 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
     
     const newUser = await prisma.user.create({
       data: {
-        ...data,
+        name: data.name,
+        email: data.email,
         password: hashedPassword,
+        role: data.role,
+        status: data.status || 'INACTIVE',
+        phone: data.phone || null,
+        lastLogin: data.lastLogin || null,
+        avatarUrl: data.avatarUrl || null,
         userId: userId,
       },
     });

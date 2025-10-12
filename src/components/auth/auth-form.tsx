@@ -116,8 +116,8 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
         }
     } else if (mode === 'register') {
         try {
-            console.log('🔄 Enviando datos de registro a /api/auth/register-debug');
-            const response = await fetch('/api/auth/register-debug', {
+            console.log('🔄 Enviando datos de registro a /api/auth/register');
+            const response = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

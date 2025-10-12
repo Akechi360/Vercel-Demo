@@ -57,10 +57,13 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     console.error('❌ Error en registro:', error);
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack');
+    console.error('❌ Error name:', error instanceof Error ? error.name : 'Unknown');
     
     // Handle validation errors
     if (error instanceof z.ZodError) {
       const errorMessages = error.errors.map(err => err.message).join(', ');
+      console.log('❌ Validation error:', errorMessages);
       return NextResponse.json({
         success: false,
         error: 'Datos inválidos',

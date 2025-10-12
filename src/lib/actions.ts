@@ -1798,16 +1798,35 @@ export async function getAuditLogs(): Promise<any[]> {
 // USER MANAGEMENT ACTIONS
 export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<User> {
   try {
+    console.log('🔄 Creando usuario:', { name: data.name, email: data.email, role: data.role });
+    
     const isAvailable = await isDatabaseAvailable();
     if (!isAvailable) {
       throw new Error('Base de datos no disponible. No se puede crear el usuario.');
     }
 
-    const hashedPassword = await bcrypt.hash(data.password, 12);
+    // Validate required fields
+    if (!data.name || !data.email || !data.password || !data.role) {
+      throw new Error('Faltan campos requeridos: nombre, email, contraseña y rol son obligatorios.');
+    }
+
+    // Check if user already exists
     const prisma = getPrisma();
+    const existingUser = await prisma.user.findUnique({
+      where: { email: data.email }
+    });
+
+    if (existingUser) {
+      console.log('❌ Usuario ya existe con email:', data.email);
+      throw new Error('Ya existe un usuario registrado con ese correo electrónico.');
+    }
+
+    const hashedPassword = await bcrypt.hash(data.password, 12);
     
     // Generate unique userId
     const userId = `U${Date.now().toString().slice(-6)}`;
+    
+    console.log('🔄 Creando usuario con userId:', userId);
     
     const newUser = await prisma.user.create({
       data: {
@@ -1816,6 +1835,8 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
         userId: userId,
       },
     });
+
+    console.log('✅ Usuario creado exitosamente:', { id: newUser.id, userId: newUser.userId, name: newUser.name });
 
     // Create audit log for user creation
     try {
@@ -1828,6 +1849,28 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
     return newUser;
   } catch (error) {
     console.error('❌ Error creando usuario:', error);
+    
+    // Handle specific Prisma errors
+    if (error instanceof Error) {
+      if (error.message.includes('Unique constraint failed')) {
+        if (error.message.includes('email')) {
+          throw new Error('Ya existe un usuario registrado con ese correo electrónico.');
+        }
+        if (error.message.includes('userId')) {
+          throw new Error('Error interno: ID de usuario duplicado. Intenta nuevamente.');
+        }
+      }
+      
+      if (error.message.includes('Invalid input')) {
+        throw new Error('Datos de usuario inválidos. Verifica que todos los campos estén completos.');
+      }
+      
+      // Return the specific error message if it's user-friendly
+      if (error.message.includes('Ya existe') || error.message.includes('Faltan campos')) {
+        throw error;
+      }
+    }
+    
     throw new Error('No se pudo crear el usuario. Verifica la conexión a la base de datos.');
   }
 }

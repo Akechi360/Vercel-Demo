@@ -8,74 +8,65 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  userId        String         @unique // ID universal único (U0001, U0002, etc.)
-  email         String         @unique
-  name          String
-  password      String
-  role          String
-  status        String         @default("ACTIVE")
-  createdAt     DateTime       @default(now())
-  phone         String?
-  lastLogin     DateTime?
-  avatarUrl     String?        @default("/images/avatars/default-doctor.png")
-  affiliations  Affiliation[]
-  auditLogs     AuditLog[]
-  // Relaciones específicas por rol
-  patientInfo   PatientInfo?
-  doctorInfo    DoctorInfo?
-  // Relaciones de citas
-  patientAppointments Appointment[] @relation("PatientAppointments")
-  doctorAppointments  Appointment[] @relation("DoctorAppointments")
-  createdAppointments Appointment[] @relation("CreatedAppointments")
-  // Relaciones de consultas
-  patientConsultations Consultation[] @relation("PatientConsultations")
-  doctorConsultations  Consultation[] @relation("DoctorConsultations")
+  id                   String         @id @default(cuid())
+  userId               String         @unique
+  email                String         @unique
+  name                 String
+  password             String
+  role                 String
+  status               String         @default("ACTIVE")
+  createdAt            DateTime       @default(now())
+  phone                String?
+  lastLogin            DateTime?
+  avatarUrl            String?        @default("/images/avatars/default-doctor.png")
+  affiliations         Affiliation[]
+  createdAppointments  Appointment[]  @relation("CreatedAppointments")
+  doctorAppointments   Appointment[]  @relation("DoctorAppointments")
+  patientAppointments  Appointment[]  @relation("PatientAppointments")
+  auditLogs            AuditLog[]
   createdConsultations Consultation[] @relation("CreatedConsultations")
-  // Relaciones de pagos
-  patientPayments Payment[] @relation("PatientPayments")
-  createdPayments Payment[] @relation("CreatedPayments")
-  // Relaciones de resultados de laboratorio
-  labResults    LabResult[]
-  // Relaciones de prescripciones
-  prescriptions Prescription[]
-  // Relaciones de recibos
-  patientReceipts Receipt[] @relation("PatientReceipts")
-  createdReceipts Receipt[] @relation("CreatedReceipts")
+  doctorConsultations  Consultation[] @relation("DoctorConsultations")
+  patientConsultations Consultation[] @relation("PatientConsultations")
+  doctorInfo           DoctorInfo?
+  labResults           LabResult[]
+  patientInfo          PatientInfo?
+  createdPayments      Payment[]      @relation("CreatedPayments")
+  patientPayments      Payment[]      @relation("PatientPayments")
+  prescriptions        Prescription[]
+  createdReceipts      Receipt[]      @relation("CreatedReceipts")
+  patientReceipts      Receipt[]      @relation("PatientReceipts")
 
   @@map("users")
 }
 
-// Información específica para pacientes
 model PatientInfo {
-  id              String         @id @default(cuid())
-  userId          String         @unique
-  cedula          String         @unique
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  cedula          String   @unique
   fechaNacimiento DateTime
   telefono        String?
   direccion       String?
-  bloodType       String?        // Grupo sanguíneo
-  gender          String?        // Género
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  user            User           @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  bloodType       String?
+  gender          String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@map("patient_info")
 }
 
-// Información específica para doctores
 model DoctorInfo {
-  id            String         @id @default(cuid())
-  userId        String         @unique
-  especialidad  String
-  cedula        String         @unique
-  telefono      String?
-  direccion     String?
-  area          String?
-  contacto      String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  user          User           @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  especialidad String
+  cedula       String   @unique
+  telefono     String?
+  direccion    String?
+  area         String?
+  contacto     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@map("doctor_info")
 }
@@ -116,16 +107,16 @@ model Appointment {
   tipo          AppointmentType
   estado        AppointmentStatus @default(PROGRAMADA)
   notas         String?
-  patientUserId String            // userId del paciente
-  doctorUserId  String?           // userId del doctor (opcional)
+  patientUserId String
+  doctorUserId  String?
   providerId    String?
-  createdBy     String            // userId del usuario que creó la cita
+  createdBy     String
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
-  patient       User              @relation("PatientAppointments", fields: [patientUserId], references: [userId], onDelete: Cascade)
-  doctor        User?             @relation("DoctorAppointments", fields: [doctorUserId], references: [userId], onDelete: Cascade)
-  provider      Provider?         @relation(fields: [providerId], references: [id])
   creator       User              @relation("CreatedAppointments", fields: [createdBy], references: [userId], onDelete: Cascade)
+  doctor        User?             @relation("DoctorAppointments", fields: [doctorUserId], references: [userId], onDelete: Cascade)
+  patient       User              @relation("PatientAppointments", fields: [patientUserId], references: [userId], onDelete: Cascade)
+  provider      Provider?         @relation(fields: [providerId], references: [id])
   consultations Consultation[]
 
   @@map("appointments")
@@ -139,16 +130,16 @@ model Consultation {
   diagnostico   String?
   tratamiento   String?
   observaciones String?
-  patientUserId String         // userId del paciente
-  doctorUserId  String?       // userId del doctor (opcional)
+  patientUserId String
+  doctorUserId  String?
   appointmentId String?
-  createdBy     String         // userId del usuario que creó la consulta
+  createdBy     String
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   appointment   Appointment?   @relation(fields: [appointmentId], references: [id])
-  patient       User           @relation("PatientConsultations", fields: [patientUserId], references: [userId], onDelete: Cascade)
-  doctor        User?          @relation("DoctorConsultations", fields: [doctorUserId], references: [userId], onDelete: Cascade)
   creator       User           @relation("CreatedConsultations", fields: [createdBy], references: [userId], onDelete: Cascade)
+  doctor        User?          @relation("DoctorConsultations", fields: [doctorUserId], references: [userId], onDelete: Cascade)
+  patient       User           @relation("PatientConsultations", fields: [patientUserId], references: [userId], onDelete: Cascade)
   labResults    LabResult[]
   prescriptions Prescription[]
 
@@ -162,7 +153,7 @@ model LabResult {
   resultado      String
   valores        Json?
   fecha          DateTime
-  patientUserId  String        // userId del paciente
+  patientUserId  String
   consultationId String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -179,7 +170,7 @@ model Prescription {
   frecuencia     String
   duracion       String?
   instrucciones  String?
-  patientUserId  String        // userId del paciente
+  patientUserId  String
   consultationId String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -190,20 +181,20 @@ model Prescription {
 }
 
 model Payment {
-  id         String        @id @default(cuid())
-  monto      Decimal       @db.Decimal(10, 2)
-  tipo       PaymentType
-  metodo     String
-  estado     PaymentStatus @default(PENDIENTE)
-  fecha      DateTime
-  referencia String?
-  notas      String?
-  patientUserId String    // userId del paciente
-  createdBy  String         // userId del usuario que creó el pago
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
-  patient    User           @relation("PatientPayments", fields: [patientUserId], references: [userId], onDelete: Cascade)
-  creator    User           @relation("CreatedPayments", fields: [createdBy], references: [userId], onDelete: Cascade)
+  id            String        @id @default(cuid())
+  monto         Decimal       @db.Decimal(10, 2)
+  tipo          PaymentType
+  metodo        String
+  estado        PaymentStatus @default(PENDIENTE)
+  fecha         DateTime
+  referencia    String?
+  notas         String?
+  patientUserId String
+  createdBy     String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  creator       User          @relation("CreatedPayments", fields: [createdBy], references: [userId], onDelete: Cascade)
+  patient       User          @relation("PatientPayments", fields: [patientUserId], references: [userId], onDelete: Cascade)
 
   @@map("payments")
 }
@@ -292,16 +283,16 @@ model SystemConfig {
 }
 
 model Receipt {
-  id           String   @id @default(cuid())
-  number       String   @unique
-  patientUserId String  // userId del paciente
-  amount       Decimal  @db.Decimal(10, 2)
-  concept      String
-  method       String
-  createdAt    DateTime @default(now())
-  createdBy    String   // userId del usuario que creó el recibo
-  patient      User     @relation("PatientReceipts", fields: [patientUserId], references: [userId], onDelete: Cascade)
-  creator      User     @relation("CreatedReceipts", fields: [createdBy], references: [userId], onDelete: Cascade)
+  id            String   @id @default(cuid())
+  number        String   @unique
+  patientUserId String
+  amount        Decimal  @db.Decimal(10, 2)
+  concept       String
+  method        String
+  createdAt     DateTime @default(now())
+  createdBy     String
+  creator       User     @relation("CreatedReceipts", fields: [createdBy], references: [userId], onDelete: Cascade)
+  patient       User     @relation("PatientReceipts", fields: [patientUserId], references: [userId], onDelete: Cascade)
 
   @@map("receipts")
 }
@@ -323,7 +314,6 @@ enum UserRole {
   USER
   PROMOTORA
 }
-
 
 enum AppointmentType {
   CONSULTA

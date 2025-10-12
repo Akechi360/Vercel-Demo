@@ -19,7 +19,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { login, createUser } from '@/lib/actions';
+import { useSweetAlertTheme, getSweetAlertConfig } from '@/hooks/use-sweetalert-theme';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 
@@ -56,6 +56,7 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const sweetAlertTheme = useSweetAlertTheme();
 
   const getDefaultValues = (currentMode: AuthMode) => {
     switch (currentMode) {
@@ -79,53 +80,85 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
 
   const onSubmit = async (values: z.infer<typeof loginSchema | typeof registerSchema | typeof forgotPasswordSchema>) => {
     if (mode === 'login') {
-        const result = await login(values as z.infer<typeof loginSchema>);
-        if (result.success && result.user) {
-            localStorage.setItem("user", JSON.stringify(result.user));
-            router.push('/dashboard');
-        } else {
-            // Convert login error to SweetAlert
-            const isDarkMode = document.documentElement.classList.contains('dark');
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(values),
+            });
+            
+            const result = await response.json();
+            
+            if (result.success && result.user) {
+                localStorage.setItem("user", JSON.stringify(result.user));
+                router.push('/dashboard');
+            } else {
+                // Show specific error message
+                MySwal.fire({
+                    title: 'Error de inicio de sesión',
+                    text: result.error || 'Credenciales inválidas',
+                    icon: 'error',
+                    confirmButtonText: 'Entendido',
+                    ...getSweetAlertConfig(sweetAlertTheme),
+                });
+            }
+        } catch (error) {
+            console.error('Error en login:', error);
             MySwal.fire({
-                title: 'Error de inicio de sesión',
-                text: result.error,
+                title: 'Error de conexión',
+                text: 'No se pudo conectar con el servidor. Verifica tu conexión a internet.',
                 icon: 'error',
-                background: isDarkMode ? '#1e293b' : '#ffffff',
-                color: isDarkMode ? '#f1f5f9' : '#0f172a',
-                confirmButtonColor: '#dc2626',
-                confirmButtonText: 'Entendido'
+                confirmButtonText: 'Entendido',
+                ...getSweetAlertConfig(sweetAlertTheme),
             });
         }
     } else if (mode === 'register') {
         try {
-            const registerValues = values as z.infer<typeof registerSchema>;
-            const newUser = await createUser({
-                name: registerValues.name,
-                email: registerValues.email,
-                password: registerValues.password,
-                role: 'patient', // Default role for new users
-                status: 'INACTIVE', // Usuarios requieren aprobación del administrador
-                phone: null,
-                lastLogin: null,
-                patientId: null,
-                avatarUrl: null // Se usará el valor por defecto de Prisma
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ...values,
+                    role: 'patient', // Default role for new users
+                }),
             });
             
-            setMode('login');
-            reset();
-        } catch (error) {
-            // Convert registration error to SweetAlert
-            const isDarkMode = document.documentElement.classList.contains('dark');
-            const errorMessage = error instanceof Error ? error.message : "Error desconocido al crear la cuenta.";
+            const result = await response.json();
             
+            if (result.success) {
+                // Show success message
+                MySwal.fire({
+                    title: '¡Cuenta creada exitosamente!',
+                    text: 'Tu cuenta ha sido creada. Espera la aprobación del administrador para poder iniciar sesión.',
+                    icon: 'success',
+                    confirmButtonText: 'Entendido',
+                    ...getSweetAlertConfig(sweetAlertTheme),
+                }).then(() => {
+                    setMode('login');
+                    reset();
+                });
+            } else {
+                // Show specific error message
+                MySwal.fire({
+                    title: 'Error al crear cuenta',
+                    text: result.error || 'No se pudo crear la cuenta. Intenta nuevamente.',
+                    icon: 'error',
+                    confirmButtonText: 'Entendido',
+                    ...getSweetAlertConfig(sweetAlertTheme),
+                });
+            }
+        } catch (error) {
+            console.error('Error en registro:', error);
             MySwal.fire({
-                title: 'Error al crear cuenta',
-                text: errorMessage,
+                title: 'Error de conexión',
+                text: 'No se pudo conectar con el servidor. Verifica tu conexión a internet.',
                 icon: 'error',
-                background: isDarkMode ? '#1e293b' : '#ffffff',
-                color: isDarkMode ? '#f1f5f9' : '#0f172a',
-                confirmButtonColor: '#dc2626',
-                confirmButtonText: 'Entendido'
+                confirmButtonText: 'Entendido',
+                ...getSweetAlertConfig(sweetAlertTheme),
             });
         }
     } else if (mode === 'forgot-password') {

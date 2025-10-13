@@ -127,7 +127,6 @@ export default function CompanyList() {
                 </CardHeader>
                 <CardContent className="flex-grow space-y-2 text-sm text-muted-foreground">
                     <p>Teléfono: {company.phone || 'No disponible'}</p>
-                    <p>Pacientes Afiliados: <span className="font-bold text-foreground">{company.patientCount}</span></p>
                 </CardContent>
               </Card>
             </motion.div>

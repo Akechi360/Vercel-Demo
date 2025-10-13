@@ -6,7 +6,7 @@ import type { Company } from '@/lib/types';
 import CompanyList from './company-list';
 
 interface CompanyListWrapperProps {
-  initialCompanies: (Company & { patientCount: number })[];
+  initialCompanies: Company[];
 }
 
 export default function CompanyListWrapper({ initialCompanies }: CompanyListWrapperProps) {

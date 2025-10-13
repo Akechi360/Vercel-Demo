@@ -14,6 +14,7 @@ interface AffiliationStore extends AffiliationData {
   clearCache: () => void;
   isDataFresh: () => boolean;
   addAffiliation: (affiliation: any) => void;
+  updateAffiliationInStore: (id: string, updates: any) => void;
 }
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
@@ -89,5 +90,15 @@ export const useAffiliationStore = create<AffiliationStore>((set, get) => ({
     // si es necesario, pero por ahora no la usaremos ya que las afiliaciones
     // se manejan en el componente principal
     console.log('📝 New affiliation added to store:', affiliation);
+  },
+
+  updateAffiliationInStore: (id: string, updates: any) => {
+    // Esta función actualiza una afiliación en el estado local
+    // para reflejar cambios inmediatamente sin recargar la página
+    console.log('🔄 Updating affiliation in store:', id, updates);
+    
+    // Nota: Esta función es principalmente para logging y preparación
+    // La actualización real de la UI se maneja en el componente padre
+    // que recibe los datos actualizados del servidor
   }
 }));

@@ -734,23 +734,23 @@ export default function UsersManagementPage() {
             <div className="space-y-4">
               {/* Información adicional del usuario (lazy loaded) */}
               {userDetails && (
-                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                  <h4 className="font-medium text-sm">Información Adicional</h4>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-gray-600">Último acceso:</span>
-                      <span className="ml-2">
+                <div className="space-y-3">
+                  <h4 className="font-medium text-sm text-muted-foreground">Información Adicional</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Último acceso</label>
+                      <div className="text-sm">
                         {userDetails.lastLogin 
                           ? new Date(userDetails.lastLogin).toLocaleDateString()
                           : 'Nunca'
                         }
-                      </span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-gray-600">Registrado:</span>
-                      <span className="ml-2">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Registrado</label>
+                      <div className="text-sm">
                         {new Date(userDetails.createdAt).toLocaleDateString()}
-                      </span>
+                      </div>
                     </div>
                     {userDetails.patient && (
                       <div className="col-span-2">

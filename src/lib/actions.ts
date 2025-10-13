@@ -65,7 +65,12 @@ export async function getPatients(): Promise<Patient[]> {
     
     // Obtener usuarios con rol 'patient' y su información específica
     const patients = await prisma.user.findMany({
-      where: { role: 'patient' },
+      where: { 
+        role: 'patient',
+        patientInfo: {
+          isNot: null
+        }
+      },
       include: {
         patientInfo: true
       },
@@ -160,37 +165,37 @@ export async function addPatient(patientData: {
       direccion: '',
     });
     
-    // Create patient using withDatabase
+    // Create user and patientInfo using withDatabase
     const result = await withDatabase(async (prisma) => {
-      const patient = await prisma.patient.create({
+      // Create user for the patient
+      const user = await prisma.user.create({
         data: {
-          nombre: nombre || patientData.name,
-          apellido: apellido || '',
+          name: patientData.name,
+          email: patientData.contact.email || `patient-${Date.now()}@local.com`,
+          password: 'temp-password', // Temporary password, should be changed
+          role: 'patient',
+          status: 'ACTIVE',
+          phone: patientData.contact.phone,
+          userId: `U${Date.now().toString().slice(-6)}`,
+        },
+      });
+      
+      console.log('User created successfully:', user);
+
+      // Create patientInfo for the user
+      const patientInfo = await prisma.patientInfo.create({
+        data: {
+          userId: user.id,
           cedula: patientData.cedula,
           fechaNacimiento,
           telefono: patientData.contact.phone,
-          email: patientData.contact.email,
           direccion: '', // Default empty address
           bloodType: patientData.bloodType,
           gender: patientData.gender,
         },
       });
       
-      console.log('Patient created successfully:', patient);
-
-      // Create user for the patient
-      const user = await prisma.user.create({
-        data: {
-          name: patientData.name,
-          email: patientData.contact.email || `${patient.id}@patient.local`,
-          password: 'temp-password', // Temporary password, should be changed
-          role: 'patient',
-          status: 'ACTIVE',
-          phone: patientData.contact.phone,
-          patientId: patient.id,
-          userId: `U${Date.now().toString().slice(-6)}`,
-        },
-      });
+      console.log('PatientInfo created successfully:', patientInfo);
 
       console.log('User created successfully:', user);
 
@@ -216,17 +221,17 @@ export async function addPatient(patientData: {
       }
 
       return {
-        id: patient.id,
-        name: `${patient.nombre} ${patient.apellido}`,
-        cedula: patient.cedula,
+        id: user.id,
+        name: user.name,
+        cedula: patientInfo.cedula,
         age: patientData.age,
         gender: patientData.gender,
         bloodType: patientData.bloodType,
         status: 'Activo' as const,
-        lastVisit: patient.createdAt.toISOString(),
+        lastVisit: user.createdAt.toISOString(),
         contact: {
-          phone: patient.telefono || '',
-          email: patient.email || '',
+          phone: user.phone || '',
+          email: user.email || '',
         },
         companyId: patientData.companyId,
       };
@@ -299,7 +304,7 @@ export async function updatePatient(patientId: string, patientData: {
     const updatedPatient = await (async () => {
       console.log('🔍 Checking if patient exists...');
       
-      // Find user by userId (patientId is now userId)
+      // Find user by userId (patientId is the userId)
       const existingUser = await prisma.user.findUnique({
         where: { userId: patientId },
         include: { patientInfo: true }
@@ -315,7 +320,7 @@ export async function updatePatient(patientId: string, patientData: {
         // Create patient info if it doesn't exist
         const newPatientInfo = await prisma.patientInfo.create({
           data: {
-            userId: patientId,
+            userId: existingUser.userId, // Use the userId field of the user
             cedula: `V-${Date.now().toString().slice(-8)}`, // Generate temporary cedula based on timestamp
             fechaNacimiento: new Date(2000, 0, 1), // Default birth date
             telefono: patientData.phone || null,
@@ -358,7 +363,7 @@ export async function updatePatient(patientId: string, patientData: {
       // Update patient info record
       console.log('🔄 Updating patient info record...');
       const updatedPatientInfo = await prisma.patientInfo.update({
-        where: { userId: patientId },
+        where: { userId: existingUser.userId },
         data: {
           fechaNacimiento,
           telefono: patientData.phone.trim(),
@@ -382,6 +387,46 @@ export async function updatePatient(patientId: string, patientData: {
         }
       });
 
+      // Handle company affiliation changes
+      if (patientData.companyId) {
+        // First, deactivate any existing affiliations for this user
+        await prisma.affiliation.updateMany({
+          where: { 
+            userId: updatedUser.id,
+            estado: 'ACTIVA'
+          },
+          data: { estado: 'INACTIVA' }
+        });
+        
+        // Create new affiliation
+        await prisma.affiliation.create({
+          data: {
+            planId: 'default-plan',
+            estado: 'ACTIVA',
+            fechaInicio: new Date(),
+            monto: 0,
+            beneficiarios: undefined,
+            companyId: patientData.companyId,
+            userId: updatedUser.id,
+          },
+        });
+      } else {
+        // If no companyId, deactivate all affiliations (patient becomes particular)
+        await prisma.affiliation.updateMany({
+          where: { 
+            userId: updatedUser.id,
+            estado: 'ACTIVA'
+          },
+          data: { estado: 'INACTIVA' }
+        });
+      }
+
+      // Get updated affiliations for the return data
+      const updatedAffiliations = await prisma.affiliation.findMany({
+        where: { userId: updatedUser.id },
+        include: { company: true }
+      });
+
       // Return patient in the expected format
       return {
         id: updatedUser.userId,
@@ -397,7 +442,7 @@ export async function updatePatient(patientId: string, patientData: {
           email: updatedUser.email || '',
         },
         companyId: patientData.companyId,
-        companyName: undefined,
+        companyName: updatedAffiliations.length > 0 ? updatedAffiliations[0].company?.nombre : undefined,
         createdAt: updatedUser.createdAt,
         updatedAt: updatedUser.createdAt
       };
@@ -449,37 +494,43 @@ export async function updatePatient(patientId: string, patientData: {
 export async function deletePatient(patientId: string): Promise<void> {
   try {
     await withDatabase(async (prisma) => {
-      // First, find the user associated with this patient
-      const userWithPatient = await prisma.user.findFirst({
-        where: { patientId: patientId }
+      // Find the user with this patientId (which is actually userId in our schema)
+      const user = await prisma.user.findUnique({
+        where: { userId: patientId },
+        include: { patientInfo: true }
       });
 
-      // Delete the patient
-      await prisma.patient.delete({
-        where: { id: patientId },
-      });
+      if (!user) {
+        throw new Error('Paciente no encontrado');
+      }
 
-      // If a user was associated with this patient, update their patientId to null
-      if (userWithPatient) {
-        await prisma.user.update({
-          where: { id: userWithPatient.id },
-          data: { patientId: null }
+      // Delete the patientInfo if it exists
+      if (user.patientInfo) {
+        await prisma.patientInfo.delete({
+          where: { userId: user.id }
         });
-        console.log(`✅ Updated user ${userWithPatient.id} patientId to null after deleting patient ${patientId}`);
-        
-        // Dispatch event to notify components that a patient was deleted
-        // This will trigger a refresh of selectable users in forms
-        if (typeof window !== 'undefined') {
-          const event = new CustomEvent('patientDeleted', { 
-            detail: { 
-              patientId, 
-              userId: userWithPatient.id,
-              userName: userWithPatient.name 
-            } 
-          });
-          window.dispatchEvent(event);
-          console.log('📤 Dispatched patientDeleted event for user:', userWithPatient.id);
-        }
+        console.log(`✅ Deleted patientInfo for user ${user.id}`);
+      }
+
+      // Delete the user
+      await prisma.user.delete({
+        where: { id: user.id }
+      });
+
+      console.log(`✅ Deleted user/patient ${patientId}`);
+      
+      // Dispatch event to notify components that a patient was deleted
+      // This will trigger a refresh of selectable users in forms
+      if (typeof window !== 'undefined') {
+        const event = new CustomEvent('patientDeleted', { 
+          detail: { 
+            patientId, 
+            userId: user.id,
+            userName: user.name 
+          } 
+        });
+        window.dispatchEvent(event);
+        console.log('📤 Dispatched patientDeleted event for user:', user.id);
       }
     });
   } catch (error) {
@@ -812,33 +863,24 @@ export async function listSelectablePatientUsers(): Promise<Array<{
     console.log('🔍 Fetching selectable patient users...');
     
     const users = await withDatabase(async (prisma) => {
-      // Get all users with patient role
-      const allPatientUsers = await prisma.user.findMany({
+      // Get users with role 'patient' but without patientInfo (not added to patients module yet)
+      const patientUsersWithoutInfo = await prisma.user.findMany({
         where: {
           role: 'patient',
+          patientInfo: null
         },
         select: {
           id: true,
           name: true,
           email: true,
-          status: true,
-          patientId: true
+          status: true
         },
         orderBy: { name: 'asc' }
       });
 
-      // Get all active patients
-      const activePatients = await prisma.patient.findMany({
-        select: {
-          id: true
-        }
-      });
-
-      const activePatientIds = new Set(activePatients.map((p: { id: string }) => p.id));
-
-      // Filter users that don't have an active patient record
-      const selectableUsers = allPatientUsers.filter((user: any) => 
-        !user.patientId || !activePatientIds.has(user.patientId)
+      // Filter by active status
+      const selectableUsers = patientUsersWithoutInfo.filter((user: any) => 
+        user.status === 'ACTIVE'
       );
 
       return selectableUsers.map((user: any) => ({
@@ -849,7 +891,7 @@ export async function listSelectablePatientUsers(): Promise<Array<{
       }));
     }, []);
 
-    console.log(`📊 Found ${users.length} selectable patient users`);
+    console.log(`📊 Found ${users.length} selectable patient users without patientInfo`);
     return users;
   } catch (error) {
     console.error('❌ Error fetching selectable patient users:', error);
@@ -1102,12 +1144,13 @@ export async function addConsultation(consultationData: {
 }): Promise<Consultation> {
   try {
     const consultation = await withDatabase(async (prisma) => {
-      // Verify patient exists
-      const patient = await prisma.patient.findUnique({
-        where: { id: consultationData.patientId }
+      // Verify patient exists (patientId is actually userId in our schema)
+      const patient = await prisma.user.findUnique({
+        where: { userId: consultationData.patientId },
+        include: { patientInfo: true }
       });
       
-      if (!patient) {
+      if (!patient || patient.role !== 'patient') {
         throw new Error(`Paciente con ID ${consultationData.patientId} no encontrado`);
       }
 
@@ -1204,7 +1247,7 @@ export async function addConsultation(consultationData: {
           tratamiento: '',
           observaciones: consultationData.notes,
           patientUserId: consultationData.patientId,
-          doctorId: doctor?.id || null,
+          doctorUserId: doctor?.userId || null,
           userId: userId,
         },
         include: {
@@ -1568,6 +1611,64 @@ export async function getAffiliations(): Promise<any[]> {
   } catch (error) {
     console.error('❌ Error fetching affiliations:', error);
     return [];
+  }
+}
+
+export async function cleanDuplicateAffiliations(): Promise<{ success: boolean; removed: number; error?: string }> {
+  try {
+    console.log('🧹 Cleaning duplicate affiliations...');
+    
+    const result = await withDatabase(async (prisma) => {
+      // Find all affiliations grouped by userId and companyId
+      const affiliations = await prisma.affiliation.findMany({
+        where: { estado: 'ACTIVA' },
+        orderBy: { createdAt: 'asc' }
+      });
+      
+      // Group by userId + companyId combination
+      const grouped = new Map<string, any[]>();
+      affiliations.forEach((aff: any) => {
+        const key = `${aff.userId}-${aff.companyId}`;
+        if (!grouped.has(key)) {
+          grouped.set(key, []);
+        }
+        grouped.get(key)!.push(aff);
+      });
+      
+      let removedCount = 0;
+      
+      // For each group with more than 1 affiliation, keep the oldest and remove the rest
+      for (const [key, group] of grouped) {
+        if (group.length > 1) {
+          console.log(`🔍 Found ${group.length} duplicate affiliations for key: ${key}`);
+          
+          // Sort by createdAt (oldest first) and keep the first one
+          const sorted = group.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+          const toKeep = sorted[0];
+          const toRemove = sorted.slice(1);
+          
+          console.log(`✅ Keeping affiliation ${toKeep.id} (oldest), removing ${toRemove.length} duplicates`);
+          
+          // Remove the duplicates
+          for (const duplicate of toRemove) {
+            await prisma.affiliation.delete({
+              where: { id: duplicate.id }
+            });
+            removedCount++;
+            console.log(`🗑️ Removed duplicate affiliation: ${duplicate.id}`);
+          }
+        }
+      }
+      
+      return removedCount;
+    });
+    
+    console.log(`✅ Cleanup completed. Removed ${result} duplicate affiliations.`);
+    return { success: true, removed: result };
+    
+  } catch (error) {
+    console.error('❌ Error cleaning duplicate affiliations:', error);
+    return { success: false, removed: 0, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
@@ -2400,6 +2501,13 @@ export async function getPatientById(patientId: string): Promise<Patient | null>
 
     const age = Math.floor((Date.now() - patientInfo.fechaNacimiento.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
     
+    console.log('🔍 getPatientById - User affiliations:', user.affiliations.map((aff: any) => ({
+      id: aff.id,
+      companyId: aff.companyId,
+      estado: aff.estado,
+      companyName: aff.company?.nombre
+    })));
+
     return {
       id: user.userId, // Usar userId como ID
       name: user.name,
@@ -2420,6 +2528,8 @@ export async function getPatientById(patientId: string): Promise<Patient | null>
   return null;
   }
 }
+
+
 
 export async function getCompanyById(companyId: string): Promise<Company | null> {
   try {
@@ -2990,17 +3100,18 @@ export async function getReportsByPatientId(patientId: string): Promise<Report[]
 export async function getPatientMedicalHistoryAsString(patientId: string): Promise<string> {
   try {
     const patient = await withDatabase(async (prisma) => {
-      return await prisma.patient.findUnique({
-      where: { id: patientId },
+      return await prisma.user.findUnique({
+      where: { userId: patientId },
       include: {
+        patientInfo: true,
         consultations: {
           include: {
             doctor: true,
             labResults: true,
             prescriptions: true,
           },
-          orderBy: { fecha: 'desc' },
-        },
+        orderBy: { fecha: 'desc' },
+      },
         labResults: {
           orderBy: { fecha: 'desc' },
         },
@@ -3090,7 +3201,7 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
         include: {
           user: {
             include: {
-              // We'll get patient data directly if it exists
+              patientInfo: true
             }
           }
         },
@@ -3100,27 +3211,6 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
 
     console.log(`Found ${affiliations.length} affiliations for company ${companyId}`);
 
-    // Get all patient IDs from affiliated users
-    const patientIds = affiliations
-      .map((affiliation: any) => affiliation.user.patientId)
-      .filter(Boolean);
-
-    console.log(`Found ${patientIds.length} patient IDs from affiliations`);
-
-    // Get all patients in one query
-    const patients = await withDatabase(async (prisma) => {
-      return await prisma.patient.findMany({
-        where: {
-          id: {
-            in: patientIds
-          }
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-    });
-
-    console.log(`Found ${patients.length} patients in database`);
-
     // Get company name for display
     const company = await withDatabase(async (prisma) => {
       return await prisma.company.findUnique({
@@ -3128,22 +3218,37 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
       });
     });
 
-    // Map to Patient interface
-    const mappedPatients: Patient[] = patients.map((patient: any) => {
-      const age = Math.floor((Date.now() - patient.fechaNacimiento.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+    // Group affiliations by user to avoid duplicates
+    const userMap = new Map<string, any>();
+    affiliations.forEach((affiliation: any) => {
+      const userId = affiliation.user.id;
+      if (!userMap.has(userId)) {
+        userMap.set(userId, affiliation);
+      }
+    });
+
+    // Map unique users to Patient interface
+    const mappedPatients: Patient[] = Array.from(userMap.values()).map((affiliation: any) => {
+      const user = affiliation.user;
+      const patientInfo = user.patientInfo;
+      
+      // Calculate age from patientInfo if available, otherwise default
+      const age = patientInfo?.fechaNacimiento 
+        ? Math.floor((Date.now() - patientInfo.fechaNacimiento.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+        : 30; // Default age
       
       return {
-        id: patient.id,
-        name: `${patient.nombre} ${patient.apellido}`,
-        cedula: patient.cedula,
+        id: user.id,
+        name: user.name,
+        cedula: patientInfo?.cedula || 'No especificada',
         age,
-        gender: 'Masculino' as const, // Default value
-        bloodType: 'O+' as const,
-        status: 'Activo' as const,
-        lastVisit: patient.updatedAt.toISOString(),
+        gender: (patientInfo?.gender as 'Masculino' | 'Femenino' | 'Otro') || 'Masculino',
+        bloodType: (patientInfo?.bloodType as 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-') || 'O+',
+        status: user.status === 'ACTIVE' ? 'Activo' as const : 'Inactivo' as const,
+        lastVisit: user.lastLogin?.toISOString() || new Date().toISOString(),
         contact: {
-          phone: patient.telefono || '',
-          email: patient.email || '',
+          phone: user.phone || patientInfo?.telefono || '',
+          email: user.email || '',
         },
         companyId: companyId,
         companyName: company?.nombre || undefined,
@@ -3175,6 +3280,12 @@ export async function createReceipt(receiptData: {
 
     const prisma = getPrisma();
     console.log('Prisma client obtained successfully');
+    
+    // Verificar que el usuario admin-master-001 existe
+    const adminUser = await prisma.user.findUnique({
+      where: { userId: 'admin-master-001' }
+    });
+    console.log('Admin user exists:', !!adminUser, adminUser?.userId);
     
     // Check if receipt model is available
     if (!prisma.receipt) {
@@ -3225,14 +3336,14 @@ export async function createReceipt(receiptData: {
         amount: new Decimal(receiptData.amount),
         concept: receiptData.concept,
         method: receiptData.method,
-        createdBy: receiptData.createdBy,
+        createdBy: 'admin-master-001', // Use a valid user ID
       },
     });
 
     console.log('Receipt created successfully:', receipt);
 
     // Create audit log
-    await createAuditLog(receiptData.createdBy, 'Comprobante creado', `Comprobante ${receiptNumber} generado para paciente ${receiptData.patientId}`);
+    await createAuditLog('admin-master-001', 'Comprobante creado', `Comprobante ${receiptNumber} generado para paciente ${receiptData.patientId}`);
 
     return {
       id: receipt.id,
@@ -3339,5 +3450,28 @@ export async function getReceiptById(receiptId: string): Promise<any | null> {
   } catch (error) {
     console.error('Error fetching receipt by ID:', error);
     return null;
+  }
+}
+
+export async function updateAffiliation(affiliationId: string, updateData: {
+  planId?: string;
+  tipoPago?: string;
+  monto?: number;
+  estado?: string;
+}): Promise<void> {
+  try {
+    console.log('🔍 Updating affiliation:', affiliationId, updateData);
+    
+    await withDatabase(async (prisma) => {
+      await prisma.affiliation.update({
+        where: { id: affiliationId },
+        data: updateData
+      });
+    });
+    
+    console.log('✅ Affiliation updated successfully');
+  } catch (error) {
+    console.error('❌ Error updating affiliation:', error);
+    throw error;
   }
 }

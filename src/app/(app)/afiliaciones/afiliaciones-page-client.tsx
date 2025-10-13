@@ -99,6 +99,7 @@ export function AfiliacionesPageClient({ initialAffiliations }: AfiliacionesPage
                                         <AffiliationActions
                                             affiliation={item}
                                             onDelete={() => handleRemoveAffiliation(item.id)}
+                                            onUpdate={handleRefreshAffiliations}
                                         />
                                     </TableCell>
                                 </TableRow>

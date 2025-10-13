@@ -1,13 +1,11 @@
 import { create } from 'zustand';
 import type { Company } from '@/lib/types';
 
-type CompanyWithPatientCount = Company & { patientCount: number };
-
 interface CompanyState {
-  companies: CompanyWithPatientCount[];
+  companies: Company[];
   isInitialized: boolean;
-  setCompanies: (companies: CompanyWithPatientCount[]) => void;
-  addCompany: (company: CompanyWithPatientCount) => void;
+  setCompanies: (companies: Company[]) => void;
+  addCompany: (company: Company) => void;
 }
 
 export const useCompanyStore = create<CompanyState>((set) => ({

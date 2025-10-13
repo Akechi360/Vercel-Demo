@@ -1,7 +1,7 @@
 // src/components/affiliations/affiliation-actions.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Affiliation } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,17 +26,31 @@ import withReactContent from 'sweetalert2-react-content';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { updateAffiliation } from '@/lib/actions';
 
 const MySwal = withReactContent(Swal);
 
 interface AffiliationActionsProps {
   affiliation: Affiliation;
   onDelete: () => void;
+  onUpdate?: () => void;
 }
 
-export default function AffiliationActions({ affiliation, onDelete }: AffiliationActionsProps) {
+export default function AffiliationActions({ affiliation, onDelete, onUpdate }: AffiliationActionsProps) {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState(affiliation.planId || 'basico');
+  const [selectedPaymentType, setSelectedPaymentType] = useState(affiliation.tipoPago || 'contado');
+  const [monto, setMonto] = useState(affiliation.monto || 0);
+  const [estado, setEstado] = useState(affiliation.estado);
+  
+  // Sincronizar el estado cuando la prop affiliation cambie
+  useEffect(() => {
+    setSelectedPlan(affiliation.planId || 'basico');
+    setSelectedPaymentType(affiliation.tipoPago || 'contado');
+    setMonto(affiliation.monto || 0);
+    setEstado(affiliation.estado);
+  }, [affiliation]);
 
   const handleDelete = () => {
     const isDarkMode = document.documentElement.classList.contains('dark');
@@ -64,6 +78,62 @@ export default function AffiliationActions({ affiliation, onDelete }: Affiliatio
         });
       }
     });
+  };
+
+  const handleSaveChanges = async () => {
+    try {
+      const isDarkMode = document.documentElement.classList.contains('dark');
+      
+      // Mostrar loading
+      MySwal.fire({
+        title: 'Guardando cambios...',
+        text: 'Por favor espera',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          MySwal.showLoading();
+        },
+        background: isDarkMode ? '#1e293b' : '#ffffff',
+        color: isDarkMode ? '#f1f5f9' : '#0f172a',
+      });
+
+      // Actualizar la afiliación
+      await updateAffiliation(affiliation.id, {
+        planId: selectedPlan,
+        tipoPago: selectedPaymentType,
+        monto: monto,
+        estado: estado
+      });
+
+      // Cerrar modal y mostrar éxito
+      setIsEditOpen(false);
+      
+      // Refrescar la lista de afiliaciones para mostrar los cambios
+      if (onUpdate) {
+        onUpdate();
+      }
+      
+      MySwal.fire({
+        title: '¡Actualizado!',
+        text: 'La afiliación fue actualizada correctamente.',
+        icon: 'success',
+        background: isDarkMode ? '#1e293b' : '#ffffff',
+        color: isDarkMode ? '#f1f5f9' : '#0f172a',
+        confirmButtonColor: '#4f46e5',
+      });
+
+    } catch (error) {
+      console.error('Error updating affiliation:', error);
+      const isDarkMode = document.documentElement.classList.contains('dark');
+      MySwal.fire({
+        title: 'Error',
+        text: 'No se pudo actualizar la afiliación. Inténtalo de nuevo.',
+        icon: 'error',
+        background: isDarkMode ? '#1e293b' : '#ffffff',
+        color: isDarkMode ? '#f1f5f9' : '#0f172a',
+        confirmButtonColor: '#ef4444',
+      });
+    }
   };
 
   return (
@@ -209,23 +279,47 @@ export default function AffiliationActions({ affiliation, onDelete }: Affiliatio
               <Label htmlFor="plan" className="text-right">
                 Plan
               </Label>
-              <Input id="plan" defaultValue={
-                affiliation.planId === 'basico' ? 'Tarjeta Saludable' : 
-                affiliation.planId === 'premium' ? 'F. Espíritu Santo' : 
-                affiliation.planId || 'N/A'
-              } className="col-span-3" disabled />
+              <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Seleccione un plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="basico">Plan Básico</SelectItem>
+                  <SelectItem value="premium">Plan Premium</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="monto" className="text-right">
                 Monto
               </Label>
-              <Input id="monto" type="number" defaultValue={affiliation.monto || 0} className="col-span-3" />
+              <Input 
+                id="monto" 
+                type="number" 
+                value={monto} 
+                onChange={(e) => setMonto(Number(e.target.value))}
+                className="col-span-3" 
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="tipoPago" className="text-right">
+                Tipo de Pago
+              </Label>
+              <Select value={selectedPaymentType} onValueChange={setSelectedPaymentType}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Seleccione tipo de pago" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="contado">Contado</SelectItem>
+                  <SelectItem value="credito">Crédito</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="status" className="text-right">
                 Estado
               </Label>
-               <Select defaultValue={affiliation.estado}>
+               <Select value={estado} onValueChange={setEstado}>
                 <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Seleccione un estado" />
                 </SelectTrigger>
@@ -244,7 +338,7 @@ export default function AffiliationActions({ affiliation, onDelete }: Affiliatio
             <Button variant="outline" onClick={() => setIsEditOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={() => setIsEditOpen(false)}>Guardar Cambios</Button>
+            <Button onClick={handleSaveChanges}>Guardar Cambios</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

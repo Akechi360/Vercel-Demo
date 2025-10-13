@@ -107,7 +107,7 @@ export async function PATCH(request: NextRequest) {
       id: updatedUser.id,
       role: updatedUser.role,
       status: updatedUser.status,
-      patientId: updatedUser.patientId,
+      patientId: updatedUser.userId,
     };
     
     console.log('✅ Returning updated user status:', response);

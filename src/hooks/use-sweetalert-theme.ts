@@ -87,7 +87,7 @@ export function getSweetAlertConfig(theme: SweetAlertTheme) {
       if (popup) {
         popup.style.backgroundColor = theme.popup;
         popup.style.color = theme.content;
-        popup.style.border = `1px solid ${theme.border || theme.content}`;
+        popup.style.border = `1px solid ${theme.content}`;
       }
 
       const title = document.querySelector('.swal2-title') as HTMLElement;

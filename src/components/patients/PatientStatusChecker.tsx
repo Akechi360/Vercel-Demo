@@ -16,7 +16,7 @@ export async function PatientStatusChecker({ userId, children }: PatientStatusCh
     }
 
     // Check if user is a patient with restrictions
-    const isRestricted = user.role === 'patient' && (user.status === 'INACTIVE' || !user.patientId);
+    const isRestricted = user.role === 'patient' && (user.status === 'INACTIVE' || !user.userId);
     
     if (isRestricted) {
       // Import and render RestrictedNotice

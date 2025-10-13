@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       status: 'INACTIVE', // Usuarios requieren aprobación del administrador
       phone: null,
       lastLogin: null,
-      patientId: null,
+      userId: `U${Date.now().toString().slice(-6)}`,
       avatarUrl: null,
     });
     

@@ -245,7 +245,7 @@ export default function UsersManagementPage() {
         console.log('🔄 Updated user ID:', updatedUser.id);
         console.log('🔄 Updated user status:', updatedUser.status);
         console.log('🔄 Updated user role:', updatedUser.role);
-        console.log('🔄 Updated user patientId:', updatedUser.patientId);
+        console.log('🔄 Updated user userId:', updatedUser.userId);
         
         try {
           console.log('📞 Calling syncUserData function...');
@@ -329,7 +329,7 @@ export default function UsersManagementPage() {
         status: 'ACTIVE',
         phone: null,
         lastLogin: null,
-        patientId: null,
+        userId: `U${Date.now().toString().slice(-6)}`,
         avatarUrl: null // Se usará el valor por defecto de Prisma
       });
       

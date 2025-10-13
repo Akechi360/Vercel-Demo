@@ -105,7 +105,7 @@ export function AddAppointmentForm({ onFormSubmit }: AddAppointmentFormProps) {
                     </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                    {doctors.map(d => <SelectItem key={d.id} value={d.id}>{d.nombre} {d.apellido}</SelectItem>)}
+                    {doctors.map(d => <SelectItem key={d.id} value={d.id}>{d.nombre}</SelectItem>)}
                 </SelectContent>
                 </Select>
                 <FormMessage />

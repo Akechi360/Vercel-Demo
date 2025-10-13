@@ -115,10 +115,10 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
       }
     };
 
-    window.addEventListener('patientDeleted', handlePatientDeleted as EventListener);
+    window.addEventListener('patientDeleted', handlePatientDeleted as unknown as EventListener);
     
     return () => {
-      window.removeEventListener('patientDeleted', handlePatientDeleted as EventListener);
+      window.removeEventListener('patientDeleted', handlePatientDeleted as unknown as EventListener);
     };
   }, []);
 

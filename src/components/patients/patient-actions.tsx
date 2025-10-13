@@ -61,7 +61,7 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
       name: patient.name,
       age: patient.age,
       gender: patient.gender,
-      bloodType: patient.bloodType,
+      bloodType: patient.bloodType as 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-',
       phone: patient.contact.phone,
       email: patient.contact.email,
       companyId: patient.companyId || '',

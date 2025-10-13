@@ -151,7 +151,19 @@ export interface Consultation {
 }
 
 import { User as PrismaUser } from "@prisma/client"
-export type User = PrismaUser
+
+// Extender el tipo User de Prisma para incluir patientId como alias de userId
+export type User = PrismaUser & {
+  patientId?: string; // Alias para userId cuando se usa como paciente
+}
+
+// Helper function para mapear userId a patientId
+export function mapUserToPatient(user: PrismaUser): User {
+  return {
+    ...user,
+    patientId: user.userId
+  };
+}
 
 export interface IpssScore {
   id: string;

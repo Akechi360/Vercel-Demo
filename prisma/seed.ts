@@ -13,6 +13,7 @@ async function main() {
     where: { email: 'master@urovital.com' },
     update: {},
     create: {
+      userId: 'admin-master-001',
       email: 'master@urovital.com',
       name: 'Master Administrator',
       password: hashedPassword,

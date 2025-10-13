@@ -310,7 +310,25 @@ export async function updatePatient(patientId: string, patientData: {
       }
 
       if (!existingUser.patientInfo) {
-        throw new Error(`Información de paciente no encontrada para el usuario ${patientId}`);
+        console.log('⚠️ PatientInfo not found, creating new patient info...');
+        
+        // Create patient info if it doesn't exist
+        const newPatientInfo = await prisma.patientInfo.create({
+          data: {
+            userId: patientId,
+            cedula: `V-${Date.now().toString().slice(-8)}`, // Generate temporary cedula based on timestamp
+            fechaNacimiento: new Date(2000, 0, 1), // Default birth date
+            telefono: patientData.phone || null,
+            direccion: null,
+            bloodType: patientData.bloodType,
+            gender: patientData.gender,
+          }
+        });
+        
+        console.log('✅ Created new patient info:', newPatientInfo.id);
+        
+        // Update the existingUser object to include the new patientInfo
+        existingUser.patientInfo = newPatientInfo;
       }
 
       console.log('✅ Patient exists:', {
@@ -1341,7 +1359,7 @@ export async function getPayments(): Promise<Payment[]> {
       return await prisma.payment.findMany({
         include: {
           patient: true,
-          user: true,
+          creator: true,
         },
         orderBy: { fecha: 'desc' },
       });
@@ -1349,7 +1367,7 @@ export async function getPayments(): Promise<Payment[]> {
 
     return payments.map((payment: any) => ({
       id: payment.id,
-      patientId: payment.paciente.id,
+      patientId: payment.patient.userId,
       doctorId: undefined,
       paymentTypeId: 'default-type',
       paymentMethodId: 'default-method',

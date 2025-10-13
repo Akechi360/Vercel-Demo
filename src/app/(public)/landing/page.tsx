@@ -363,7 +363,7 @@ export default function LandingPage() {
               className="relative overflow-hidden order-2 lg:order-1"
             >
               <Image 
-                src="/images/landing/appointments.jpg" 
+                src="/images/landing/appointments1.jpg" 
                 width={658} 
                 height={488} 
                 alt="Proceso de atención médica" 
@@ -626,13 +626,13 @@ export default function LandingPage() {
                 variants={fadeIn()} 
                 className="group"
               >
-                <div className="bg-white dark:bg-card rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-105 flex items-center justify-center">
+                <div className="bg-white dark:bg-card rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-105 flex justify-center items-center h-[100px]">
                   <Image
                     src={partner.logo}
                     alt={partner.name}
                     width={120}
                     height={60}
-                    className="max-h-12 w-auto opacity-70 group-hover:opacity-100 transition-opacity duration-300"
+                    className={`max-h-[48px] w-auto object-contain opacity-70 group-hover:opacity-100 transition-opacity duration-300 ${partner.name === "PayPal" ? "transform scale-[1.95]" : ""}`}
                   />
                 </div>
               </motion.div>
@@ -670,12 +670,12 @@ export default function LandingPage() {
               initial={{opacity: 0, scale: 0.5, y: 50}}
               animate={{opacity: 1, scale: 1, y: 0}}
               transition={{duration: 0.5, delay: 0.5, ease: "easeOut"}}
-              className="mt-12 mx-auto bg-white/10 backdrop-blur-sm rounded-2xl p-6 flex items-center gap-4 max-w-md mx-auto"
+              className="mt-12 mx-auto bg-white/10 backdrop-blur-sm rounded-2xl p-4 flex items-center gap-3 max-w-80 mx-auto"
             >
               <div className="p-3 bg-white/20 rounded-xl">
                 <ShieldCheck className="w-6 h-6 text-white"/>
               </div>
-              <div className="text-left">
+              <div className="text-center">
                 <p className="font-semibold text-lg">Cuidado de Confianza</p>
                 <p className="text-sm opacity-80">Especialistas Certificados</p>
               </div>

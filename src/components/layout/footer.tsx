@@ -1,15 +1,13 @@
 
-import { Stethoscope, Twitter, Facebook, Linkedin, Youtube, Send, MapPin, Phone, Mail } from "lucide-react";
+import { Stethoscope, Instagram, Send, MapPin, Phone, Mail } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 
 const socialLinks = [
-    { name: 'Facebook', icon: Facebook, href: '#' },
-    { name: 'Twitter', icon: Twitter, href: '#' },
-    { name: 'LinkedIn', icon: Linkedin, href: '#' },
-    { name: 'YouTube', icon: Youtube, href: '#' },
+    { name: 'Instagram', icon: Instagram, href: 'https://www.instagram.com/urovitale/' },
+    { name: 'TikTok', icon: Send, href: '#' },
 ];
 
 const usefulLinks = [

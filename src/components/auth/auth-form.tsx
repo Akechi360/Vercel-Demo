@@ -202,7 +202,7 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
   }
 
   return (
-    <div className="w-full max-w-md overflow-hidden rounded-2xl border border-urovital-blue/20 bg-white/95 dark:bg-[#131c36]/95 shadow-2xl shadow-urovital-blue/20 backdrop-blur-lg">
+    <div className="w-full max-w-md overflow-hidden rounded-2xl border-2 border-urovital-blue/30 bg-white/98 dark:bg-[#131c36]/98 shadow-2xl shadow-urovital-blue/25 backdrop-blur-lg ring-2 ring-urovital-blue/10">
       <div className="p-8">
         <div className="mb-6 text-center">
             <div className="mx-auto mb-4 flex justify-center">
@@ -264,7 +264,7 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
                         <div className="flex items-center justify-between">
                             <FormLabel>Contraseña</FormLabel>
                             {mode === 'login' && (
-                                <button type="button" onClick={() => handleModeChange('forgot-password')} className="text-sm font-medium text-primary hover:underline">
+                                <button type="button" onClick={() => handleModeChange('forgot-password')} className="text-sm font-medium text-urovital-blue hover:text-urovital-blue/80 hover:underline transition-colors">
                                     ¿Olvidaste?
                                 </button>
                             )}
@@ -298,7 +298,11 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
                 )}
               </div>
 
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button 
+              type="submit" 
+              className="w-full bg-urovital-blue hover:bg-urovital-blue/90 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold py-3" 
+              disabled={isSubmitting}
+            >
               {isSubmitting ? 'Procesando...' : getButtonText()}
               <LogIn className="ml-2 h-4 w-4" />
             </Button>
@@ -308,7 +312,7 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
           {mode === 'login' && (
             <p className="text-muted-foreground">
               ¿No tienes una cuenta?{' '}
-              <button onClick={() => handleModeChange('register')} className="font-medium text-primary hover:underline">
+              <button onClick={() => handleModeChange('register')} className="font-medium text-urovital-blue hover:text-urovital-blue/80 hover:underline transition-colors">
                 Regístrate
               </button>
             </p>
@@ -316,7 +320,7 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
           {mode === 'register' && (
             <p className="text-muted-foreground">
               ¿Ya tienes una cuenta?{' '}
-              <button onClick={() => handleModeChange('login')} className="font-medium text-primary hover:underline">
+              <button onClick={() => handleModeChange('login')} className="font-medium text-urovital-blue hover:text-urovital-blue/80 hover:underline transition-colors">
                 Inicia Sesión
               </button>
             </p>
@@ -324,7 +328,7 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
            {mode === 'forgot-password' && (
             <p className="text-muted-foreground">
               ¿Recuerdas tu contraseña?{' '}
-              <button onClick={() => handleModeChange('login')} className="font-medium text-primary hover:underline">
+              <button onClick={() => handleModeChange('login')} className="font-medium text-urovital-blue hover:text-urovital-blue/80 hover:underline transition-colors">
                 Inicia Sesión
               </button>
             </p>

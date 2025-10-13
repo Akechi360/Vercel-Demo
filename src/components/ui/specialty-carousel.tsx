@@ -1,16 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useState } from 'react';
 
 interface SpecialtyCard {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   description: string;
+  color?: string;
 }
 
 interface SpecialtyCarouselProps {
@@ -19,148 +20,130 @@ interface SpecialtyCarouselProps {
 
 export function SpecialtyCarousel({ cards }: SpecialtyCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [cardsPerView, setCardsPerView] = useState(1);
-
-  // Responsive cards per view
-  useEffect(() => {
-    const updateCardsPerView = () => {
-      if (window.innerWidth >= 1024) {
-        setCardsPerView(4); // lg: 4 cards
-      } else if (window.innerWidth >= 768) {
-        setCardsPerView(3); // md: 3 cards
-      } else if (window.innerWidth >= 640) {
-        setCardsPerView(2); // sm: 2 cards
-      } else {
-        setCardsPerView(1); // mobile: 1 card
-      }
-    };
-
-    updateCardsPerView();
-    window.addEventListener('resize', updateCardsPerView);
-    return () => window.removeEventListener('resize', updateCardsPerView);
-  }, []);
-
-  const maxIndex = Math.max(0, cards.length - cardsPerView);
-
-  const goToSlide = (index: number) => {
-    const newIndex = Math.max(0, Math.min(maxIndex, index));
-    setCurrentIndex(newIndex);
-  };
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const nextSlide = () => {
-    if (currentIndex < maxIndex) {
-      goToSlide(currentIndex + 1);
-    }
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setCurrentIndex((prev) => (prev + 1) % cards.length);
+    setTimeout(() => setIsAnimating(false), 300);
   };
 
   const prevSlide = () => {
-    if (currentIndex > 0) {
-      goToSlide(currentIndex - 1);
-    }
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setCurrentIndex((prev) => (prev - 1 + cards.length) % cards.length);
+    setTimeout(() => setIsAnimating(false), 300);
   };
 
-  // Get current slide cards
-  const getCurrentSlideCards = () => {
-    return cards.slice(currentIndex, currentIndex + cardsPerView);
+  const goToSlide = (index: number) => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setCurrentIndex(index);
+    setTimeout(() => setIsAnimating(false), 300);
   };
 
   return (
-    <div className="relative w-full">
-      {/* Navigation Arrows */}
-      <div className="flex justify-between items-center mb-6">
-        <button
-          onClick={prevSlide}
-          disabled={currentIndex === 0}
-          className={cn(
-            "p-2 rounded-full transition-all duration-300 hover:bg-primary/10",
-            currentIndex === 0 
-              ? "opacity-50 cursor-not-allowed" 
-              : "hover:scale-110"
-          )}
-        >
-          <ChevronLeft className="w-6 h-6 text-primary" />
-        </button>
-        
-        <div className="flex gap-2">
-          {Array.from({ length: maxIndex + 1 }).map((_, index) => (
-            <button
+    <div className="relative">
+      {/* Desktop Grid */}
+      <div className="hidden lg:grid grid-cols-2 xl:grid-cols-4 gap-8">
+        {cards.map((card, index) => {
+          const Icon = card.icon;
+          return (
+            <motion.div
               key={index}
-              onClick={() => goToSlide(index)}
-              className={cn(
-                "w-2 h-2 rounded-full transition-all duration-300",
-                index === currentIndex
-                  ? "bg-primary w-8"
-                  : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
-              )}
-            />
-          ))}
-        </div>
-
-        <button
-          onClick={nextSlide}
-          disabled={currentIndex >= maxIndex}
-          className={cn(
-            "p-2 rounded-full transition-all duration-300 hover:bg-primary/10",
-            currentIndex >= maxIndex 
-              ? "opacity-50 cursor-not-allowed" 
-              : "hover:scale-110"
-          )}
-        >
-          <ChevronRight className="w-6 h-6 text-primary" />
-        </button>
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: index * 0.1 }}
+              className="group"
+            >
+              <Card className="h-full text-center p-6 hover:shadow-xl transition-all duration-300 border-0 bg-gradient-to-br from-white to-urovital-blue-light/5 dark:from-card dark:to-urovital-blue/5 group-hover:scale-105">
+                <div className={cn(
+                  "inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6",
+                  card.color || "bg-urovital-blue/10 text-urovital-blue",
+                  "group-hover:scale-110 transition-transform duration-300"
+                )}>
+                  <Icon className="w-8 h-8" />
+                </div>
+                <h3 className="font-bold text-xl mb-4">{card.title}</h3>
+                <p className="text-muted-foreground">{card.description}</p>
+              </Card>
+            </motion.div>
+          );
+        })}
       </div>
 
-      {/* Slides Container */}
-      <div className="relative">
-        <AnimatePresence mode="wait">
+      {/* Mobile/Tablet Carousel */}
+      <div className="lg:hidden">
+        <div className="relative overflow-hidden rounded-2xl">
           <motion.div
-            key={currentIndex}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ 
-              type: "spring", 
-              stiffness: 400, 
-              damping: 25,
-              duration: 0.4 
-            }}
-            className="grid gap-8"
-            style={{
-              gridTemplateColumns: `repeat(${cardsPerView}, 1fr)`
-            }}
+            className="flex"
+            animate={{ x: `-${currentIndex * 100}%` }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
           >
-            {getCurrentSlideCards().map((card, index) => {
+            {cards.map((card, index) => {
               const Icon = card.icon;
               return (
-                <motion.div
-                  key={`${currentIndex}-${card.title}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ 
-                    delay: index * 0.1,
-                    duration: 0.4
-                  }}
-                  whileHover={{ 
-                    scale: 1.05,
-                    transition: { duration: 0.2 }
-                  }}
-                >
-                  <Card className="text-center p-6 h-full border-b-4 border-transparent transition-all duration-300 hover:shadow-[0_0_20px_rgba(37,99,235,0.2)] dark:hover:shadow-[0_0_30px_rgba(37,99,235,0.3)]">
-                    <div className="inline-block p-4 bg-primary/10 rounded-full mb-4">
-                      <Icon className="w-8 h-8 text-primary" />
+                <div key={index} className="w-full flex-shrink-0 px-4">
+                  <Card className="h-full text-center p-6 border-0 bg-gradient-to-br from-white to-urovital-blue-light/5 dark:from-card dark:to-urovital-blue/5">
+                    <div className={cn(
+                      "inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6",
+                      card.color || "bg-urovital-blue/10 text-urovital-blue"
+                    )}>
+                      <Icon className="w-8 h-8" />
                     </div>
-                    <h3 className="font-bold text-lg mb-2">{card.title}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {card.description}
-                    </p>
+                    <h3 className="font-bold text-xl mb-4">{card.title}</h3>
+                    <p className="text-muted-foreground">{card.description}</p>
                   </Card>
-                </motion.div>
+                </div>
               );
             })}
           </motion.div>
-        </AnimatePresence>
-      </div>
+        </div>
 
+        {/* Navigation Controls */}
+        <div className="flex items-center justify-between mt-6">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={prevSlide}
+            disabled={isAnimating}
+            className="border-urovital-blue text-urovital-blue hover:bg-urovital-blue hover:text-white"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span className="sr-only">Anterior</span>
+          </Button>
+
+          {/* Dots Indicator */}
+          <div className="flex items-center gap-2">
+            {cards.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => goToSlide(index)}
+                className={cn(
+                  "w-3 h-3 rounded-full transition-all duration-200",
+                  index === currentIndex
+                    ? "bg-urovital-blue scale-125"
+                    : "bg-muted hover:bg-urovital-blue/50"
+                )}
+                aria-label={`Ir a slide ${index + 1}`}
+              />
+            ))}
+          </div>
+
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={nextSlide}
+            disabled={isAnimating}
+            className="border-urovital-blue text-urovital-blue hover:bg-urovital-blue hover:text-white"
+          >
+            <ChevronRight className="w-4 h-4" />
+            <span className="sr-only">Siguiente</span>
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

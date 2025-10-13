@@ -28,7 +28,6 @@ export default {
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
-          landing: 'hsl(var(--primary-landing))',
         },
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
@@ -53,6 +52,13 @@ export default {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
+        // UroVital Brand Colors
+        urovital: {
+          blue: 'hsl(var(--urovital-blue))',
+          'blue-light': 'hsl(var(--urovital-blue-light))',
+          red: 'hsl(var(--urovital-red))',
+          gray: 'hsl(var(--urovital-gray))',
+        },
         chart: {
           '1': 'hsl(var(--chart-1))',
           '2': 'hsl(var(--chart-2))',

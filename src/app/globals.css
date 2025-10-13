@@ -4,57 +4,63 @@
 
 @layer base {
   :root {
-    /* UroVital Light Theme */
-    --background: 220 40% 98%;
+    /* UroVital Light Theme - Colores Institucionales */
+    --background: 0 0% 100%; /* Blanco puro */
     --foreground: 222 84% 4.9%;
-    --card: 220 30% 96%;
+    --card: 0 0% 100%;
     --card-foreground: 222 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 84% 4.9%;
     
-    --primary: 222 83% 53%; /* UroVital Blue: ~#2563eb */
+    --primary: 210 100% 50%; /* UroVital Blue: #0384fc */
     --primary-foreground: 0 0% 100%;
     
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 222 84% 4.9%;
+    --secondary: 200 100% 95%; /* Azul claro institucional */
+    --secondary-foreground: 210 100% 50%;
 
     --muted: 220 14% 93%;
     --muted-foreground: 220 9% 46%;
 
-    --accent: 222 83% 53%; /* UroVital Blue: ~#2563eb */
-    --accent-foreground: 0 0% 98%;
+    --accent: 210 100% 50%; /* UroVital Blue: #0384fc */
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 100% 50%; /* UroVital Red: #fc1818 */
+    --destructive-foreground: 0 0% 100%;
 
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 222 83% 53%; /* Ring color from primary */
+    --ring: 210 100% 50%; /* Ring color from primary */
 
     --radius: 1rem;
+
+    /* UroVital Brand Colors */
+    --urovital-blue: 210 100% 50%; /* #0384fc */
+    --urovital-blue-light: 200 100% 95%; /* #36b0f2 */
+    --urovital-red: 0 100% 50%; /* #fc1818 */
+    --urovital-gray: 220 14% 93%;
 
     /* Sidebar (Light) */
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 222 84% 4.9%;
-    --sidebar-primary: 222 83% 53%;
+    --sidebar-primary: 210 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 96%;
-    --sidebar-accent-foreground: 222 84% 4.9%;
+    --sidebar-accent: 200 100% 95%;
+    --sidebar-accent-foreground: 210 100% 50%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 222 83% 53%;
+    --sidebar-ring: 210 100% 50%;
   }
 
   .dark {
-    /* UroVital Dark Theme */
-    --background: 220 13% 11%;
+    /* UroVital Dark Theme - Colores Institucionales */
+    --background: 220 13% 11%; /* Azul oscuro institucional */
     --foreground: 210 20% 98%;
     --card: 220 13% 15%;
     --card-foreground: 210 20% 98%;
     --popover: 220 13% 11%;
     --popover-foreground: 210 20% 98%;
 
-    --primary: 222 78% 61%; /* UroVital Blue (Dark) */
-    --primary-foreground: 210 20% 98%;
+    --primary: 210 100% 50%; /* UroVital Blue: #0384fc */
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 215 14% 24%;
     --secondary-foreground: 210 20% 98%;
@@ -62,25 +68,31 @@
     --muted: 215 14% 24%;
     --muted-foreground: 215 10% 65%;
 
-    --accent: 222 78% 61%; /* UroVital Blue (Dark) */
-    --accent-foreground: 210 20% 98%;
+    --accent: 210 100% 50%; /* UroVital Blue: #0384fc */
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 63% 51%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 100% 50%; /* UroVital Red: #fc1818 */
+    --destructive-foreground: 0 0% 100%;
 
     --border: 215 14% 24%;
     --input: 215 14% 24%;
-    --ring: 222 78% 61%; /* Ring color from primary (Dark) */
+    --ring: 210 100% 50%; /* Ring color from primary */
+
+    /* UroVital Brand Colors (Dark) */
+    --urovital-blue: 210 100% 50%; /* #0384fc */
+    --urovital-blue-light: 200 100% 95%; /* #36b0f2 */
+    --urovital-red: 0 100% 50%; /* #fc1818 */
+    --urovital-gray: 220 14% 93%;
 
     /* Sidebar (Dark) */
     --sidebar-background: 220 13% 15%;
     --sidebar-foreground: 210 20% 98%;
-    --sidebar-primary: 222 78% 61%;
-    --sidebar-primary-foreground: 210 20% 98%;
+    --sidebar-primary: 210 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 215 14% 24%;
     --sidebar-accent-foreground: 210 20% 98%;
     --sidebar-border: 215 14% 24%;
-    --sidebar-ring: 222 78% 61%;
+    --sidebar-ring: 210 100% 50%;
   }
 }
 
@@ -212,4 +224,59 @@
   background-color: hsl(var(--muted)) !important;
   border-color: hsl(var(--muted)) !important;
   color: hsl(var(--muted-foreground)) !important;
+}
+
+/* UroVital Landing Page Enhancements */
+.bg-grid-pattern {
+  background-image: 
+    linear-gradient(rgba(3, 132, 252, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(3, 132, 252, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Smooth scrolling for better UX */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Focus styles for accessibility */
+.focus-visible:focus-visible {
+  outline: 2px solid hsl(var(--urovital-blue));
+  outline-offset: 2px;
+}
+
+/* Custom scrollbar for webkit browsers */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--urovital-blue));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--urovital-blue) / 0.8);
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -202,7 +202,7 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
   }
 
   return (
-    <div className="w-full max-w-md overflow-hidden rounded-2xl border border-border/20 bg-card/50 shadow-2xl shadow-primary/10 backdrop-blur-lg">
+    <div className="w-full max-w-md overflow-hidden rounded-2xl border border-urovital-blue/20 bg-white/95 dark:bg-[#131c36]/95 shadow-2xl shadow-urovital-blue/20 backdrop-blur-lg">
       <div className="p-8">
         <div className="mb-6 text-center">
             <div className="mx-auto mb-4 flex justify-center">

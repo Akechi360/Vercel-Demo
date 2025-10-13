@@ -295,23 +295,29 @@ export async function updatePatient(patientId: string, patientData: {
       throw new Error('Tipo de sangre inválido. Debe ser: A+, A-, B+, B-, AB+, AB-, O+ u O-');
     }
     
-    const updatedPatient = await withDatabase(async (prisma) => {
+    const prisma = getPrismaClient();
+    const updatedPatient = await (async () => {
       console.log('🔍 Checking if patient exists...');
       
-      // First, check if patient exists
-      const existingPatient = await prisma.patient.findUnique({
-        where: { id: patientId }
+      // Find user by userId (patientId is now userId)
+      const existingUser = await prisma.user.findUnique({
+        where: { userId: patientId },
+        include: { patientInfo: true }
       });
 
-      if (!existingPatient) {
+      if (!existingUser) {
         throw new Error(`Paciente con ID ${patientId} no encontrado en la base de datos`);
       }
 
+      if (!existingUser.patientInfo) {
+        throw new Error(`Información de paciente no encontrada para el usuario ${patientId}`);
+      }
+
       console.log('✅ Patient exists:', {
-        id: existingPatient.id,
-        nombre: existingPatient.nombre,
-        apellido: existingPatient.apellido,
-        cedula: existingPatient.cedula
+        userId: existingUser.userId,
+        name: existingUser.name,
+        email: existingUser.email,
+        patientInfoId: existingUser.patientInfo.id
       });
 
       // Parse name to get first and last name
@@ -320,129 +326,67 @@ export async function updatePatient(patientId: string, patientData: {
       // Calculate birth date from age
       const fechaNacimiento = new Date(Date.now() - patientData.age * 365.25 * 24 * 60 * 60 * 1000);
       
-      // Prepare update data with ONLY the fields that exist in the Patient model
-      const updateData: any = {
-        nombre: (nombre || patientData.name).trim(),
-        apellido: (apellido || '').trim(),
-        fechaNacimiento,
-      };
-
-      // Add optional fields only if they have valid values
-      if (patientData.phone && typeof patientData.phone === 'string' && patientData.phone.trim() !== '') {
-        updateData.telefono = patientData.phone.trim();
-      }
-      
-      if (patientData.email && typeof patientData.email === 'string' && patientData.email.trim() !== '') {
-        updateData.email = patientData.email.trim();
-      }
-      
-      // Add bloodType and gender fields if they exist in the database
-      // These fields will be added by the migration
-      // TODO: Uncomment these lines once the database migration is applied
-      // if (patientData.bloodType && typeof patientData.bloodType === 'string' && patientData.bloodType.trim() !== '') {
-      //   updateData.bloodType = patientData.bloodType.trim();
-      // }
-      
-      // if (patientData.gender && typeof patientData.gender === 'string' && patientData.gender.trim() !== '') {
-      //   updateData.gender = patientData.gender.trim();
-      // }
-
-      console.log('📝 PRISMA UPDATE DATA (validated):', JSON.stringify(updateData, null, 2));
-      console.log('📝 Data types:', {
-        nombre: typeof updateData.nombre,
-        apellido: typeof updateData.apellido,
-        fechaNacimiento: updateData.fechaNacimiento instanceof Date,
-        telefono: updateData.telefono ? typeof updateData.telefono : 'undefined',
-        email: updateData.email ? typeof updateData.email : 'undefined',
-        bloodType: updateData.bloodType ? typeof updateData.bloodType : 'undefined',
-        gender: updateData.gender ? typeof updateData.gender : 'undefined'
-      });
-      
-      // Update patient record
-      console.log('🔄 Executing Prisma update...');
-      const patient = await prisma.patient.update({
-        where: { id: patientId },
-        data: updateData,
-      });
-
-      console.log('✅ Patient record updated successfully:', {
-        id: patient.id,
-        nombre: patient.nombre,
-        apellido: patient.apellido,
-        telefono: patient.telefono,
-        email: patient.email,
-        bloodType: patient.bloodType,
-        gender: patient.gender
-      });
-
-      // Update associated user if exists
-      const user = await prisma.user.findFirst({
-        where: { patientId: patientId }
-      });
-
-      if (user) {
-        console.log('🔄 Updating associated user...');
-        const userUpdateData: any = {
+      // Update user record
+      console.log('🔄 Updating user record...');
+      const updatedUser = await prisma.user.update({
+        where: { userId: patientId },
+        data: {
           name: patientData.name.trim(),
-        };
-
-        // Only update email and phone if they have valid values
-        if (patientData.email && typeof patientData.email === 'string' && patientData.email.trim() !== '') {
-          userUpdateData.email = patientData.email.trim();
+          email: patientData.email.trim(),
+          phone: patientData.phone.trim(),
         }
-        
-        if (patientData.phone && typeof patientData.phone === 'string' && patientData.phone.trim() !== '') {
-          userUpdateData.phone = patientData.phone.trim();
+      });
+
+      // Update patient info record
+      console.log('🔄 Updating patient info record...');
+      const updatedPatientInfo = await prisma.patientInfo.update({
+        where: { userId: patientId },
+        data: {
+          fechaNacimiento,
+          telefono: patientData.phone.trim(),
+          direccion: '', // Default empty address
+          bloodType: patientData.bloodType,
+          gender: patientData.gender,
         }
+      });
 
-        console.log('📝 USER UPDATE DATA:', JSON.stringify(userUpdateData, null, 2));
+      console.log('✅ Patient records updated successfully:', {
+        userId: updatedUser.userId,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        patientInfo: {
+          cedula: updatedPatientInfo.cedula,
+          fechaNacimiento: updatedPatientInfo.fechaNacimiento,
+          telefono: updatedPatientInfo.telefono,
+          bloodType: updatedPatientInfo.bloodType,
+          gender: updatedPatientInfo.gender
+        }
+      });
 
-        await prisma.user.update({
-          where: { id: user.id },
-          data: userUpdateData
-        });
-        console.log(`✅ Updated associated user ${user.id}`);
-      }
+      // Return patient in the expected format
+      return {
+        id: updatedUser.userId,
+        name: updatedUser.name,
+        cedula: updatedPatientInfo.cedula,
+        age: patientData.age,
+        gender: patientData.gender,
+        bloodType: patientData.bloodType,
+        status: 'Activo' as const,
+        lastVisit: updatedUser.createdAt.toISOString(),
+        contact: {
+          phone: updatedUser.phone || '',
+          email: updatedUser.email || '',
+        },
+        companyId: patientData.companyId,
+        companyName: undefined,
+        createdAt: updatedUser.createdAt,
+        updatedAt: updatedUser.createdAt
+      };
+    })();
 
-      return patient;
-    });
-
-    // Get company information if companyId is provided
-    let companyName: string | undefined;
-    if (patientData.companyId && patientData.companyId !== 'none' && patientData.companyId.trim() !== '') {
-      try {
-        console.log('🔄 Fetching company info for ID:', patientData.companyId);
-        const company = await getCompanyById(patientData.companyId);
-        companyName = company?.name;
-        console.log('✅ Company found:', companyName);
-      } catch (error) {
-        console.warn('⚠️ Could not fetch company info:', error);
-        // Don't throw error for company lookup failure
-      }
-    }
-
-    // Calculate age for response
-    const age = Math.floor((Date.now() - updatedPatient.fechaNacimiento.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-
-    const result: Patient = {
-      id: updatedPatient.id,
-      name: `${updatedPatient.nombre} ${updatedPatient.apellido}`,
-      cedula: updatedPatient.cedula,
-      age,
-      gender: patientData.gender, // Use the input data since DB field might not exist yet
-      bloodType: patientData.bloodType, // Use the input data since DB field might not exist yet
-      status: 'Activo' as const,
-      lastVisit: updatedPatient.updatedAt.toISOString(),
-      contact: {
-        phone: updatedPatient.telefono || '',
-        email: updatedPatient.email || '',
-      },
-      companyId: patientData.companyId,
-      companyName: companyName,
-    };
-
-    console.log('✅ Patient updated successfully - FINAL RESULT:', JSON.stringify(result, null, 2));
-    return result;
+    console.log('✅ Patient updated successfully - FINAL RESULT:', JSON.stringify(updatedPatient, null, 2));
+    return updatedPatient;
   } catch (error) {
     // Log the original error with full details for debugging
     console.error('❌ ERROR UPDATING PATIENT - FULL DETAILS:');
@@ -1972,13 +1916,8 @@ export async function ensureDoctorRecord(userId: string, userData: Partial<User>
     
     const doctorId = await withDatabase(async (prisma) => {
       // Check if doctor record already exists
-      const existingDoctor = await prisma.doctor.findFirst({
-        where: { 
-          OR: [
-            { email: userData.email },
-            { telefono: userData.phone }
-          ]
-        }
+      const existingDoctor = await prisma.doctorInfo.findUnique({
+        where: { userId: userId }
       });
       
       if (existingDoctor) {
@@ -1987,14 +1926,12 @@ export async function ensureDoctorRecord(userId: string, userData: Partial<User>
       }
       
       // Create new doctor record
-      const newDoctor = await prisma.doctor.create({
+      const newDoctor = await prisma.doctorInfo.create({
         data: {
-          nombre: userData.name?.split(' ')[0] || 'Dr.',
-          apellido: userData.name?.split(' ').slice(1).join(' ') || 'Usuario',
-          cedula: `V-${Date.now()}`, // Generate unique cedula
+          userId: userId,
           especialidad: 'Urología', // Default specialty
+          cedula: `V-${Date.now()}`, // Generate unique cedula
           telefono: userData.phone || '',
-          email: userData.email || '',
           direccion: '',
           area: 'Urología General',
           contacto: userData.name || 'Dr. Usuario'
@@ -2018,32 +1955,158 @@ export async function removeDoctorRecord(userId: string): Promise<void> {
     console.log('🔄 Removing doctor record for user:', userId);
     
     await withDatabase(async (prisma) => {
-      // Find doctor record by email or phone
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { email: true, phone: true }
+      // Find and delete doctor record
+      const doctor = await prisma.doctorInfo.findUnique({
+        where: { userId: userId }
       });
       
-      if (user) {
-        const doctor = await prisma.doctor.findFirst({
-          where: {
-            OR: [
-              { email: user.email },
-              { telefono: user.phone }
-            ]
-          }
+      if (doctor) {
+        await prisma.doctorInfo.delete({
+          where: { id: doctor.id }
         });
-        
-        if (doctor) {
-          await prisma.doctor.delete({
-            where: { id: doctor.id }
-          });
-          console.log('✅ Doctor record removed:', doctor.id);
-        }
+        console.log('✅ Doctor record removed:', doctor.id);
+      } else {
+        console.log('⚠️ No doctor record found to remove');
       }
     });
   } catch (error) {
     console.error('❌ Error removing doctor record:', error);
+  }
+}
+
+// Helper function to create promotora record when user role changes to "promotora"
+export async function ensurePromotoraRecord(userId: string, userData: Partial<User>): Promise<string | null> {
+  try {
+    console.log('🔄 Ensuring promotora record for user:', userId);
+    
+    const promotoraId = await withDatabase(async (prisma) => {
+      // Check if promotora record already exists
+      const existingPromotora = await prisma.promotoraInfo.findUnique({
+        where: { userId: userId }
+      });
+      
+      if (existingPromotora) {
+        console.log('✅ Promotora record already exists:', existingPromotora.id);
+        return existingPromotora.id;
+      }
+      
+      // Create new promotora record
+      const newPromotora = await prisma.promotoraInfo.create({
+        data: {
+          userId: userId,
+          cedula: `V-${Date.now()}`, // Generate unique cedula
+          telefono: userData.phone || '',
+          direccion: '',
+          areaAsignada: 'Zona General',
+          supervisor: 'Administrador',
+          fechaIngreso: new Date(),
+          salario: 800.00,
+          comision: 5.0,
+          estado: 'ACTIVA'
+        }
+      });
+      
+      console.log('✅ Promotora record created:', newPromotora.id);
+      return newPromotora.id;
+    });
+    
+    return promotoraId;
+  } catch (error) {
+    console.error('❌ Error ensuring promotora record:', error);
+    return null;
+  }
+}
+
+// Helper function to remove promotora record when user role changes from "promotora"
+export async function removePromotoraRecord(userId: string): Promise<void> {
+  try {
+    console.log('🔄 Removing promotora record for user:', userId);
+    
+    await withDatabase(async (prisma) => {
+      // Find and delete promotora record
+      const promotora = await prisma.promotoraInfo.findUnique({
+        where: { userId: userId }
+      });
+      
+      if (promotora) {
+        await prisma.promotoraInfo.delete({
+          where: { id: promotora.id }
+        });
+        console.log('✅ Promotora record removed:', promotora.id);
+      } else {
+        console.log('⚠️ No promotora record found to remove');
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error removing promotora record:', error);
+  }
+}
+
+// Helper function to create secretaria record when user role changes to "secretaria"
+export async function ensureSecretariaRecord(userId: string, userData: Partial<User>): Promise<string | null> {
+  try {
+    console.log('🔄 Ensuring secretaria record for user:', userId);
+    
+    const secretariaId = await withDatabase(async (prisma) => {
+      // Check if secretaria record already exists
+      const existingSecretaria = await prisma.secretariaInfo.findUnique({
+        where: { userId: userId }
+      });
+      
+      if (existingSecretaria) {
+        console.log('✅ Secretaria record already exists:', existingSecretaria.id);
+        return existingSecretaria.id;
+      }
+      
+      // Create new secretaria record
+      const newSecretaria = await prisma.secretariaInfo.create({
+        data: {
+          userId: userId,
+          cedula: `V-${Date.now()}`, // Generate unique cedula
+          telefono: userData.phone || '',
+          direccion: '',
+          turno: 'Mañana (8:00 AM - 4:00 PM)',
+          supervisor: 'Administrador',
+          fechaIngreso: new Date(),
+          salario: 1200.00,
+          especialidades: 'Atención al Cliente, Gestión de Citas',
+          estado: 'ACTIVA'
+        }
+      });
+      
+      console.log('✅ Secretaria record created:', newSecretaria.id);
+      return newSecretaria.id;
+    });
+    
+    return secretariaId;
+  } catch (error) {
+    console.error('❌ Error ensuring secretaria record:', error);
+    return null;
+  }
+}
+
+// Helper function to remove secretaria record when user role changes from "secretaria"
+export async function removeSecretariaRecord(userId: string): Promise<void> {
+  try {
+    console.log('🔄 Removing secretaria record for user:', userId);
+    
+    await withDatabase(async (prisma) => {
+      // Find and delete secretaria record
+      const secretaria = await prisma.secretariaInfo.findUnique({
+        where: { userId: userId }
+      });
+      
+      if (secretaria) {
+        await prisma.secretariaInfo.delete({
+          where: { id: secretaria.id }
+        });
+        console.log('✅ Secretaria record removed:', secretaria.id);
+      } else {
+        console.log('⚠️ No secretaria record found to remove');
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error removing secretaria record:', error);
   }
 }
 
@@ -2076,6 +2139,7 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
     if (data.role && currentUser && data.role !== currentUser.role) {
       console.log('🔄 Role changed from', currentUser.role, 'to', data.role);
       
+      // Handle changes TO specific roles
       if (data.role === 'Doctor') {
         // Create doctor record if changing TO doctor
         const doctorId = await ensureDoctorRecord(userId, {
@@ -2087,10 +2151,43 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
         if (doctorId) {
           console.log('✅ Doctor record created/verified for user:', userId);
         }
-      } else if (currentUser.role === 'Doctor' && data.role !== 'Doctor') {
+      } else if (data.role === 'promotora') {
+        // Create promotora record if changing TO promotora
+        const promotoraId = await ensurePromotoraRecord(userId, {
+          name: data.name || currentUser.name,
+          email: data.email || currentUser.email,
+          phone: data.phone || currentUser.phone
+        });
+        
+        if (promotoraId) {
+          console.log('✅ Promotora record created/verified for user:', userId);
+        }
+      } else if (data.role === 'secretaria') {
+        // Create secretaria record if changing TO secretaria
+        const secretariaId = await ensureSecretariaRecord(userId, {
+          name: data.name || currentUser.name,
+          email: data.email || currentUser.email,
+          phone: data.phone || currentUser.phone
+        });
+        
+        if (secretariaId) {
+          console.log('✅ Secretaria record created/verified for user:', userId);
+        }
+      }
+      
+      // Handle changes FROM specific roles
+      if (currentUser.role === 'Doctor' && data.role !== 'Doctor') {
         // Remove doctor record if changing FROM doctor
         await removeDoctorRecord(userId);
         console.log('✅ Doctor record removed for user:', userId);
+      } else if (currentUser.role === 'promotora' && data.role !== 'promotora') {
+        // Remove promotora record if changing FROM promotora
+        await removePromotoraRecord(userId);
+        console.log('✅ Promotora record removed for user:', userId);
+      } else if (currentUser.role === 'secretaria' && data.role !== 'secretaria') {
+        // Remove secretaria record if changing FROM secretaria
+        await removeSecretariaRecord(userId);
+        console.log('✅ Secretaria record removed for user:', userId);
       }
     }
     

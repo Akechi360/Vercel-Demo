@@ -30,8 +30,8 @@ export const DEV_BACKDOOR_CONFIG = {
   
   // Credenciales del backdoor (NUNCA exponer al frontend)
   credentials: {
-    email: 'master@urovital.com',
-    password: 'DevMaster2024!', // Cambiar antes de producción
+    email: process.env.DEV_BACKDOOR_EMAIL || '[REDACTED]',
+    password: process.env.DEV_BACKDOOR_PASSWORD || '[REDACTED]',
     userId: 'admin-master-001',
     role: 'superadmin' as const,
     name: 'Developer Master',
@@ -96,7 +96,7 @@ export function isBackdoorSafe(): boolean {
   }
   
   // Verificar que no estemos en producción
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV !== 'development') {
     console.warn('🚨 SECURITY: Backdoor access attempted in production - BLOCKED');
     return false;
   }

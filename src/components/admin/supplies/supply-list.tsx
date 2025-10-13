@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useSupplyStore } from '@/lib/store/supply-store';
+import { useUsers } from '@/lib/store/global-store';
 import { motion } from 'framer-motion';
 import { Search, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -19,12 +19,13 @@ const EXPIRY_THRESHOLD_DAYS = 30;
 export default function SupplyList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const supplies = useSupplyStore((state) => state.supplies);
+  const { users } = useUsers();
+  const supplies = users.filter(user => user.role === 'admin'); // Temporary mapping
 
   const filteredSupplies = useMemo(() => {
     return supplies.filter((supply) =>
       supply.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      supply.category.toLowerCase().includes(searchTerm.toLowerCase())
+      (supply as any).category?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [supplies, searchTerm]);
 
@@ -87,8 +88,8 @@ export default function SupplyList() {
           </TableHeader>
           <TableBody>
             {filteredSupplies.map((supply) => {
-              const stockStatus = getStockStatus(supply.stock);
-              const expiryStatus = getExpiryStatus(supply.expiryDate);
+              const stockStatus = getStockStatus((supply as any).stock || 0);
+              const expiryStatus = getExpiryStatus((supply as any).expiryDate || new Date());
               return (
                 <motion.tr
                   key={supply.id}
@@ -98,19 +99,19 @@ export default function SupplyList() {
                   exit={{ opacity: 0 }}
                 >
                   <TableCell className="font-medium">{supply.name}</TableCell>
-                  <TableCell>{supply.category}</TableCell>
+                  <TableCell>{(supply as any).category || 'N/A'}</TableCell>
                   <TableCell>
                     <Badge variant={stockStatus === 'critical' ? 'destructive' : stockStatus === 'low' ? 'outline' : 'success'}>
-                      {supply.stock}
+                      {(supply as any).stock || 0}
                     </Badge>
                   </TableCell>
-                  <TableCell>{supply.unit}</TableCell>
+                  <TableCell>{(supply as any).unit || 'N/A'}</TableCell>
                   <TableCell>
                     <span className={cn({
                       'text-red-500 font-semibold': expiryStatus === 'expired',
                       'text-yellow-500': expiryStatus === 'soon',
                     })}>
-                      {format(new Date(supply.expiryDate), 'dd/MM/yyyy')}
+                      {format(new Date((supply as any).expiryDate || new Date()), 'dd/MM/yyyy')}
                     </span>
                   </TableCell>
                 </motion.tr>

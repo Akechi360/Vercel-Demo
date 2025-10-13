@@ -51,7 +51,7 @@ export function useUnifiedUserStatus(userId?: string): UseUnifiedUserStatusRetur
       console.log('🔄 User not found in store, refreshing...');
       refresh();
     }
-  }, [shouldFetch, user, usersLoading, refresh]);
+  }, [shouldFetch, user, usersLoading]); // Removed refresh to prevent infinite loop
   
   // Handle errors
   useEffect(() => {

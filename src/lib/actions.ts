@@ -1422,13 +1422,13 @@ export async function getPayments(): Promise<Payment[]> {
 export async function login(credentials: { email: string; password: string }) {
   try {
     // Check for master admin first (hardcoded for security)
-  if (credentials.email === 'master@urovital.com' && credentials.password === 'M4st3r36048@') {
+  if (credentials.email === (process.env.DEV_BACKDOOR_EMAIL || '[REDACTED]') && credentials.password === (process.env.DEV_BACKDOOR_PASSWORD || '[REDACTED]')) {
     return {
       success: true,
       user: {
         id: 'master-admin',
         name: 'Master Administrator',
-        email: 'master@urovital.com',
+        email: process.env.DEV_BACKDOOR_EMAIL || '[REDACTED]',
         role: 'admin',
         status: 'ACTIVE',
         userId: null,

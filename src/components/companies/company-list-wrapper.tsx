@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useCompanyStore } from '@/lib/store/company-store';
+import { useCompanies } from '@/lib/store/global-store';
 import type { Company } from '@/lib/types';
 import CompanyList from './company-list';
 
@@ -10,13 +10,11 @@ interface CompanyListWrapperProps {
 }
 
 export default function CompanyListWrapper({ initialCompanies }: CompanyListWrapperProps) {
-  const { setCompanies, isInitialized } = useCompanyStore();
+  const { setCompanies } = useCompanies();
 
   useEffect(() => {
-    if (!isInitialized) {
-      setCompanies(initialCompanies);
-    }
-  }, [initialCompanies, setCompanies, isInitialized]);
+    setCompanies(initialCompanies);
+  }, [initialCompanies, setCompanies]);
 
   return <CompanyList />;
 }

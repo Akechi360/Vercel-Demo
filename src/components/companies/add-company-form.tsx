@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { addCompany } from '@/lib/actions';
-import { useCompanyStore } from '@/lib/store/company-store';
+import { useCompanies } from '@/lib/store/global-store';
 import type { Company } from '@/lib/types';
 
 const formSchema = z.object({
@@ -34,7 +34,7 @@ interface AddCompanyFormProps {
 
 export function AddCompanyForm({ onSuccess }: AddCompanyFormProps) {
   const { toast } = useToast();
-  const { addCompany: addCompanyToStore } = useCompanyStore();
+  const { addCompany: addCompanyToStore } = useCompanies();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),

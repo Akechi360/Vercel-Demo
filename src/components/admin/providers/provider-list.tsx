@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useProviderStore } from '@/lib/store/provider-store';
+import { useUsers } from '@/lib/store/global-store';
 import { motion } from 'framer-motion';
 import { Search, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,8 @@ import { AddProviderForm } from './add-provider-form';
 export default function ProviderList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const providers = useProviderStore((state) => state.providers);
+  const { users } = useUsers();
+  const providers = users.filter(user => user.role === 'doctor');
 
   const filteredProviders = useMemo(() => {
     return providers.filter((provider) =>
@@ -74,7 +75,7 @@ export default function ProviderList() {
                 <TableCell className="font-medium">{provider.name}</TableCell>
                 <TableCell>{provider.phone}</TableCell>
                 <TableCell>{provider.email}</TableCell>
-                <TableCell>{provider.address}</TableCell>
+                <TableCell>{provider.phone || 'N/A'}</TableCell>
               </motion.tr>
             ))}
           </TableBody>

@@ -40,8 +40,8 @@ npm run dev
 
 ## Credenciales del Usuario Master
 
-- **Email**: `master@urovital.com`
-- **Contraseña**: `M4st3r36048@`
+- **Email**: `[REDACTED]`
+- **Contraseña**: `[REDACTED]`
 - **Rol**: Administrador
 
 ## Comandos útiles

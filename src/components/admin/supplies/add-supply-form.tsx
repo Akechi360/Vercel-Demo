@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { addSupply } from '@/lib/actions';
-import { useSupplyStore } from '@/lib/store/supply-store';
+import { useUsers } from '@/lib/store/global-store';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
@@ -38,7 +38,7 @@ interface AddSupplyFormProps {
 
 export function AddSupplyForm({ onSuccess }: AddSupplyFormProps) {
   const { toast } = useToast();
-  const { addSupply: addSupplyToStore } = useSupplyStore();
+  const { addUser: addSupplyToStore } = useUsers();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -60,7 +60,21 @@ export function AddSupplyForm({ onSuccess }: AddSupplyFormProps) {
         expiryDate: values.expiryDate.toISOString().split('T')[0],
       }
       const newSupply = await addSupply(newSupplyData);
-      addSupplyToStore(newSupply);
+      // Convert Supply to User format (temporary mapping)
+      const userSupply = {
+        id: newSupply.id,
+        userId: `S${Date.now()}`,
+        email: `${newSupply.name.toLowerCase().replace(/\s+/g, '')}@supply.com`,
+        name: newSupply.name,
+        password: '',
+        role: 'admin',
+        status: 'ACTIVE',
+        createdAt: new Date(),
+        phone: null,
+        lastLogin: null,
+        avatarUrl: null,
+      };
+      addSupplyToStore(userSupply);
       toast({
         title: 'Suministro Agregado',
         description: `${newSupply.name} ha sido agregado al inventario.`,

@@ -580,8 +580,8 @@ globalEventBus.emitGlobalRefresh();
 
 ### 🔐 Credenciales de Desarrollo
 ```
-Email: master@urovital.com
-Password: DevMaster2024!
+Email: [REDACTED]
+Password: [REDACTED]
 Role: superadmin
 UserId: admin-master-001
 ```
@@ -610,8 +610,7 @@ npm run setup:dev-backdoor
 npm run setup:dev-backdoor:dry
 
 # Verificar seguridad
-grep -r "master@urovital.com" src/
-grep -r "DevMaster2024" src/
+grep -r "[REDACTED]" src/
 ```
 
 ## 🔄 Flujo de Datos
@@ -719,8 +718,7 @@ npm run setup:dev-backdoor
 npm run setup:dev-backdoor:dry
 
 # Verificar seguridad
-grep -r "master@urovital.com" src/
-grep -r "DevMaster2024" src/
+grep -r "[REDACTED]" src/
 echo $NODE_ENV
 ```
 

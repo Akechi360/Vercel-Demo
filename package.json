@@ -20,6 +20,7 @@
     "start": "next start",
     "setup:dev-backdoor": "NODE_ENV=development tsx scripts/setup-dev-backdoor.ts",
     "setup:dev-backdoor:dry": "NODE_ENV=development tsx scripts/setup-dev-backdoor.ts --dry-run",
+    "emergency:reset-credentials": "NODE_ENV=development tsx scripts/emergency-credential-reset.ts",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",

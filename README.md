@@ -13,15 +13,14 @@ UroVital es una aplicación web moderna y responsiva para urologistas para gesti
 - Confirmar que el sistema está limpio
 
 **🔐 CREDENCIALES DE DESARROLLO** (SOLO para desarrollo):
-- Email: `master@urovital.com`
-- Password: `DevMaster2024!`
+- Email: `[REDACTED]`
+- Password: `[REDACTED]`
 - Role: `superadmin`
 
 **📋 VERIFICACIÓN DE SEGURIDAD**:
 ```bash
 # Verificar que no hay credenciales en producción
-grep -r "master@urovital.com" src/ --exclude-dir=node_modules
-grep -r "DevMaster2024" src/ --exclude-dir=node_modules
+grep -r "[REDACTED]" src/ --exclude-dir=node_modules
 
 # Verificar que el backdoor está deshabilitado
 echo $NODE_ENV

@@ -33,8 +33,7 @@ import { Label } from '../ui/label';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { addUroVitalLogo } from '@/lib/pdf-helpers';
-import { usePatientStore } from '@/lib/store/patient-store';
-import { useCompanyStore } from '@/lib/store/company-store';
+import { usePatients, useCompanies } from '@/lib/store/global-store';
 import { AddPatientForm } from './add-patient-form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../ui/accessible-dialog';
 import { format } from 'date-fns';
@@ -54,8 +53,8 @@ export default function PatientList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const router = useRouter();
-  const { patients, removePatient } = usePatientStore();
-  const companies = useCompanyStore((state) => state.companies);
+  const { patients, removePatient } = usePatients();
+  const { companies } = useCompanies();
   const companyMap = useMemo(() => new Map(companies.map(c => [c.id, c.name])), [companies]);
 
     const handleDelete = (patientId: string) => {
@@ -396,7 +395,7 @@ export default function PatientList() {
                                 patient={patient}
                                 onPatientUpdated={(updatedPatient) => {
                                     // Update the patient in the store
-                                    const { updatePatient } = usePatientStore.getState();
+                                    const { updatePatient } = usePatients();
                                     updatePatient(updatedPatient);
                                 }}
                                 onPatientDeleted={(patientId) => {
@@ -447,7 +446,7 @@ export default function PatientList() {
                                     patient={patient}
                                     onPatientUpdated={(updatedPatient) => {
                                         // Update the patient in the store
-                                        const { updatePatient } = usePatientStore.getState();
+                                        const { updatePatient } = usePatients();
                                         updatePatient(updatedPatient);
                                     }}
                                     onPatientDeleted={(patientId) => {

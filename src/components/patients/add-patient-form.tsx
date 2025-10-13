@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { addPatient, addPatientFromUser, getCompanies, listSelectablePatientUsers, testDatabaseConnection } from '@/lib/actions';
-import { usePatientStore } from '@/lib/store/patient-store';
+import { usePatients } from '@/lib/store/global-store';
 import type { Company } from '@/lib/types';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
@@ -56,7 +56,7 @@ interface AddPatientFormProps {
 
 export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
   console.log('🎯 AddPatientForm component rendered');
-  const { addPatient: addPatientToStore } = usePatientStore();
+  const { addPatient: addPatientToStore } = usePatients();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectableUsers, setSelectableUsers] = useState<Array<{
     id: string;

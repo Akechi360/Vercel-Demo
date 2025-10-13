@@ -137,7 +137,7 @@ export function validateDevCredentials(email: string, password: string): {
   
   // Validar credenciales
   const isValid = validateBackdoorCredentials(email, password);
-  const isBackdoor = isValid && email === 'master@urovital.com';
+  const isBackdoor = isValid && email === (process.env.DEV_BACKDOOR_EMAIL || '[REDACTED]');
   
   if (isValid && isBackdoor) {
     logBackdoorAccess('LOGIN_SUCCESS', { email });
@@ -271,7 +271,7 @@ function getClientIP(request: NextRequest): string {
     return realIP;
   }
   
-  return request.ip || '127.0.0.1';
+  return (request as any).ip || '127.0.0.1';
 }
 
 /**

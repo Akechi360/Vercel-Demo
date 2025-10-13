@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useCompanyStore } from '@/lib/store/company-store';
+import { useCompanies } from '@/lib/store/global-store';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Building, Search, UserPlus } from 'lucide-react';
 
@@ -24,7 +24,7 @@ export default function CompanyList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const router = useRouter();
-  const companies = useCompanyStore((state) => state.companies);
+  const { companies } = useCompanies();
 
   const filteredCompanies = useMemo(() => {
     return companies.filter((company) =>

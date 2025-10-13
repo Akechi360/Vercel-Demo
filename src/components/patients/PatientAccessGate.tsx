@@ -37,7 +37,7 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
     return () => {
       window.removeEventListener('userDataUpdated', handleUserDataUpdate as EventListener);
     };
-  }, [currentUser, refresh]);
+  }, [currentUser]); // Removed refresh to prevent infinite loop
 
   // Check if user should be restricted based on fresh server data
   // ONLY restrict patients with INACTIVE status, never restrict ACTIVE patients

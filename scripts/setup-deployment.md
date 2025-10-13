@@ -64,8 +64,8 @@ npx prisma db seed
 
 1. Ve a tu URL de Vercel (ej: `https://urovital.vercel.app`)
 2. Intenta hacer login con:
-   - **Email**: `master@urovital.com`
-   - **Contraseña**: `M4st3r36048@`
+   - **Email**: `[REDACTED]`
+   - **Contraseña**: `[REDACTED]`
 
 ## 🔧 Comandos Útiles
 

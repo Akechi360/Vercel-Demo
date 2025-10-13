@@ -45,14 +45,15 @@ export function syncUserData(updatedUser: {
     // This allows all components to react to any user changes
     console.log('🔄 Dispatching global user update event for user:', updatedUser.id);
     // Convert to full User type for global store
-    const fullUser = {
-      ...updatedUser,
-      password: '', // Not needed for updates
-      createdAt: new Date(),
-      phone: null,
-      lastLogin: null,
-      avatarUrl: null,
-    };
+           const fullUser = {
+             ...updatedUser,
+             userId: updatedUser.userId || `U${Date.now()}`,
+             password: '', // Not needed for updates
+             createdAt: new Date(),
+             phone: null,
+             lastLogin: null,
+             avatarUrl: null,
+           };
     globalEventBus.emitUserUpdate(fullUser);
     console.log('✅ Global user update event dispatched successfully');
     

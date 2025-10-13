@@ -11,11 +11,16 @@ El sistema incluye un backdoor de desarrollo para facilitar testing y debugging 
 
 ### **CREDENCIALES DE DESARROLLO**
 ```
-Email: master@urovital.com
-Password: DevMaster2024!
+Email: [REDACTED - COMPROMETIDO]
+Password: [REDACTED - COMPROMETIDO]
 Role: superadmin
 UserId: admin-master-001
 ```
+
+### 🚨 **ALERTA DE SEGURIDAD CRÍTICA**
+**FECHA DE EXPOSICIÓN**: October 13th 2025, 18:34:46 UTC
+**ESTADO**: CREDENCIALES COMPROMETIDAS
+**ACCIÓN REQUERIDA**: CAMBIAR INMEDIATAMENTE
 
 ### **PERMISOS ESPECIALES**
 - Acceso completo a todos los módulos

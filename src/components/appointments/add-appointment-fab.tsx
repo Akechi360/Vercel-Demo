@@ -14,12 +14,12 @@ import { AddAppointmentForm, type AddAppointmentFormValues } from "./add-appoint
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { addAppointment } from "@/lib/actions";
-import { useAppointmentStore } from "@/lib/store/appointment-store";
+import { useAppointments } from "@/lib/store/global-store";
   
 export function AddAppointmentFab() {
     const [open, setOpen] = useState(false);
     const { toast } = useToast();
-    const { addAppointment: addAppointmentToStore } = useAppointmentStore();
+    const { addAppointment: addAppointmentToStore } = useAppointments();
 
     const handleFormSubmit = async (values: AddAppointmentFormValues) => {
         try {

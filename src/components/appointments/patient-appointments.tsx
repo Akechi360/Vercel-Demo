@@ -29,7 +29,7 @@ import { Badge } from '../ui/badge';
 import { Card, CardContent } from '../ui/card';
 import { es } from 'date-fns/locale';
 import { format } from 'date-fns';
-import { useAppointmentStore } from '@/lib/store/appointment-store';
+import { useAppointments } from '@/lib/store/global-store';
 import { AppointmentActions } from './appointment-actions';
 
 interface PatientAppointmentsProps {
@@ -62,7 +62,7 @@ export function PatientAppointments({
 }: PatientAppointmentsProps) {
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const appointments = useAppointmentStore(state => state.appointments);
+  const { appointments } = useAppointments();
 
   const filteredAppointments = useMemo(() => {
     return appointments
@@ -187,12 +187,12 @@ export function PatientAppointments({
                           appointment={appt}
                           onAppointmentUpdated={(updatedAppointment) => {
                             // Actualizar el store con la cita modificada
-                            const { updateAppointment } = useAppointmentStore.getState();
+                            const { updateAppointment } = useAppointments();
                             updateAppointment(updatedAppointment);
                           }}
                           onAppointmentDeleted={(appointmentId) => {
                             // Eliminar la cita del store
-                            const { removeAppointment } = useAppointmentStore.getState();
+                            const { removeAppointment } = useAppointments();
                             removeAppointment(appointmentId);
                           }}
                         />

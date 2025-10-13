@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
+import { useCallback } from 'react';
 import type { Patient, Company, User, Appointment, Payment, Affiliation } from '@/lib/types';
 
 // ===== TIPOS DEL STORE GLOBAL =====
@@ -380,71 +381,104 @@ export const useGlobalStore = create<GlobalState>()(
 );
 
 // ===== HOOKS ESPECIALIZADOS =====
-export const usePatients = () => useGlobalStore((state) => ({
-  patients: state.patients,
-  loading: state.loading.patients,
-  error: state.errors.patients,
-  isFresh: state.isDataFresh('patients'),
-  refresh: () => state.refreshData('patients'),
-  addPatient: state.addPatient,
-  updatePatient: state.updatePatient,
-  removePatient: state.removePatient,
-}));
+export const usePatients = () => {
+  const store = useGlobalStore();
+  const refresh = useCallback(() => store.refreshData('patients'), [store]);
+  
+  return {
+    patients: store.patients,
+    loading: store.loading.patients,
+    error: store.errors.patients,
+    isFresh: store.isDataFresh('patients'),
+    refresh,
+    setPatients: store.setPatients,
+    addPatient: store.addPatient,
+    updatePatient: store.updatePatient,
+    removePatient: store.removePatient,
+  };
+};
 
-export const useCompanies = () => useGlobalStore((state) => ({
-  companies: state.companies,
-  loading: state.loading.companies,
-  error: state.errors.companies,
-  isFresh: state.isDataFresh('companies'),
-  refresh: () => state.refreshData('companies'),
-  addCompany: state.addCompany,
-  updateCompany: state.updateCompany,
-  removeCompany: state.removeCompany,
-}));
+export const useCompanies = () => {
+  const store = useGlobalStore();
+  const refresh = useCallback(() => store.refreshData('companies'), [store]);
+  
+  return {
+    companies: store.companies,
+    loading: store.loading.companies,
+    error: store.errors.companies,
+    isFresh: store.isDataFresh('companies'),
+    refresh,
+    setCompanies: store.setCompanies,
+    addCompany: store.addCompany,
+    updateCompany: store.updateCompany,
+    removeCompany: store.removeCompany,
+  };
+};
 
-export const useUsers = () => useGlobalStore((state) => ({
-  users: state.users,
-  loading: state.loading.users,
-  error: state.errors.users,
-  isFresh: state.isDataFresh('users'),
-  refresh: () => state.refreshData('users'),
-  addUser: state.addUser,
-  updateUser: state.updateUser,
-  removeUser: state.removeUser,
-}));
+export const useUsers = () => {
+  const store = useGlobalStore();
+  const refresh = useCallback(() => store.refreshData('users'), [store]);
+  
+  return {
+    users: store.users,
+    loading: store.loading.users,
+    error: store.errors.users,
+    isFresh: store.isDataFresh('users'),
+    refresh,
+    setUsers: store.setUsers,
+    addUser: store.addUser,
+    updateUser: store.updateUser,
+    removeUser: store.removeUser,
+  };
+};
 
-export const useAppointments = () => useGlobalStore((state) => ({
-  appointments: state.appointments,
-  loading: state.loading.appointments,
-  error: state.errors.appointments,
-  isFresh: state.isDataFresh('appointments'),
-  refresh: () => state.refreshData('appointments'),
-  addAppointment: state.addAppointment,
-  updateAppointment: state.updateAppointment,
-  removeAppointment: state.removeAppointment,
-}));
+export const useAppointments = () => {
+  const store = useGlobalStore();
+  const refresh = useCallback(() => store.refreshData('appointments'), [store]);
+  
+  return {
+    appointments: store.appointments,
+    loading: store.loading.appointments,
+    error: store.errors.appointments,
+    isFresh: store.isDataFresh('appointments'),
+    refresh,
+    addAppointment: store.addAppointment,
+    updateAppointment: store.updateAppointment,
+    removeAppointment: store.removeAppointment,
+  };
+};
 
-export const usePayments = () => useGlobalStore((state) => ({
-  payments: state.payments,
-  loading: state.loading.payments,
-  error: state.errors.payments,
-  isFresh: state.isDataFresh('payments'),
-  refresh: () => state.refreshData('payments'),
-  addPayment: state.addPayment,
-  updatePayment: state.updatePayment,
-  removePayment: state.removePayment,
-}));
+export const usePayments = () => {
+  const store = useGlobalStore();
+  const refresh = useCallback(() => store.refreshData('payments'), [store]);
+  
+  return {
+    payments: store.payments,
+    loading: store.loading.payments,
+    error: store.errors.payments,
+    isFresh: store.isDataFresh('payments'),
+    refresh,
+    addPayment: store.addPayment,
+    updatePayment: store.updatePayment,
+    removePayment: store.removePayment,
+  };
+};
 
-export const useAffiliations = () => useGlobalStore((state) => ({
-  affiliations: state.affiliations,
-  loading: state.loading.affiliations,
-  error: state.errors.affiliations,
-  isFresh: state.isDataFresh('affiliations'),
-  refresh: () => state.refreshData('affiliations'),
-  addAffiliation: state.addAffiliation,
-  updateAffiliation: state.updateAffiliation,
-  removeAffiliation: state.removeAffiliation,
-}));
+export const useAffiliations = () => {
+  const store = useGlobalStore();
+  const refresh = useCallback(() => store.refreshData('affiliations'), [store]);
+  
+  return {
+    affiliations: store.affiliations,
+    loading: store.loading.affiliations,
+    error: store.errors.affiliations,
+    isFresh: store.isDataFresh('affiliations'),
+    refresh,
+    addAffiliation: store.addAffiliation,
+    updateAffiliation: store.updateAffiliation,
+    removeAffiliation: store.removeAffiliation,
+  };
+};
 
 // ===== SISTEMA DE EVENTOS GLOBALES =====
 export const globalEventBus = {

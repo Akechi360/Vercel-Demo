@@ -28,7 +28,7 @@ import { useAuth } from "../layout/auth-provider";
 import { CalendarIcon, Check, Star, Shield, CreditCard, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { useAffiliationStore } from "@/stores/affiliation-store";
+import { useAffiliations, useCompanies, useUsers } from "@/lib/store/global-store";
 
 const formSchema = z.object({
   companyId: z.string().optional(),
@@ -54,7 +54,9 @@ interface AddAffiliationFormProps {
 
 export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormProps) {
   const { currentUser } = useAuth();
-  const { companies, users, loading, error, loadData } = useAffiliationStore();
+  const { loading, error, refresh } = useAffiliations();
+  const { companies } = useCompanies();
+  const { users } = useUsers();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -74,9 +76,9 @@ export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormPro
   useEffect(() => {
     if (companies.length === 0 && users.length === 0 && !loading) {
       console.log('🔄 Loading data as fallback...');
-      loadData();
+      refresh();
     }
-  }, [companies.length, users.length, loading, loadData]);
+  }, [companies.length, users.length, loading]); // Removed refresh to prevent infinite loop
 
   // Watch for changes in planId and tipoPago
   const planId = watch("planId");
@@ -155,7 +157,7 @@ export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormPro
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="none">Paciente Particular</SelectItem>
-                  {companies.map((company) => (
+                  {companies.map((company: any) => (
                     <SelectItem key={company.id} value={company.id}>
                       {company.name}
                     </SelectItem>

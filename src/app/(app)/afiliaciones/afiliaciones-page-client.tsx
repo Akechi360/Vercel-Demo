@@ -26,7 +26,7 @@ export function AfiliacionesPageClient({ initialAffiliations }: AfiliacionesPage
   useEffect(() => {
     console.log('🚀 Starting silent prefetch for affiliation modal data...');
     refresh(); // Carga datos en background sin bloquear UI
-  }, [refresh]);
+  }, []); // Removed refresh from dependencies to prevent infinite loop
 
   const handleRemoveAffiliation = (id: string) => {
     setAffiliations(prev => prev.filter(item => item.id !== id));

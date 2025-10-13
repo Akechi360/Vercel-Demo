@@ -34,7 +34,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { getInitials } from '@/lib/utils';
 import { es } from 'date-fns/locale';
 import { format } from 'date-fns';
-import { useAppointmentStore } from '@/lib/store/appointment-store';
+import { useAppointments } from '@/lib/store/global-store';
 import { AppointmentActions } from './appointment-actions';
 
 interface DoctorAppointmentsProps {
@@ -74,7 +74,7 @@ export function DoctorAppointments({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const router = useRouter();
 
-  const appointments = useAppointmentStore(state => state.appointments);
+  const { appointments } = useAppointments();
 
   const patientsMap = useMemo(
     () => new Map(initialPatients.map((p) => [p.id, p])),
@@ -229,12 +229,12 @@ export function DoctorAppointments({
                           appointment={appt}
                           onAppointmentUpdated={(updatedAppointment) => {
                             // Actualizar el store con la cita modificada
-                            const { updateAppointment } = useAppointmentStore.getState();
+                            const { updateAppointment } = useAppointments();
                             updateAppointment(updatedAppointment);
                           }}
                           onAppointmentDeleted={(appointmentId) => {
                             // Eliminar la cita del store
-                            const { removeAppointment } = useAppointmentStore.getState();
+                            const { removeAppointment } = useAppointments();
                             removeAppointment(appointmentId);
                           }}
                         />

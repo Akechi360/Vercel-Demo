@@ -18,7 +18,7 @@ import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import { useAuth } from "../layout/auth-provider";
 import { addAffiliation } from "@/lib/actions";
-import { useAffiliationStore } from "@/stores/affiliation-store";
+import { useAffiliations } from "@/lib/store/global-store";
 
 const MySwal = withReactContent(Swal);
 
@@ -31,7 +31,7 @@ export function AddAffiliationDialog({ onAddAffiliation, onRefresh }: AddAffilia
     const [open, setOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const { currentUser } = useAuth();
-    const { clearCache } = useAffiliationStore();
+    const { refresh } = useAffiliations();
     
     const handleSubmit = async (values: FormValues) => {
         setIsLoading(true);

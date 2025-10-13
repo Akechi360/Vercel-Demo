@@ -31,7 +31,7 @@ import {
 import { MoreVertical, Edit, Trash2, Calendar, Clock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useAppointmentStore } from '@/lib/store/appointment-store';
+import { useAppointments } from '@/lib/store/global-store';
 import { updateAppointment as updateAppointmentAction, deleteAppointment as deleteAppointmentAction } from '@/lib/actions';
 import { useSweetAlertTheme, getSweetAlertConfig, getSweetAlertWarningConfig } from '@/hooks/use-sweetalert-theme';
 import Swal from 'sweetalert2';
@@ -69,7 +69,7 @@ export function AppointmentActions({
     time: format(parseISO(appointment.date), 'HH:mm'),
   });
 
-  const { removeAppointment, updateAppointment: updateAppointmentStore } = useAppointmentStore();
+  const { removeAppointment, updateAppointment: updateAppointmentStore } = useAppointments();
 
   const handleEditAppointment = async () => {
     try {

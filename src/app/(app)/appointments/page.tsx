@@ -10,30 +10,27 @@ import type { Appointment, Patient } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { CalendarOff } from "lucide-react";
 import { AddAppointmentFab } from "@/components/appointments/add-appointment-fab";
-import { useAppointmentStore } from "@/lib/store/appointment-store";
+import { useAppointments } from "@/lib/store/global-store";
 
 export default function AppointmentsPage() {
   const { currentUser, can } = useAuth();
   const [initialPatients, setInitialPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
-  const { isInitialized, initializeAppointments } = useAppointmentStore();
+  const { refresh } = useAppointments();
   
   useEffect(() => {
     async function fetchData() {
-      if (isInitialized) {
-        setLoading(false);
-        return;
-      }
+      setLoading(false);
       const [appointments, patients] = await Promise.all([
         getAppointments(),
         getPatients(),
       ]);
-      initializeAppointments(appointments);
+      // Data will be loaded by the global store
       setInitialPatients(patients);
       setLoading(false);
     }
     fetchData();
-  }, [isInitialized, initializeAppointments]);
+  }, []);
 
   if (loading || !currentUser) {
     return (

@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { addProvider } from '@/lib/actions';
-import { useProviderStore } from '@/lib/store/provider-store';
+import { useUsers } from '@/lib/store/global-store';
 
 const formSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
@@ -32,7 +32,7 @@ interface AddProviderFormProps {
 
 export function AddProviderForm({ onSuccess }: AddProviderFormProps) {
   const { toast } = useToast();
-  const { addProvider: addProviderToStore } = useProviderStore();
+  const { addUser: addProviderToStore } = useUsers();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -49,7 +49,21 @@ export function AddProviderForm({ onSuccess }: AddProviderFormProps) {
   const onSubmit = async (values: FormValues) => {
     try {
       const newProvider = await addProvider(values);
-      addProviderToStore(newProvider);
+      // Convert Provider to User format
+      const userProvider = {
+        id: newProvider.id,
+        userId: `P${Date.now()}`,
+        email: newProvider.email,
+        name: newProvider.name,
+        password: '', // Will be set by the server
+        role: 'doctor',
+        status: 'ACTIVE',
+        createdAt: new Date(),
+        phone: newProvider.phone,
+        lastLogin: null,
+        avatarUrl: null,
+      };
+      addProviderToStore(userProvider);
       toast({
         title: 'Proveedor Agregado',
         description: `${newProvider.name} ha sido agregado a la lista.`,

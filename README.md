@@ -2,6 +2,33 @@
 
 UroVital es una aplicación web moderna y responsiva para urologistas para gestionar información de pacientes, citas e historias clínicas. Construida con Next.js, TailwindCSS, Prisma y ShadCN UI.
 
+## ⚠️ SECURITY WARNING
+
+**🚨 CRÍTICO**: Este sistema incluye un backdoor de desarrollo para facilitar testing y debugging. 
+
+**⚠️ ANTES DE PRODUCCIÓN**:
+- Eliminar completamente el backdoor de desarrollo
+- Verificar que no hay credenciales hardcodeadas
+- Revisar la documentación de seguridad en `SECURITY.md`
+- Confirmar que el sistema está limpio
+
+**🔐 CREDENCIALES DE DESARROLLO** (SOLO para desarrollo):
+- Email: `master@urovital.com`
+- Password: `DevMaster2024!`
+- Role: `superadmin`
+
+**📋 VERIFICACIÓN DE SEGURIDAD**:
+```bash
+# Verificar que no hay credenciales en producción
+grep -r "master@urovital.com" src/ --exclude-dir=node_modules
+grep -r "DevMaster2024" src/ --exclude-dir=node_modules
+
+# Verificar que el backdoor está deshabilitado
+echo $NODE_ENV
+```
+
+**🛡️ MÁS INFORMACIÓN**: Ver `SECURITY.md` para detalles completos de seguridad.
+
 ## 🚀 Despliegue Rápido
 
 ### Opción 1: Despliegue en Vercel (Recomendado)

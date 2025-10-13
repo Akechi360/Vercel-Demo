@@ -1,5 +1,5 @@
 'use client';
-import { getPatientById, getAppointments, getConsultationsByPatientId, getIpssScoresByPatientId } from '@/lib/actions';
+import { getPatientById, getAppointments, getConsultationsByUserId, getIpssScoresByUserId } from '@/lib/actions';
 import { use, useEffect, useState } from 'react';
 import PatientSummaryClient from '@/components/patients/patient-summary-client';
 import type { Patient, Appointment, Consultation, IpssScore } from '@/lib/types';
@@ -26,24 +26,24 @@ function DeniedAccess() {
     )
 }
 
-export default function PatientSummaryPage({ params }: { params: Promise<{ patientId: string }> }) {
-    const { patientId } = use(params);
+export default function PatientSummaryPage({ params }: { params: Promise<{ userId: string }> }) {
+    const { userId } = use(params);
     const { currentUser, can } = useAuth();
     const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const canView = can('patients:write') || currentUser?.patientId === patientId;
+    const canView = can('patients:write') || currentUser?.userId === userId;
 
     useEffect(() => {
         if (canView) {
             Promise.all([
-                getPatientById(patientId),
+                getPatientById(userId),
                 getAppointments(),
-                getConsultationsByPatientId(patientId),
-                getIpssScoresByPatientId(patientId),
+                getConsultationsByUserId(userId),
+                getIpssScoresByUserId(userId),
             ]).then(([patient, appointments, consultations, ipssScores]) => {
                 if (patient) {
-                    const upcomingAppointments = appointments.filter(a => new Date(a.date) > new Date() && a.patientId === patientId);
+                    const upcomingAppointments = appointments.filter(a => new Date(a.date) > new Date() && a.userId === userId);
                     const latestConsultations = consultations.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3);
                     const latestIpss = ipssScores.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0] || null;
                     
@@ -59,7 +59,7 @@ export default function PatientSummaryPage({ params }: { params: Promise<{ patie
         } else {
             setLoading(false);
         }
-    }, [patientId, canView]);
+    }, [userId, canView]);
 
     if (loading) {
         return <div>Cargando resumen...</div>;

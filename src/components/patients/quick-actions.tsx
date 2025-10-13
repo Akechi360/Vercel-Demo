@@ -30,7 +30,7 @@ export function QuickActions({ patient, upcomingAppointments, latestConsultation
     const handleAddHistory = async (values: ConsultationFormValues) => {
         try {
             await addConsultation({
-                patientId: patient.id,
+                userId: patient.id,
                 date: values.date,
                 doctor: values.doctor,
                 type: values.type,
@@ -196,7 +196,7 @@ export function QuickActions({ patient, upcomingAppointments, latestConsultation
                         <DialogTitle>Añadir Nueva Consulta</DialogTitle>
                         <DialogDescription>Rellena los detalles para el nuevo registro de consulta para {patient.name}.</DialogDescription>
                     </DialogHeader>
-                    <ConsultationForm patientId={patient.id} onFormSubmit={handleAddHistory} />
+                    <ConsultationForm userId={patient.id} onFormSubmit={handleAddHistory} />
                 </DialogContent>
             </Dialog>
 

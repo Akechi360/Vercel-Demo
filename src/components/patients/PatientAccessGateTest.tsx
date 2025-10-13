@@ -2,7 +2,8 @@
 
 import { useAuth } from '@/components/layout/auth-provider';
 import { RestrictedNotice } from './RestrictedNotice';
-import { useUserStatusTest } from '@/hooks/use-user-status-test';
+import { useUnifiedUserStatus } from '@/hooks/use-unified-user-status';
+import { globalEventBus } from '@/lib/store/global-store';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -13,7 +14,7 @@ interface PatientAccessGateProps {
 
 export function PatientAccessGateTest({ children }: PatientAccessGateProps) {
   const { currentUser, isAuthenticated } = useAuth();
-  const { userStatus, isLoading, error, mutate } = useUserStatusTest();
+  const { userStatus, isLoading, error, refresh } = useUnifiedUserStatus();
   const router = useRouter();
 
   console.log('🧪 PatientAccessGateTest render:', {
@@ -32,10 +33,10 @@ export function PatientAccessGateTest({ children }: PatientAccessGateProps) {
       
       const updatedUser = customEvent.detail;
       
-      // If this is the current user, trigger SWR revalidation
+      // If this is the current user, trigger global store update
       if (updatedUser && updatedUser.id === currentUser?.id) {
-        console.log('🧪 Current user updated, revalidating SWR cache...');
-        mutate(); // This will trigger a fresh fetch
+        console.log('🧪 Current user updated, updating global store...');
+        globalEventBus.emitUserUpdate(updatedUser);
       }
     };
 
@@ -44,19 +45,19 @@ export function PatientAccessGateTest({ children }: PatientAccessGateProps) {
     return () => {
       window.removeEventListener('userDataUpdated', handleUserDataUpdate as EventListener);
     };
-  }, [currentUser, mutate]);
+  }, [currentUser, refresh]);
 
   // Check if user should be restricted based on fresh server data
   const isRestricted = userStatus && 
     userStatus.role === 'patient' && 
-    (userStatus.status === 'INACTIVE' || !userStatus.patientId);
+    (userStatus.status === 'INACTIVE' || !userStatus.userId);
 
   console.log('🧪 Restriction check:', {
     userStatus,
     isRestricted,
     role: userStatus?.role,
     status: userStatus?.status,
-    patientId: userStatus?.patientId,
+    userId: userStatus?.userId,
   });
 
   // Show loading state while fetching user status
@@ -82,7 +83,7 @@ export function PatientAccessGateTest({ children }: PatientAccessGateProps) {
     // Fallback to localStorage data if API fails
     if (currentUser) {
       const shouldRestrict = currentUser.role === 'patient' && 
-        (currentUser.status === 'INACTIVE' || !currentUser.patientId);
+        (currentUser.status === 'INACTIVE' || !currentUser.userId);
       
       if (shouldRestrict) {
         return <RestrictedNotice />;

@@ -31,7 +31,7 @@ import { addUroVitalLogo } from '@/lib/pdf-helpers';
 import { format } from 'date-fns';
 
 const formSchema = z.object({
-  patientId: z.string().min(1, 'Debe seleccionar un paciente.'),
+  userId: z.string().min(1, 'Debe seleccionar un paciente.'),
   amount: z.string().min(1, 'El monto es requerido.').refine((val) => {
     const num = parseFloat(val);
     return !isNaN(num) && num > 0;
@@ -66,7 +66,7 @@ export function CreateReceiptForm({ patients, onSuccess }: CreateReceiptFormProp
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      patientId: '',
+      userId: '',
       amount: '',
       concept: '',
       method: '',
@@ -146,14 +146,14 @@ export function CreateReceiptForm({ patients, onSuccess }: CreateReceiptFormProp
       }
 
       // Find selected patient
-      const selectedPatient = patients.find(p => p.id === values.patientId);
+      const selectedPatient = patients.find(p => p.id === values.userId);
       if (!selectedPatient) {
         throw new Error('Paciente no encontrado');
       }
 
       // Create receipt in database
       const receiptData = await createReceipt({
-        patientId: values.patientId,
+        userId: values.userId,
         amount: parseFloat(values.amount),
         concept: values.concept,
         method: values.method,
@@ -185,7 +185,7 @@ export function CreateReceiptForm({ patients, onSuccess }: CreateReceiptFormProp
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
-          name="patientId"
+          name="userId"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Paciente *</FormLabel>

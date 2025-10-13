@@ -104,8 +104,8 @@ export interface Patient {
 
 export interface Appointment {
   id: string;
-  patientId: string;
-  doctorId: string;
+  userId: string;
+  doctorUserId: string;
   date: string;
   reason: string;
   status: 'Programada' | 'Completada' | 'Cancelada';
@@ -120,7 +120,7 @@ export interface Prescription {
 
 export interface LabResult {
   id: string;
-  patientId?: string;
+  userId?: string;
   testName: string;
   value: string;
   referenceRange?: string;
@@ -129,7 +129,7 @@ export interface LabResult {
 
 export interface Report {
   id: string;
-  patientId: string;
+  userId: string;
   title: string;
   date: string;
   type: string;
@@ -140,7 +140,7 @@ export interface Report {
 
 export interface Consultation {
   id: string;
-  patientId: string;
+  userId: string;
   date: string;
   doctor: string;
   type: 'Inicial' | 'Seguimiento' | 'Pre-operatorio' | 'Post-operatorio';
@@ -152,22 +152,22 @@ export interface Consultation {
 
 import { User as PrismaUser } from "@prisma/client"
 
-// Extender el tipo User de Prisma para incluir patientId como alias de userId
+// Extender el tipo User de Prisma para incluir userId como alias de userId
 export type User = PrismaUser & {
-  patientId?: string; // Alias para userId cuando se usa como paciente
+  userId?: string; // Alias para userId cuando se usa como paciente
 }
 
-// Helper function para mapear userId a patientId
+// Helper function para mapear userId a userId
 export function mapUserToPatient(user: PrismaUser): User {
   return {
     ...user,
-    patientId: user.userId
+    userId: user.userId
   };
 }
 
 export interface IpssScore {
   id: string;
-  patientId: string;
+  userId: string;
   date: string;
   score: number;
   category: 'Leve' | 'Moderado' | 'Severo';
@@ -184,8 +184,8 @@ export interface Company {
 
 export type NewReportFormValues = Omit<
   Report,
-  'id' | 'patientId' | 'fileUrl'
-> & { patientId?: string };
+  'id' | 'userId' | 'fileUrl'
+> & { userId?: string };
 
 export interface Supply {
   id: string;
@@ -220,7 +220,7 @@ export interface PaymentType {
 
 export interface Payment {
     id: string;
-    patientId: string;
+    userId: string;
     doctorId?: string;
     paymentTypeId: string;
     paymentMethodId: string;
@@ -276,7 +276,7 @@ export interface Affiliation {
         createdAt: string;
         phone?: string | null;
         lastLogin?: string | null;
-        patientId?: string | null;
+        userId?: string | null;
         avatarUrl?: string | null;
     } | null;
 }

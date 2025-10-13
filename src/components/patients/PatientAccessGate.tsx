@@ -2,7 +2,8 @@
 
 import { useAuth } from '@/components/layout/auth-provider';
 import { RestrictedNotice } from './RestrictedNotice';
-import { useUserStatus } from '@/hooks/use-user-status';
+import { useUnifiedUserStatus } from '@/hooks/use-unified-user-status';
+import { globalEventBus } from '@/lib/store/global-store';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -13,7 +14,7 @@ interface PatientAccessGateProps {
 
 export function PatientAccessGate({ children }: PatientAccessGateProps) {
   const { currentUser, isAuthenticated, loading } = useAuth();
-  const { userStatus, isLoading, error, mutate } = useUserStatus(currentUser?.id);
+  const { userStatus, isLoading, error, refresh } = useUnifiedUserStatus(currentUser?.id);
   const router = useRouter();
 
   // Listen for user data updates from admin changes and trigger SWR revalidation
@@ -24,10 +25,10 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
       
       const updatedUser = customEvent.detail;
       
-      // If this is the current user, trigger SWR revalidation
+      // If this is the current user, trigger global store update
       if (updatedUser && updatedUser.id === currentUser?.id) {
-        console.log('🔄 Current user updated, revalidating SWR cache...');
-        mutate(); // This will trigger a fresh fetch
+        console.log('🔄 Current user updated, updating global store...');
+        globalEventBus.emitUserUpdate(updatedUser);
       }
     };
 
@@ -36,7 +37,7 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
     return () => {
       window.removeEventListener('userDataUpdated', handleUserDataUpdate as EventListener);
     };
-  }, [currentUser, mutate]);
+  }, [currentUser, refresh]);
 
   // Check if user should be restricted based on fresh server data
   // ONLY restrict patients with INACTIVE status, never restrict ACTIVE patients
@@ -49,7 +50,7 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
     userStatus,
     role: userStatus?.role,
     status: userStatus?.status,
-    patientId: userStatus?.patientId,
+    userId: userStatus?.userId,
     isRestricted,
     isAdmin: userStatus?.role === 'admin' || userStatus?.role === 'master',
     restrictionLogic: userStatus?.role === 'patient' && userStatus?.status === 'INACTIVE',

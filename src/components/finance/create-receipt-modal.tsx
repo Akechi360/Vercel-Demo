@@ -15,7 +15,7 @@ import { motion } from 'framer-motion';
 import type { Patient, User } from '@/lib/types';
 
 const formSchema = z.object({
-  patientId: z.string().min(1, 'Debe seleccionar un paciente'),
+  userId: z.string().min(1, 'Debe seleccionar un paciente'),
   doctorId: z.string().min(1, 'Debe seleccionar un doctor'),
   date: z.string().min(1, 'Debe seleccionar una fecha'),
   amount: z.number().min(0.01, 'El monto debe ser mayor a 0'),
@@ -48,7 +48,7 @@ export function CreateReceiptModal({
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      patientId: editData?.patientId || '',
+      userId: editData?.userId || '',
       doctorId: editData?.doctorId || '',
       date: editData?.date || new Date().toISOString().slice(0, 16),
       amount: editData?.amount || 0,
@@ -71,7 +71,7 @@ export function CreateReceiptModal({
         const { createReceipt } = await import('@/lib/actions');
         
         const receiptData = {
-          patientId: data.patientId,
+          userId: data.userId,
           amount: data.amount,
           concept: `Consulta médica - ${new Date(data.date).toLocaleDateString()}`,
           method: data.method,
@@ -142,7 +142,7 @@ export function CreateReceiptModal({
                 {/* Paciente */}
                 <FormField
                   control={form.control}
-                  name="patientId"
+                  name="userId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Paciente *</FormLabel>

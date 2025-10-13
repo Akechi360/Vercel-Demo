@@ -1,5 +1,5 @@
 'use client';
-import { getConsultationsByPatientId, getPatientById } from '@/lib/actions';
+import { getConsultationsByUserId, getPatientById } from '@/lib/actions';
 import { MedicalHistoryTimeline } from '@/components/history/medical-history-timeline';
 import type { Consultation, Patient } from '@/lib/types';
 import { useEffect, useState, use } from 'react';
@@ -19,14 +19,14 @@ function DeniedAccess() {
     )
 }
 
-export default function PatientHistoryPage({ params }: { params: Promise<{ patientId: string }> }) {
-  const { patientId } = use(params);
+export default function PatientHistoryPage({ params }: { params: Promise<{ userId: string }> }) {
+  const { userId } = use(params);
   const { currentUser, can } = useAuth();
   const [history, setHistory] = useState<Consultation[]>([]);
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const canViewHistory = can('patients:write') || currentUser?.userId === patientId;
+  const canViewHistory = can('patients:write') || currentUser?.userId === userId;
 
   useEffect(() => {
     if (!canViewHistory) {
@@ -36,21 +36,21 @@ export default function PatientHistoryPage({ params }: { params: Promise<{ patie
     const fetchHistory = async () => {
       setLoading(true);
       const [medicalHistory, patientData] = await Promise.all([
-        getConsultationsByPatientId(patientId),
-        getPatientById(patientId)
+        getConsultationsByUserId(userId),
+        getPatientById(userId)
       ]);
       setHistory(medicalHistory);
       setPatient(patientData || null);
       setLoading(false);
     };
     fetchHistory();
-  }, [patientId, canViewHistory]);
+  }, [userId, canViewHistory]);
 
-  const handleNewConsultation = (newConsultation: Omit<Consultation, 'id' | 'patientId'>) => {
+  const handleNewConsultation = (newConsultation: Omit<Consultation, 'id' | 'userId'>) => {
     const fullConsultation: Consultation = {
       ...newConsultation,
       id: `c-${Date.now()}`, // Mock ID
-      patientId: patientId,
+      userId: userId,
     };
     setHistory(prevHistory => [fullConsultation, ...prevHistory]);
   };
@@ -67,7 +67,7 @@ export default function PatientHistoryPage({ params }: { params: Promise<{ patie
   return (
     <div className="flex flex-col gap-6">
         <MedicalHistoryTimeline 
-            patientId={patientId}
+            userId={userId}
             history={history} 
             onNewConsultation={handleNewConsultation}
         />

@@ -55,8 +55,8 @@ export default function PatientsPage() {
     fetchData();
   }, []);
 
-  if (currentUser?.role === 'patient' && currentUser.patientId) {
-    redirect(`/patients/${currentUser.patientId}`);
+  if (currentUser?.role === 'patient' && currentUser.userId) {
+    redirect(`/patients/${currentUser.userId}`);
   }
 
   if (loading || !initialPatients || !initialCompanies) {

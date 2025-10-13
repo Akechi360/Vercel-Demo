@@ -33,7 +33,7 @@ import { useAppointmentStore } from '@/lib/store/appointment-store';
 import { AppointmentActions } from './appointment-actions';
 
 interface PatientAppointmentsProps {
-  patientId: string;
+  userId: string;
 }
 
 type DateFilter = 'today' | 'week' | 'month' | 'year' | 'all';
@@ -58,7 +58,7 @@ const statusConfig = {
 } as const;
 
 export function PatientAppointments({
-  patientId,
+  userId,
 }: PatientAppointmentsProps) {
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -66,7 +66,7 @@ export function PatientAppointments({
 
   const filteredAppointments = useMemo(() => {
     return appointments
-      .filter((appt) => appt.patientId === patientId)
+      .filter((appt) => appt.userId === userId)
       .filter((appt) => {
         if (statusFilter === 'all') return true;
         return appt.status === statusFilter;
@@ -88,7 +88,7 @@ export function PatientAppointments({
         }
       })
       .sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
-  }, [appointments, patientId, statusFilter, dateFilter]);
+  }, [appointments, userId, statusFilter, dateFilter]);
 
   const containerVariants = {
     hidden: { opacity: 0 },

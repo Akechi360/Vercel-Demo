@@ -7,7 +7,7 @@ import {
 import { PageHeader } from '@/components/shared/page-header';
 import { useAuth } from '@/components/layout/auth-provider';
 import { usePermissions } from '@/hooks/use-permissions';
-import { getIpssScoresByPatientId, getPatients, getAppointments, getAffiliations } from '@/lib/actions';
+import { getIpssScoresByUserId, getPatients, getAppointments, getAffiliations } from '@/lib/actions';
 import { useEffect, useState } from 'react';
 import type { Patient, Appointment, IpssScore } from '@/lib/types';
 import { isToday, isYesterday, subMonths } from 'date-fns';
@@ -71,8 +71,8 @@ export default function DashboardPage() {
                 monthlyPatientsGrowth = thisMonthPatients - lastMonthPatients;
             }
 
-            if (isPatient() && currentUser.patientId) {
-                const ipssScores = await getIpssScoresByPatientId(currentUser.patientId);
+            if (isPatient() && currentUser.userId) {
+                const ipssScores = await getIpssScoresByUserId(currentUser.userId);
                 const latestIpss = ipssScores.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
                 if (latestIpss) {
                     latestIpssScore = latestIpss.score;

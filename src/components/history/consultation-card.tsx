@@ -21,8 +21,8 @@ export function ConsultationCard({ consultation }: ConsultationCardProps) {
     const [patient, setPatient] = useState<Patient | null>(null);
 
     useEffect(() => {
-        getPatientById(consultation.patientId).then(p => setPatient(p || null));
-    }, [consultation.patientId]);
+        getPatientById(consultation.userId).then(p => setPatient(p || null));
+    }, [consultation.userId]);
 
     const handleExportPrescription = () => {
         if (!patient) {

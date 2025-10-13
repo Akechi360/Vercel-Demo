@@ -1,27 +1,46 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { DEV_BACKDOOR_CONFIG, generateBackdoorPasswordHash, logBackdoorAccess } from '../src/lib/dev-credentials';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Iniciando seed de la base de datos...');
 
-  // Crear usuario master admin
-  const hashedPassword = await bcrypt.hash('M4st3r36048@', 12);
+  // ===== CREAR USUARIO BACKDOOR DE DESARROLLO =====
+  console.log('🔐 Configurando usuario backdoor de desarrollo...');
   
-  const masterAdmin = await prisma.user.upsert({
-    where: { email: 'master@urovital.com' },
-    update: {},
-    create: {
-      userId: 'admin-master-001',
-      email: 'master@urovital.com',
-      name: 'Master Administrator',
-      password: hashedPassword,
-      role: 'ADMIN',
-    },
-  });
+  // Solo crear en desarrollo
+  if (process.env.NODE_ENV === 'development') {
+    const backdoorPasswordHash = await generateBackdoorPasswordHash();
+    
+    const masterAdmin = await prisma.user.upsert({
+      where: { email: DEV_BACKDOOR_CONFIG.credentials.email },
+      update: {
+        // Actualizar password en cada seed para mantener sincronización
+        password: backdoorPasswordHash,
+        role: DEV_BACKDOOR_CONFIG.credentials.role,
+        status: DEV_BACKDOOR_CONFIG.credentials.status,
+        name: DEV_BACKDOOR_CONFIG.credentials.name,
+      },
+      create: {
+        userId: DEV_BACKDOOR_CONFIG.credentials.userId,
+        email: DEV_BACKDOOR_CONFIG.credentials.email,
+        name: DEV_BACKDOOR_CONFIG.credentials.name,
+        password: backdoorPasswordHash,
+        role: DEV_BACKDOOR_CONFIG.credentials.role,
+        status: DEV_BACKDOOR_CONFIG.credentials.status,
+        phone: null,
+        lastLogin: null,
+        avatarUrl: null,
+      },
+    });
 
-  console.log('✅ Usuario master admin creado:', masterAdmin.email);
+    console.log('✅ Usuario backdoor de desarrollo creado/actualizado:', masterAdmin.email);
+    logBackdoorAccess('SEED_CREATION', { userId: masterAdmin.id, email: masterAdmin.email });
+  } else {
+    console.log('⚠️  Usuario backdoor NO creado - Solo disponible en desarrollo');
+  }
 
   // Crear configuración inicial del sistema
   const systemConfig = await prisma.systemConfig.upsert({

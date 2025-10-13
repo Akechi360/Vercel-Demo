@@ -9,7 +9,7 @@ import {
     TableHeader,
     TableRow,
   } from '@/components/ui/table'
-import { getLabResultsByPatientId, getIpssScoresByPatientId } from '@/lib/actions';
+import { getLabResultsByUserId, getIpssScoresByUserId } from '@/lib/actions';
 import LabResultsCard from '@/components/patients/lab-results-card';
 import { IpssCalculator } from '@/components/patients/ipss-calculator';
 import { use, useEffect, useState } from 'react';
@@ -40,19 +40,19 @@ function DeniedAccess() {
     )
 }
 
-export default function UrologyDataPage({ params }: { params: Promise<{ patientId: string }> }) {
-    const { patientId } = use(params);
+export default function UrologyDataPage({ params }: { params: Promise<{ userId: string }> }) {
+    const { userId } = use(params);
     const { currentUser, can } = useAuth();
     const [data, setData] = useState<UrologyData | null>(null);
     const [loading, setLoading] = useState(true);
     
-    const canView = can('patients:write') || currentUser?.patientId === patientId;
+    const canView = can('patients:write') || currentUser?.userId === userId;
 
     useEffect(() => {
         if(canView) {
             Promise.all([
-                getLabResultsByPatientId(patientId),
-                getIpssScoresByPatientId(patientId)
+                getLabResultsByUserId(userId),
+                getIpssScoresByUserId(userId)
             ]).then(([labResults, ipssScores]) => {
                 setData({ labResults, ipssScores });
                 setLoading(false);
@@ -60,7 +60,7 @@ export default function UrologyDataPage({ params }: { params: Promise<{ patientI
         } else {
             setLoading(false);
         }
-    }, [patientId, canView]);
+    }, [userId, canView]);
 
     if(loading) {
         return <div>Cargando datos...</div>
@@ -112,7 +112,7 @@ export default function UrologyDataPage({ params }: { params: Promise<{ patientI
             
             <PsaChart />
 
-            <IpssCalculator patientId={patientId} historicalScores={data.ipssScores} />
+            <IpssCalculator userId={userId} historicalScores={data.ipssScores} />
         </div>
     )
 }

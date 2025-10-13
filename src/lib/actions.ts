@@ -263,7 +263,7 @@ export async function addPatient(patientData: {
   }
 }
 
-export async function updatePatient(patientId: string, patientData: {
+export async function updatePatient(userId: string, patientData: {
   name: string;
   age: number;
   gender: 'Masculino' | 'Femenino' | 'Otro';
@@ -274,12 +274,12 @@ export async function updatePatient(patientId: string, patientData: {
 }): Promise<Patient> {
   try {
     console.log('🔄 Updating patient - INPUT VALIDATION:');
-    console.log('  - patientId:', patientId, '(type:', typeof patientId, ')');
+    console.log('  - userId:', userId, '(type:', typeof userId, ')');
     console.log('  - patientData:', JSON.stringify(patientData, null, 2));
     
     // Validate required fields
-    if (!patientId || typeof patientId !== 'string' || patientId.trim() === '') {
-      throw new Error('ID de paciente inválido o vacío');
+    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+      throw new Error('ID de usuario inválido o vacío');
     }
     
     if (!patientData.name || typeof patientData.name !== 'string' || patientData.name.trim() === '') {
@@ -304,14 +304,14 @@ export async function updatePatient(patientId: string, patientData: {
     const updatedPatient = await (async () => {
       console.log('🔍 Checking if patient exists...');
       
-      // Find user by userId (patientId is the userId)
+      // Find user by userId
       const existingUser = await prisma.user.findUnique({
-        where: { userId: patientId },
+        where: { userId: userId },
         include: { patientInfo: true }
       });
 
       if (!existingUser) {
-        throw new Error(`Paciente con ID ${patientId} no encontrado en la base de datos`);
+        throw new Error(`Usuario con ID ${userId} no encontrado en la base de datos`);
       }
 
       if (!existingUser.patientInfo) {
@@ -352,7 +352,7 @@ export async function updatePatient(patientId: string, patientData: {
       // Update user record
       console.log('🔄 Updating user record...');
       const updatedUser = await prisma.user.update({
-        where: { userId: patientId },
+        where: { userId: userId },
         data: {
           name: patientData.name.trim(),
           email: patientData.email.trim(),
@@ -457,7 +457,7 @@ export async function updatePatient(patientId: string, patientData: {
     console.error('  - Error message:', error instanceof Error ? error.message : 'Unknown error');
     console.error('  - Error name:', error instanceof Error ? error.name : 'Unknown');
     console.error('  - Error stack:', error instanceof Error ? error.stack : 'No stack');
-    console.error('  - Patient ID:', patientId);
+    console.error('  - User ID:', userId);
     console.error('  - Patient Data:', JSON.stringify(patientData, null, 2));
     
     // Check if it's a Prisma error
@@ -491,12 +491,12 @@ export async function updatePatient(patientId: string, patientData: {
   }
 }
 
-export async function deletePatient(patientId: string): Promise<void> {
+export async function deletePatient(userId: string): Promise<void> {
   try {
     await withDatabase(async (prisma) => {
-      // Find the user with this patientId (which is actually userId in our schema)
+      // Find the user with this userId
       const user = await prisma.user.findUnique({
-        where: { userId: patientId },
+        where: { userId: userId },
         include: { patientInfo: true }
       });
 
@@ -517,20 +517,13 @@ export async function deletePatient(patientId: string): Promise<void> {
         where: { id: user.id }
       });
 
-      console.log(`✅ Deleted user/patient ${patientId}`);
+      console.log(`✅ Deleted user/patient ${userId}`);
       
-      // Dispatch event to notify components that a patient was deleted
-      // This will trigger a refresh of selectable users in forms
+      // Dispatch global event to notify all components
       if (typeof window !== 'undefined') {
-        const event = new CustomEvent('patientDeleted', { 
-          detail: { 
-            patientId, 
-            userId: user.id,
-            userName: user.name 
-          } 
-        });
-        window.dispatchEvent(event);
-        console.log('📤 Dispatched patientDeleted event for user:', user.id);
+        const { globalEventBus } = await import('@/lib/store/global-store');
+        globalEventBus.emitPatientDeleted(userId);
+        console.log('📤 Dispatched global patientDeleted event for user:', userId);
       }
     });
   } catch (error) {
@@ -559,8 +552,8 @@ export async function getAppointments(): Promise<Appointment[]> {
 
     return appointments.map(appointment => ({
       id: appointment.id,
-      patientId: appointment.patientUserId, // userId del paciente
-      doctorId: appointment.doctorUserId || '', // userId del doctor
+      userId: appointment.patientUserId, // userId del paciente
+      doctorUserId: appointment.doctorUserId || '', // userId del doctor
       date: appointment.fecha.toISOString(),
       reason: appointment.notas || 'Consulta médica',
       status: appointment.estado === 'COMPLETADA' ? 'Completada' as const : 
@@ -1031,10 +1024,10 @@ export async function addPatientFromUser(userId: string, patientData: {
     // Update user with patientId
     // await prisma.user.update({
     //   where: { id: userId },
-    //   data: { patientId: patient.id }
+    //   data: { userId: patient.id }
     // });
 
-    // console.log('User updated with patientId:', patient.id);
+    // console.log('User updated with userId:', patient.id);
 
     // If companyId is provided, create affiliation
     if (patientData.companyId) {
@@ -1117,7 +1110,7 @@ export async function getConsultations(): Promise<Consultation[]> {
 
     return consultations.map((consultation: any) => ({
       id: consultation.id,
-      patientId: consultation.patientUserId, // userId del paciente
+      userId: consultation.patientUserId, // userId del paciente
       date: consultation.fecha.toISOString(),
       doctor: consultation.doctor ? consultation.doctor.name : 'No especificado',
       type: 'Inicial' as const,
@@ -1133,7 +1126,7 @@ export async function getConsultations(): Promise<Consultation[]> {
 }
 
 export async function addConsultation(consultationData: {
-  patientId: string;
+  userId: string;
   date: string;
   doctor: string;
   type: 'Inicial' | 'Seguimiento' | 'Pre-operatorio' | 'Post-operatorio';
@@ -1144,14 +1137,14 @@ export async function addConsultation(consultationData: {
 }): Promise<Consultation> {
   try {
     const consultation = await withDatabase(async (prisma) => {
-      // Verify patient exists (patientId is actually userId in our schema)
+      // Verify patient exists (userId in our schema)
       const patient = await prisma.user.findUnique({
-        where: { userId: consultationData.patientId },
+        where: { userId: consultationData.userId },
         include: { patientInfo: true }
       });
       
       if (!patient || patient.role !== 'patient') {
-        throw new Error(`Paciente con ID ${consultationData.patientId} no encontrado`);
+        throw new Error(`Paciente con ID ${consultationData.userId} no encontrado`);
       }
 
       // Find the doctor by name in both Doctor table and User table
@@ -1246,7 +1239,7 @@ export async function addConsultation(consultationData: {
           diagnostico: '',
           tratamiento: '',
           observaciones: consultationData.notes,
-          patientUserId: consultationData.patientId,
+          patientUserId: consultationData.userId,
           doctorUserId: doctor?.userId || null,
           userId: userId,
         },
@@ -1259,7 +1252,7 @@ export async function addConsultation(consultationData: {
 
     return {
       id: consultation.id,
-      patientId: consultation.patientUserId,
+      userId: consultation.patientUserId,
       date: consultation.fecha.toISOString(),
       doctor: consultation.doctor ? `${consultation.doctor.nombre} ${consultation.doctor.apellido}` : consultationData.doctor,
       type: consultationData.type,
@@ -1310,7 +1303,7 @@ export async function getLabResults(): Promise<LabResult[]> {
 
     return labResults.map((result: any) => ({
       id: result.id,
-      patientId: result.paciente.id,
+      userId: result.paciente.id,
       testName: result.nombre,
       value: result.resultado,
       referenceRange: result.tipo,
@@ -1333,7 +1326,7 @@ export async function getReports(): Promise<Report[]> {
 
     return reports.map((report: any) => ({
       id: report.id,
-      patientId: 'default-patient', // Default since we don't have patient relationship in schema
+      userId: 'default-patient', // Default since we don't have patient relationship in schema
       title: report.titulo,
       date: report.fecha.toISOString(),
       type: report.tipo,
@@ -1410,7 +1403,7 @@ export async function getPayments(): Promise<Payment[]> {
 
     return payments.map((payment: any) => ({
       id: payment.id,
-      patientId: payment.patient.userId,
+      userId: payment.patient.userId,
       doctorId: undefined,
       paymentTypeId: 'default-type',
       paymentMethodId: 'default-method',
@@ -1438,7 +1431,7 @@ export async function login(credentials: { email: string; password: string }) {
         email: 'master@urovital.com',
         role: 'admin',
         status: 'ACTIVE',
-        patientId: null,
+        userId: null,
       },
     };
   }
@@ -1471,7 +1464,7 @@ export async function login(credentials: { email: string; password: string }) {
         email: user.email,
         role: user.role.toLowerCase() as 'admin' | 'doctor' | 'user',
         status: user.status,
-        patientId: user.patientId,
+        userId: user.userId,
       },
     };
   } catch (error) {
@@ -1980,7 +1973,7 @@ export async function getUserStatusForAccess(userId: string): Promise<{
   id: string;
   role: string;
   status: string;
-  patientId: string | null;
+  userId: string | null;
 } | null> {
   try {
     console.log('🔍 getUserStatusForAccess called with userId:', userId);
@@ -2338,7 +2331,7 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
       email: updatedUser.email,
       role: updatedUser.role,
       status: updatedUser.status,
-      patientId: updatedUser.patientId,
+      userId: updatedUser.userId,
     };
   } catch (error) {
     console.error('Error updating user:', error);
@@ -2390,7 +2383,7 @@ export async function addPaymentType(data: Omit<PaymentType, 'id'>): Promise<Pay
 }
 
 // MISSING FUNCTIONS - Added to fix build errors
-export async function getIpssScoresByPatientId(patientId: string): Promise<IpssScore[]> {
+export async function getIpssScoresByUserId(userId: string): Promise<IpssScore[]> {
   try {
     // IPSS scores are not in the current schema, return empty array for now
     // This would need to be added to the schema if needed
@@ -2401,11 +2394,11 @@ export async function getIpssScoresByPatientId(patientId: string): Promise<IpssS
   }
 }
 
-export async function getLabResultsByPatientId(patientId: string): Promise<LabResult[]> {
+export async function getLabResultsByUserId(userId: string): Promise<LabResult[]> {
   try {
     const labResults = await withDatabase(async (prisma) => {
       return await prisma.labResult.findMany({
-      where: { patientUserId: patientId },
+      where: { patientUserId: userId },
       include: {
         patient: true,
         consultation: true,
@@ -2416,7 +2409,7 @@ export async function getLabResultsByPatientId(patientId: string): Promise<LabRe
 
     return labResults.map((result: any) => ({
       id: result.id,
-      patientId: result.paciente.id,
+      userId: result.paciente.id,
       testName: result.nombre,
       value: result.resultado,
       referenceRange: result.tipo,
@@ -2428,11 +2421,11 @@ export async function getLabResultsByPatientId(patientId: string): Promise<LabRe
   }
 }
 
-export async function getConsultationsByPatientId(patientId: string): Promise<Consultation[]> {
+export async function getConsultationsByUserId(userId: string): Promise<Consultation[]> {
   try {
     const consultations = await withDatabase(async (prisma) => {
       return await prisma.consultation.findMany({
-        where: { patientUserId: patientId },
+        where: { patientUserId: userId },
         include: {
           patient: true,
           doctor: true,
@@ -2444,7 +2437,7 @@ export async function getConsultationsByPatientId(patientId: string): Promise<Co
 
     return consultations.map((consultation: any) => ({
       id: consultation.id,
-      patientId: consultation.patientUserId, // userId del paciente
+      userId: consultation.patientUserId, // userId del paciente
       date: consultation.fecha.toISOString(),
       doctor: consultation.doctor ? consultation.doctor.name : 'No especificado',
       type: 'Inicial' as const,
@@ -2459,12 +2452,12 @@ export async function getConsultationsByPatientId(patientId: string): Promise<Co
   }
 }
 
-export async function getPatientById(patientId: string): Promise<Patient | null> {
+export async function getPatientById(userId: string): Promise<Patient | null> {
   try {
-    // patientId ahora es userId
+    // userId es el identificador principal
     const user = await withDatabase(async (prisma) => {
       return await prisma.user.findUnique({
-        where: { userId: patientId },
+        where: { userId: userId },
         include: {
           patientInfo: true,
           affiliations: {
@@ -2737,7 +2730,6 @@ export async function syncOrphanedDoctors(): Promise<{ created: number; errors: 
               status: 'ACTIVE',
               phone: doctor.telefono || '',
               lastLogin: null,
-              patientId: null,
               avatarUrl: doctor.avatarUrl,
               userId: `U${Date.now().toString().slice(-6)}`,
             }
@@ -2835,8 +2827,8 @@ export async function updateAppointment(appointmentId: string, appointmentData: 
 
     return {
       id: updatedAppointment.id,
-      patientId: updatedAppointment.patientUserId,
-      doctorId: updatedAppointment.doctorUserId || '',
+      userId: updatedAppointment.patientUserId,
+      doctorUserId: updatedAppointment.doctorUserId || '',
       date: updatedAppointment.fecha.toISOString(),
       reason: updatedAppointment.notas || 'Consulta médica',
       status: updatedAppointment.estado === 'COMPLETADA' ? 'Completada' as const : 
@@ -2866,7 +2858,7 @@ export async function deleteAppointment(appointmentId: string): Promise<void> {
 }
 
 export async function addAppointment(appointmentData: {
-  patientId: string; // Ahora es userId del paciente
+  userId: string; // userId del paciente
   doctorId?: string; // Ahora es userId del doctor
   date: string;
   reason: string;
@@ -2877,12 +2869,12 @@ export async function addAppointment(appointmentData: {
     const appointment = await withDatabase(async (prisma) => {
       // Validate patient exists by userId
       const patient = await prisma.user.findUnique({
-        where: { userId: appointmentData.patientId },
+        where: { userId: appointmentData.userId },
         include: { patientInfo: true }
       });
       
       if (!patient) {
-        throw new Error(`Paciente con userId ${appointmentData.patientId} no encontrado`);
+        throw new Error(`Paciente con userId ${appointmentData.userId} no encontrado`);
       }
       
       if (patient.role !== 'patient') {
@@ -2922,7 +2914,7 @@ export async function addAppointment(appointmentData: {
         tipo: 'CONSULTA',
         estado: 'PROGRAMADA',
         notas: appointmentData.reason,
-        patientUserId: appointmentData.patientId, // userId del paciente
+        patientUserId: appointmentData.userId, // userId del paciente
         createdBy: 'U0001', // TODO: Obtener del usuario actual
       };
       
@@ -2942,8 +2934,8 @@ export async function addAppointment(appointmentData: {
     
     return {
       id: appointment.id,
-      patientId: appointment.patientUserId,
-      doctorId: appointment.doctorUserId || '',
+      userId: appointment.patientUserId,
+      doctorUserId: appointment.doctorUserId || '',
       date: appointment.fecha.toISOString(),
       reason: appointment.notas || 'Consulta médica',
       status: 'Programada' as const,
@@ -3072,7 +3064,7 @@ export async function getPsaTrends(): Promise<{ dates: string[]; values: number[
 }
 
 // ADDITIONAL MISSING FUNCTIONS
-export async function getReportsByPatientId(patientId: string): Promise<Report[]> {
+export async function getReportsByPatientId(userId: string): Promise<Report[]> {
   try {
     // For now, return all reports since we don't have patient-specific reports in schema
     const reports = await withDatabase(async (prisma) => {
@@ -3083,7 +3075,7 @@ export async function getReportsByPatientId(patientId: string): Promise<Report[]
 
     return reports.map((report: any) => ({
       id: report.id,
-      patientId: patientId,
+      userId: userId,
       title: report.titulo,
       date: report.fecha.toISOString(),
       type: report.tipo,
@@ -3097,11 +3089,11 @@ export async function getReportsByPatientId(patientId: string): Promise<Report[]
   }
 }
 
-export async function getPatientMedicalHistoryAsString(patientId: string): Promise<string> {
+export async function getPatientMedicalHistoryAsString(userId: string): Promise<string> {
   try {
     const patient = await withDatabase(async (prisma) => {
       return await prisma.user.findUnique({
-      where: { userId: patientId },
+      where: { userId: userId },
       include: {
         patientInfo: true,
         consultations: {
@@ -3265,7 +3257,7 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
 
 // RECEIPT FUNCTIONS
 export async function createReceipt(receiptData: {
-  patientId: string;
+  userId: string;
   amount: number;
   concept: string;
   method: string;
@@ -3322,7 +3314,7 @@ export async function createReceipt(receiptData: {
 
     console.log('Creating receipt with data:', {
       number: receiptNumber,
-      patientId: receiptData.patientId,
+      userId: receiptData.userId,
       amount: receiptData.amount,
       concept: receiptData.concept,
       method: receiptData.method,
@@ -3332,7 +3324,7 @@ export async function createReceipt(receiptData: {
     const receipt = await prisma.receipt.create({
       data: {
         number: receiptNumber,
-        patientUserId: receiptData.patientId, // Use patientUserId instead of patientId
+        patientUserId: receiptData.userId, // Use userId
         amount: new Decimal(receiptData.amount),
         concept: receiptData.concept,
         method: receiptData.method,
@@ -3343,12 +3335,12 @@ export async function createReceipt(receiptData: {
     console.log('Receipt created successfully:', receipt);
 
     // Create audit log
-    await createAuditLog('admin-master-001', 'Comprobante creado', `Comprobante ${receiptNumber} generado para paciente ${receiptData.patientId}`);
+    await createAuditLog('admin-master-001', 'Comprobante creado', `Comprobante ${receiptNumber} generado para paciente ${receiptData.userId}`);
 
     return {
       id: receipt.id,
       number: receipt.number,
-      patientId: receipt.patientUserId, // Use patientUserId instead of patientId
+      userId: receipt.patientUserId, // Use patientUserId instead of patientId
       amount: Number(receipt.amount), // Convert Decimal to number
       concept: receipt.concept,
       method: receipt.method,

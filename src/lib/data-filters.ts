@@ -18,7 +18,7 @@ export function filterPatientsByRole(patients: any[], user: User): any[] {
     
     case 'patient':
       // Paciente ve solo su propia información
-      return patients.filter(patient => patient.id === user.patientId);
+      return patients.filter(patient => patient.id === user.userId);
     
     case 'secretaria':
       // Secretaria ve todos los pacientes
@@ -48,7 +48,7 @@ export function filterAppointmentsByRole(appointments: any[], user: User): any[]
     
     case 'patient':
       // Paciente ve solo sus citas
-      return appointments.filter(appointment => appointment.patientId === user.patientId);
+      return appointments.filter(appointment => appointment.userId === user.userId);
     
     case 'secretaria':
       // Secretaria ve todas las citas
@@ -108,7 +108,7 @@ export function filterPaymentsByRole(payments: any[], user: User): any[] {
     
     case 'patient':
       // Paciente ve solo sus pagos
-      return payments.filter(payment => payment.patientId === user.patientId);
+      return payments.filter(payment => payment.userId === user.userId);
     
     case 'secretaria':
       // Secretaria ve todos los pagos
@@ -168,7 +168,7 @@ export function filterMedicalHistoryByRole(history: any[], user: User): any[] {
     
     case 'patient':
       // Paciente ve solo su historia médica
-      return history.filter(record => record.patientId === user.patientId);
+      return history.filter(record => record.userId === user.userId);
     
     case 'secretaria':
       // Secretaria ve todas las historias

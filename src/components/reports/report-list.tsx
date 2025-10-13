@@ -8,17 +8,17 @@ import { AddReportFab } from './add-report-fab';
 
 interface ReportListProps {
   initialReports: Report[];
-  patientId: string;
+  userId: string;
 }
 
-export default function ReportList({ initialReports, patientId }: ReportListProps) {
+export default function ReportList({ initialReports, userId }: ReportListProps) {
   const [reports, setReports] = useState<Report[]>(initialReports);
 
   const handleNewReport = (values: NewReportFormValues) => {
     const newReport: Report = {
       ...values,
       id: `rep-${Date.now()}`,
-      patientId: patientId,
+      userId: userId,
       fileUrl: '#', // Default file URL since NewReportFormValues doesn't have fileUrl
     };
     setReports(prev => [newReport, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));

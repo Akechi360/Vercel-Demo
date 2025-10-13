@@ -46,7 +46,7 @@ type EditPatientFormValues = z.infer<typeof editPatientSchema>;
 interface PatientActionsProps {
   patient: Patient;
   onPatientUpdated?: (updatedPatient: Patient) => void;
-  onPatientDeleted?: (patientId: string) => void;
+  onPatientDeleted?: (userId: string) => void;
 }
 
 export default function PatientActions({ patient, onPatientUpdated, onPatientDeleted }: PatientActionsProps) {

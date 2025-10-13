@@ -17,7 +17,7 @@ export async function ServerPatientAccessGate({ userId, children }: ServerPatien
 
   // Check if user is a patient with restricted access
   const isRestricted = userStatus.role === 'patient' && 
-    (userStatus.status === 'INACTIVE' || !userStatus.patientId);
+    (userStatus.status === 'INACTIVE' || !userStatus.userId);
 
   if (isRestricted) {
     return <RestrictedNotice />;

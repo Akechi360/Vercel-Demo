@@ -19,7 +19,7 @@ import { Textarea } from "../ui/textarea";
 import { useAuth } from "../layout/auth-provider";
 
 const formSchema = z.object({
-  patientId: z.string({ required_error: "Debe seleccionar un paciente." }),
+  userId: z.string({ required_error: "Debe seleccionar un paciente." }),
   doctorId: z.string({ required_error: "Debe seleccionar un doctor." }),
   date: z.date({ required_error: "Se requiere una fecha." }),
   reason: z.string().min(5, "El motivo debe tener al menos 5 caracteres."),
@@ -54,16 +54,16 @@ export function AddAppointmentForm({ onFormSubmit }: AddAppointmentFormProps) {
   const form = useForm<AddAppointmentFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-        patientId: isPatient ? currentUser?.patientId || undefined : undefined,
+        userId: isPatient ? currentUser?.userId || undefined : undefined,
         date: new Date(),
         reason: "",
     },
   })
 
-  // Set patientId for patient user after form is initialized
+  // Set userId for patient user after form is initialized
   useEffect(() => {
-      if (isPatient && currentUser?.patientId) {
-          form.setValue('patientId', currentUser.patientId);
+      if (isPatient && currentUser?.userId) {
+          form.setValue('userId', currentUser.userId);
       }
   }, [isPatient, currentUser, form]);
 
@@ -73,7 +73,7 @@ export function AddAppointmentForm({ onFormSubmit }: AddAppointmentFormProps) {
         {!isPatient && (
             <FormField
                 control={form.control}
-                name="patientId"
+                name="userId"
                 render={({ field }) => (
                 <FormItem>
                     <FormLabel>Paciente</FormLabel>

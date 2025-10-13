@@ -19,24 +19,24 @@ function DeniedAccess() {
     )
 }
 
-export default function PatientReportsPage({ params }: { params: Promise<{ patientId: string }> }) {
-    const { patientId } = use(params);
+export default function PatientReportsPage({ params }: { params: Promise<{ userId: string }> }) {
+    const { userId } = use(params);
     const { currentUser, can } = useAuth();
     const [reports, setReports] = useState<Report[] | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const canView = can('patients:write') || currentUser?.patientId === patientId;
+    const canView = can('patients:write') || currentUser?.userId === userId;
     
     useEffect(() => {
         if (canView) {
-            getReportsByPatientId(patientId).then(data => {
+            getReportsByPatientId(userId).then(data => {
                 setReports(data);
                 setLoading(false);
             });
         } else {
             setLoading(false);
         }
-    }, [patientId, canView]);
+    }, [userId, canView]);
 
     if (loading) {
         return <div>Cargando informes...</div>;
@@ -51,5 +51,5 @@ export default function PatientReportsPage({ params }: { params: Promise<{ patie
         return <div>Error al cargar informes.</div>;
     }
 
-    return <ReportList initialReports={reports} patientId={patientId} />;
+    return <ReportList initialReports={reports} userId={userId} />;
 }

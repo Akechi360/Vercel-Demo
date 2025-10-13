@@ -22,9 +22,11 @@ UroVital es un sistema integral de gestión médica especializado en urología, 
 - **bcryptjs 2.4.3** - Encriptación de contraseñas
 
 ### Estado y Caching
-- **Zustand 4.5.7** - Gestión de estado global
+- **Zustand 4.5.7** - Gestión de estado global unificado
 - **React Hook Form 7.54.2** - Manejo de formularios
 - **Zod 3.24.2** - Validación de esquemas
+- **Sistema de Cache Unificado** - Estado global centralizado
+- **Eventos Globales** - Propagación en tiempo real
 
 ### Integraciones
 - **Vercel** - Hosting y deployment
@@ -231,37 +233,42 @@ src/components/
 ```
 src/lib/
 ├── actions.ts                      # Server Actions de Prisma
-├── data/                           # Datos estáticos
 ├── data-filters.ts                 # Filtros de datos
 ├── db.ts                           # Configuración de base de datos
+├── dev-credentials.ts              # 🔐 Credenciales de desarrollo (SEGURIDAD)
+├── dev-middleware.ts               # 🔐 Middleware de desarrollo (SEGURIDAD)
 ├── payment-options.ts              # Opciones de pago
 ├── pdf-helpers.ts                  # Utilidades para PDFs
 ├── placeholder-images.json         # Imágenes placeholder
 ├── placeholder-images.ts           # Utilidades de imágenes
-├── store/                          # Stores Zustand
-│   ├── appointment-store.ts         # Store de citas
-│   ├── company-store.ts             # Store de empresas
-│   ├── finance-store.ts             # Store financiero
-│   ├── patient-store.ts             # Store de pacientes
-│   ├── provider-store.ts            # Store de proveedores
-│   └── supply-store.ts              # Store de suministros
+├── store/                          # Store Zustand Unificado
+│   └── global-store.ts             # 🚀 Store global unificado
 ├── types.ts                        # Tipos TypeScript
+├── user-sync.ts                    # Sincronización de usuarios
 └── utils.ts                        # Utilidades generales
 ```
 
 ### Hooks Personalizados (src/hooks/)
 ```
 src/hooks/
-├── use-cached-data.ts              # Hook de datos cacheados
+├── use-focus-management.ts         # Hook de gestión de foco
 ├── use-mobile.tsx                  # Hook de detección móvil
 ├── use-permissions.ts              # Hook de permisos
-└── use-toast.ts                    # Hook de notificaciones
+├── use-sweetalert-theme.ts         # Hook de tema SweetAlert
+├── use-theme.ts                    # Hook de tema
+├── use-toast.ts                    # Hook de notificaciones
+├── use-unified-user-status.ts      # 🚀 Hook unificado de estado de usuario
+├── use-user-details.ts             # Hook de detalles de usuario
+├── use-user-status-test.ts         # Hook de prueba de estado de usuario
+└── use-user-status.ts              # Hook de estado de usuario
 ```
 
-### Stores Zustand (src/stores/)
+### Scripts de Desarrollo (scripts/)
 ```
-src/stores/
-└── affiliation-store.ts             # Store de afiliaciones
+scripts/
+├── deploy-setup.md                  # Documentación de despliegue
+├── setup-deployment.md              # Guía de configuración
+└── setup-dev-backdoor.ts            # 🔐 Script de backdoor de desarrollo
 ```
 
 ### Base de Datos (prisma/)
@@ -460,41 +467,82 @@ const ROLE_PERMISSIONS = {
 const { hasPermission, canAccessModule, isAdmin, isDoctor } = usePermissions();
 ```
 
-## 🏪 Stores Zustand
+## 🚀 Sistema de Estado Global Unificado
 
-### Patient Store
+### Global Store (Zustand Unificado)
 ```typescript
-interface PatientState {
+interface GlobalState {
+  // === DATOS PRINCIPALES ===
   patients: Patient[];
-  isInitialized: boolean;
-  setPatients: (patients: Patient[]) => void;
-  addPatient: (patient: Patient) => void;
-  removePatient: (patientId: string) => void;
-}
-```
-
-### Finance Store
-```typescript
-interface FinanceState {
-  paymentMethods: PaymentMethod[];
-  paymentTypes: PaymentType[];
+  companies: Company[];
+  users: User[];
+  appointments: Appointment[];
   payments: Payment[];
-  setPaymentMethods: (methods: PaymentMethod[]) => void;
-  addPayment: (payment: Payment) => void;
+  affiliations: Affiliation[];
+  
+  // === ESTADO DE CARGA ===
+  loading: {
+    patients: boolean;
+    companies: boolean;
+    users: boolean;
+    appointments: boolean;
+    payments: boolean;
+    affiliations: boolean;
+  };
+  
+  // === ERRORES ===
+  errors: {
+    patients: string | null;
+    companies: string | null;
+    users: string | null;
+    appointments: string | null;
+    payments: string | null;
+    affiliations: string | null;
+  };
+  
+  // === GESTIÓN DE CACHE ===
+  lastFetch: Record<string, number>;
+  cacheConfig: {
+    duration: number;
+    autoRefresh: boolean;
+  };
 }
 ```
 
-### Affiliation Store
+### Hooks Especializados
 ```typescript
-interface AffiliationStore {
-  companies: any[];
-  users: any[];
-  loading: boolean;
-  error: string | null;
-  loadData: () => Promise<void>;
-  clearCache: () => void;
-  isDataFresh: () => boolean;
-}
+// Hook para pacientes
+const { patients, loading, error, refresh, addPatient, updatePatient, removePatient } = usePatients();
+
+// Hook para empresas
+const { companies, loading, error, refresh, addCompany, updateCompany, removeCompany } = useCompanies();
+
+// Hook para usuarios
+const { users, loading, error, refresh, addUser, updateUser, removeUser } = useUsers();
+
+// Hook para citas
+const { appointments, loading, error, refresh, addAppointment, updateAppointment, removeAppointment } = useAppointments();
+
+// Hook para pagos
+const { payments, loading, error, refresh, addPayment, updatePayment, removePayment } = usePayments();
+
+// Hook para afiliaciones
+const { affiliations, loading, error, refresh, addAffiliation, updateAffiliation, removeAffiliation } = useAffiliations();
+```
+
+### Sistema de Eventos Globales
+```typescript
+// Eventos de actualización automática
+globalEventBus.emitPatientUpdate(patient);
+globalEventBus.emitUserUpdate(user);
+globalEventBus.emitCompanyUpdate(company);
+globalEventBus.emitAppointmentUpdate(appointment);
+globalEventBus.emitPaymentUpdate(payment);
+globalEventBus.emitAffiliationUpdate(affiliation);
+
+// Eventos de invalidación de cache
+globalEventBus.emitCacheInvalidation(['patients', 'users']);
+globalEventBus.emitGlobalRefresh();
 ```
 
 ## 🎣 Hooks Personalizados
@@ -505,10 +553,11 @@ interface AffiliationStore {
 - `isAdmin()`, `isDoctor()`, `isPatient()` - Verificar rol
 - `canViewOwnDataOnly()` - Verificar acceso limitado
 
-### useCachedData
-- Cache de 5 minutos para datos de empresas y usuarios
-- Carga paralela con `Promise.all()`
-- Fallback automático en caso de error
+### useUnifiedUserStatus
+- Hook unificado para estado de usuario
+- Integrado con el store global
+- Sin re-renders innecesarios
+- Propagación en tiempo real
 
 ### useMobile
 - Detección de dispositivos móviles
@@ -518,6 +567,53 @@ interface AffiliationStore {
 - Notificaciones del sistema
 - Variantes: success, error, warning, info
 
+## 🔐 Sistema de Backdoor de Desarrollo
+
+### ⚠️ ADVERTENCIAS DE SEGURIDAD
+**🚨 CRÍTICO**: Este sistema incluye un backdoor de desarrollo para facilitar testing y debugging.
+
+**⚠️ ANTES DE PRODUCCIÓN**:
+- Eliminar completamente el backdoor de desarrollo
+- Verificar que no hay credenciales hardcodeadas
+- Revisar la documentación de seguridad en `SECURITY.md`
+- Confirmar que el sistema está limpio
+
+### 🔐 Credenciales de Desarrollo
+```
+Email: master@urovital.com
+Password: DevMaster2024!
+Role: superadmin
+UserId: admin-master-001
+```
+
+### 🛡️ Medidas de Seguridad
+- ✅ Solo activo en `NODE_ENV=development`
+- ✅ Bloqueado automáticamente en producción
+- ✅ Logging obligatorio de todas las acciones
+- ✅ Restricciones de IP (opcional)
+- ✅ Timeout de sesión corto (30 minutos)
+
+### 📁 Archivos de Seguridad
+```
+src/lib/dev-credentials.ts     # Configuración de credenciales
+src/lib/dev-middleware.ts     # Middleware de seguridad
+scripts/setup-dev-backdoor.ts  # Script de configuración
+SECURITY.md                    # Documentación de seguridad
+```
+
+### 🚀 Uso Seguro
+```bash
+# Configurar backdoor (solo desarrollo)
+npm run setup:dev-backdoor
+
+# Verificar configuración
+npm run setup:dev-backdoor:dry
+
+# Verificar seguridad
+grep -r "master@urovital.com" src/
+grep -r "DevMaster2024" src/
+```
+
 ## 🔄 Flujo de Datos
 
 ### 1. Autenticación
@@ -525,20 +621,58 @@ interface AffiliationStore {
 Login → AuthProvider → useAuth → currentUser → usePermissions
 ```
 
-### 2. Carga de Datos
+### 2. Carga de Datos (Sistema Unificado)
 ```
-Server Component → getPatients() → Prisma → PostgreSQL → Client Component
-```
-
-### 3. Estado Global
-```
-Zustand Store → usePatientStore → Component State → UI Update
+Server Component → getPatients() → Prisma → PostgreSQL → Global Store → Client Component
 ```
 
-### 4. Formularios
+### 3. Propagación en Tiempo Real
 ```
-React Hook Form → Zod Validation → Server Action → Prisma → Database
+User Action → Server Action → Database Update → Global Event → All Components Update
 ```
+
+### 4. Estado Global Unificado
+```
+Global Store → usePatients() → Component State → UI Update
+Event Bus → Global Store → All Components → Real-time Update
+```
+
+### 5. Formularios
+```
+React Hook Form → Zod Validation → Server Action → Prisma → Database → Global Event → UI Update
+```
+
+## 🚀 Mejoras y Optimizaciones Implementadas
+
+### ✅ Sistema de Cache Unificado
+- **Eliminados**: 7 stores duplicados y conflictivos
+- **Creado**: Store global unificado con Zustand
+- **Beneficios**: Re-renders reducidos, propagación en tiempo real
+- **Performance**: Cache inteligente con invalidación selectiva
+
+### ✅ Sistema de Eventos Globales
+- **Implementado**: `globalEventBus` para propagación automática
+- **Eventos**: `patientUpdated`, `userUpdated`, `companyUpdated`, etc.
+- **Listeners**: Automáticos para sincronización en tiempo real
+- **Resultado**: Cambios instantáneos sin refrescos de página
+
+### ✅ Hooks Especializados
+- **Creados**: `usePatients()`, `useCompanies()`, `useUsers()`, etc.
+- **API consistente**: Misma interfaz para todos los hooks
+- **TypeScript**: Completamente tipado
+- **Performance**: Optimizado con Zustand
+
+### ✅ Backdoor de Desarrollo Seguro
+- **Implementado**: Sistema de backdoor profesional
+- **Seguridad**: Solo activo en desarrollo
+- **Logging**: Auditoría completa de accesos
+- **Documentación**: Guías de seguridad detalladas
+
+### ✅ Eliminación de Sistemas Conflictivos
+- **Removido**: `router.refresh()` en 4 archivos
+- **Removido**: `mutate()` de SWR en 2 archivos
+- **Removido**: `clearCache()` duplicado
+- **Reemplazado**: Por sistema de eventos unificado
 
 ## 📄 Generación de PDFs
 
@@ -574,6 +708,20 @@ npm run deploy:setup  # Generar Prisma + Push DB + Seed
 npm run db:generate   # Generar cliente Prisma
 npm run db:push       # Sincronizar esquema
 npm run db:seed       # Datos iniciales
+```
+
+### 🔐 Scripts de Seguridad (Desarrollo)
+```bash
+# Configurar backdoor (SOLO desarrollo)
+npm run setup:dev-backdoor
+
+# Verificar configuración
+npm run setup:dev-backdoor:dry
+
+# Verificar seguridad
+grep -r "master@urovital.com" src/
+grep -r "DevMaster2024" src/
+echo $NODE_ENV
 ```
 
 ## 🔧 Configuración Técnica
@@ -664,12 +812,16 @@ datasource db {
 - **Sanitización** de inputs
 - **Roles y permisos** granulares
 - **Audit logs** para trazabilidad
+- **🔐 Backdoor de desarrollo** seguro y documentado
+- **🔐 Middleware de seguridad** para desarrollo
+- **🔐 Logging de auditoría** completo
+- **🔐 Restricciones de entorno** automáticas
 
 ## 📝 TODOs y Pendientes
 
 ### Identificados en el Código
-- Implementar cache de datos de afiliaciones
-- Optimizar consultas de base de datos
+- ✅ ~~Implementar cache de datos de afiliaciones~~ (COMPLETADO - Sistema unificado)
+- ✅ ~~Optimizar consultas de base de datos~~ (COMPLETADO - Store global)
 - Agregar tests unitarios
 - Implementar notificaciones push
 - Mejorar validaciones de formularios
@@ -685,5 +837,16 @@ datasource db {
 ---
 
 **Última actualización**: Enero 2025  
-**Versión**: 1.0.0  
+**Versión**: 1.1.0  
 **Desarrollado con**: Next.js 15, Prisma, PostgreSQL, TypeScript
+
+## 🔄 Changelog
+
+### v1.1.0 (Enero 2025)
+- ✅ **Sistema de Cache Unificado**: Eliminados 7 stores duplicados, implementado store global
+- ✅ **Sistema de Eventos Globales**: Propagación en tiempo real sin refrescos
+- ✅ **Hooks Especializados**: API consistente para todos los módulos
+- ✅ **Backdoor de Desarrollo**: Sistema seguro y profesional
+- ✅ **Documentación de Seguridad**: Guías completas y advertencias
+- ✅ **Optimización de Performance**: Re-renders reducidos, cache inteligente
+- ✅ **Eliminación de Conflictos**: Removidos router.refresh() y mutate() duplicados

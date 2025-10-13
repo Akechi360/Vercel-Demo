@@ -11,7 +11,7 @@ import { useState, useEffect } from "react";
 import AffiliationActions from "@/components/affiliations/affiliation-actions";
 import { AddAffiliationDialog } from "@/components/affiliations/add-affiliation-dialog";
 import { useRouter } from "next/navigation";
-import { useAffiliationStore } from "@/stores/affiliation-store";
+import { useAffiliations } from "@/lib/store/global-store";
 
 interface AfiliacionesPageClientProps {
   initialAffiliations: any[];
@@ -20,13 +20,13 @@ interface AfiliacionesPageClientProps {
 export function AfiliacionesPageClient({ initialAffiliations }: AfiliacionesPageClientProps) {
   const [affiliations, setAffiliations] = useState(initialAffiliations);
   const router = useRouter();
-  const { loadData } = useAffiliationStore();
+  const { refresh } = useAffiliations();
 
   // Prefetch silencioso al montar la página
   useEffect(() => {
     console.log('🚀 Starting silent prefetch for affiliation modal data...');
-    loadData(); // Carga datos en background sin bloquear UI
-  }, [loadData]);
+    refresh(); // Carga datos en background sin bloquear UI
+  }, [refresh]);
 
   const handleRemoveAffiliation = (id: string) => {
     setAffiliations(prev => prev.filter(item => item.id !== id));
@@ -39,11 +39,11 @@ export function AfiliacionesPageClient({ initialAffiliations }: AfiliacionesPage
 
   const handleRefreshAffiliations = async () => {
     try {
-      // Use Next.js router refresh for better reliability
-      router.refresh();
+      // Use global store refresh for better reliability
+      await refresh();
     } catch (error) {
       console.error('Error refreshing affiliations:', error);
-      // Fallback to page reload only if router.refresh fails
+      // Fallback to page reload only if refresh fails
       window.location.reload();
     }
   };

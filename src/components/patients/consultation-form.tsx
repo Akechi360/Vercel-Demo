@@ -47,15 +47,15 @@ const formSchema = z.object({
   })).optional(),
 })
 
-export type ConsultationFormValues = Omit<Consultation, 'id' | 'patientId'>;
+export type ConsultationFormValues = Omit<Consultation, 'id' | 'userId'>;
 
 
 interface ConsultationFormProps {
-    patientId: string;
+    userId: string;
     onFormSubmit: (values: ConsultationFormValues) => void;
 }
 
-export function ConsultationForm({ patientId, onFormSubmit }: ConsultationFormProps) {
+export function ConsultationForm({ userId, onFormSubmit }: ConsultationFormProps) {
   const { toast } = useToast()
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,7 +117,7 @@ export function ConsultationForm({ patientId, onFormSubmit }: ConsultationFormPr
         prescriptions: (values.prescriptions || []).map(p => ({ ...p, id: p.id || `rx-${Date.now()}-${Math.random()}` })),
         reports: (values.reports || []).map(r => ({
             id: r.id || `rep-${Date.now()}`,
-            patientId: patientId,
+            userId: userId,
             title: r.title,
             date: new Date().toISOString(), 
             fileUrl: r.file?.name || '#',

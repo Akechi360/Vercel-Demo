@@ -13,7 +13,7 @@ export async function UpcomingAppointments({ appointments }: UpcomingAppointment
     const patients = await getPatients();
     const appointmentsWithPatients = appointments.map(appt => ({
         ...appt,
-        patient: patients.find(p => p.id === appt.patientId)
+        patient: patients.find(p => p.id === appt.userId)
     }));
 
   return (

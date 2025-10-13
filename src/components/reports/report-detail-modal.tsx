@@ -28,7 +28,7 @@ export function ReportDetailModal({ isOpen, setIsOpen, report }: ReportDetailMod
 
   const handleExport = async () => {
     try {
-        const patient = await getPatientById(report.patientId);
+        const patient = await getPatientById(report.userId);
         if (!patient) {
             toast({
                 variant: 'destructive',

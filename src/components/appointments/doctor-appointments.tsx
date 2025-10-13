@@ -168,7 +168,7 @@ export function DoctorAppointments({
         >
           {filteredAppointments.length > 0 ? (
             filteredAppointments.map((appt) => {
-              const patient = patientsMap.get(appt.patientId);
+              const patient = patientsMap.get(appt.userId);
               const config = statusConfig[appt.status];
               if (!patient) return null;
 

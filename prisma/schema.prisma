@@ -253,7 +253,7 @@ model Affiliation {
   updatedAt     DateTime          @updatedAt
   tipoPago      String?
   company       Company?          @relation(fields: [companyId], references: [id])
-  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User              @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@map("affiliations")
 }
@@ -343,7 +343,7 @@ model AuditLog {
   action    String
   details   String?
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@map("audit_logs")
 }

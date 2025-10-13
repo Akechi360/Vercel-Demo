@@ -1,5 +1,7 @@
 'use client';
 
+import { globalEventBus } from '@/lib/store/global-store';
+
 // Function to sync user data in localStorage when changes are made by admin
 export function syncUserData(updatedUser: {
   id: string;
@@ -7,7 +9,7 @@ export function syncUserData(updatedUser: {
   email: string;
   role: string;
   status: string;
-  patientId?: string | null;
+  userId?: string | null;
 }) {
   console.log('🚀 syncUserData called with:', updatedUser);
   
@@ -32,25 +34,27 @@ export function syncUserData(updatedUser: {
         email: updatedUser.email,
         role: updatedUser.role,
         status: updatedUser.status,
-        patientId: updatedUser.patientId,
+        userId: updatedUser.userId,
       };
       
       localStorage.setItem('user', JSON.stringify(syncedUser));
       console.log('✅ User data synced in localStorage:', syncedUser);
     }
     
-    // ALWAYS dispatch the event, regardless of whether it's the current user
-    // This allows other components to react to any user changes
-    console.log('🔄 Dispatching userDataUpdated event for user:', updatedUser.id);
-    console.log('📡 Event detail being dispatched:', updatedUser);
-    
-    const event = new CustomEvent('userDataUpdated', { 
-      detail: updatedUser 
-    });
-    
-    console.log('📤 Event created:', event);
-    window.dispatchEvent(event);
-    console.log('✅ Event dispatched successfully');
+    // ALWAYS dispatch the global event, regardless of whether it's the current user
+    // This allows all components to react to any user changes
+    console.log('🔄 Dispatching global user update event for user:', updatedUser.id);
+    // Convert to full User type for global store
+    const fullUser = {
+      ...updatedUser,
+      password: '', // Not needed for updates
+      createdAt: new Date(),
+      phone: null,
+      lastLogin: null,
+      avatarUrl: null,
+    };
+    globalEventBus.emitUserUpdate(fullUser);
+    console.log('✅ Global user update event dispatched successfully');
     
     // No need to reload the page - let the event system handle updates
     console.log('✅ User data sync completed without page reload');
@@ -67,9 +71,9 @@ export function checkForUserUpdates() {
 
     const currentUser = JSON.parse(currentUserJson);
     
-    // Check if user is a patient without patientId (should be restricted)
-    if (currentUser.role === 'patient' && !currentUser.patientId) {
-      console.log('🔍 Patient without patientId detected, may need restriction');
+    // Check if user is a patient without userId (should be restricted)
+    if (currentUser.role === 'patient' && !currentUser.userId) {
+      console.log('🔍 Patient without userId detected, may need restriction');
     }
     
     // Check if user is inactive

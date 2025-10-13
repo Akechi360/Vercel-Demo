@@ -4,13 +4,13 @@ import { ConsultationCard } from "./consultation-card"
 import { AddHistoryFab } from "../patients/add-history-fab";
 
 interface MedicalHistoryTimelineProps {
-    patientId: string;
+    userId: string;
     history: Consultation[];
-    onNewConsultation: (consultation: Omit<Consultation, 'id' | 'patientId'>) => void;
+    onNewConsultation: (consultation: Omit<Consultation, 'id' | 'userId'>) => void;
     children?: React.ReactNode;
 }
 
-export function MedicalHistoryTimeline({ patientId, history, onNewConsultation, children }: MedicalHistoryTimelineProps) {
+export function MedicalHistoryTimeline({ userId, history, onNewConsultation, children }: MedicalHistoryTimelineProps) {
     const sortedHistory = [...history].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return (
@@ -37,7 +37,7 @@ export function MedicalHistoryTimeline({ patientId, history, onNewConsultation, 
                     </div>
                 )}
             </div>
-            <AddHistoryFab patientId={patientId} onFormSubmit={onNewConsultation} />
+            <AddHistoryFab userId={userId} onFormSubmit={onNewConsultation} />
         </div>
     )
 }

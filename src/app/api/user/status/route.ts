@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
       id: userStatus.id,
       role: userStatus.role,
       status: userStatus.status,
-      patientId: userStatus.patientId,
+      userId: userStatus.userId,
     };
     
     console.log('✅ Returning user status:', response);
@@ -107,7 +107,7 @@ export async function PATCH(request: NextRequest) {
       id: updatedUser.id,
       role: updatedUser.role,
       status: updatedUser.status,
-      patientId: updatedUser.userId,
+      userId: updatedUser.userId,
     };
     
     console.log('✅ Returning updated user status:', response);

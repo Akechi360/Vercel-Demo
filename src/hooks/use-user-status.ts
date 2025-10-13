@@ -5,7 +5,7 @@ interface UserStatus {
   id: string;
   role: string;
   status: string;
-  patientId: string | null;
+  userId: string | null;
 }
 
 interface UseUserStatusReturn {

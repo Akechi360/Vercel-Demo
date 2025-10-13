@@ -34,11 +34,11 @@ const scoreOptions = [
 ];
 
 interface IpssCalculatorProps {
-  patientId: string;
+  userId: string;
   historicalScores: IpssScore[];
 }
 
-export function IpssCalculator({ patientId, historicalScores }: IpssCalculatorProps) {
+export function IpssCalculator({ userId, historicalScores }: IpssCalculatorProps) {
   const [scores, setScores] = useState<Record<string, number | null>>({});
   const [showResult, setShowResult] = useState(false);
   const [localHistory, setLocalHistory] = useState(historicalScores);
@@ -77,7 +77,7 @@ export function IpssCalculator({ patientId, historicalScores }: IpssCalculatorPr
   const handleSave = () => {
     const newScore: IpssScore = {
         id: `ipss-${Date.now()}`,
-        patientId,
+        userId,
         date: new Date().toISOString(),
         score: totalScore || 0,
         category: scoreCategory.name as 'Leve' | 'Moderado' | 'Severo',

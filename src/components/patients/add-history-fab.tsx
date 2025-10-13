@@ -16,14 +16,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
   
 
-export function AddHistoryFab({ patientId, onFormSubmit }: { patientId: string; onFormSubmit: (values: ConsultationFormValues) => void }) {
+export function AddHistoryFab({ userId, onFormSubmit }: { userId: string; onFormSubmit: (values: ConsultationFormValues) => void }) {
     const [open, setOpen] = useState(false);
     const { toast } = useToast();
 
     const handleFormSubmit = async (values: ConsultationFormValues) => {
         try {
             await addConsultation({
-                patientId: patientId,
+                userId: userId,
                 date: values.date,
                 doctor: values.doctor,
                 type: values.type,
@@ -65,7 +65,7 @@ export function AddHistoryFab({ patientId, onFormSubmit }: { patientId: string; 
                     Rellena los detalles para el nuevo registro de consulta.
                 </DialogDescription>
                 </DialogHeader>
-                <ConsultationForm patientId={patientId} onFormSubmit={handleFormSubmit} />
+                <ConsultationForm userId={userId} onFormSubmit={handleFormSubmit} />
             </DialogContent>
         </Dialog>
     )

@@ -69,7 +69,7 @@ export function FinanceTable({
 
   const filteredPayments = useMemo(() => {
     return payments.filter(payment => {
-      const patient = patientMap.get(payment.patientId);
+      const patient = patientMap.get(payment.userId);
       const matchesSearch = patient?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            payment.id.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'Todos' || payment.status === statusFilter;
@@ -140,7 +140,7 @@ export function FinanceTable({
         startY: 30,
         head: [['Paciente', 'Doctor', 'Fecha', 'Monto', 'Método', 'Estado']],
         body: filteredPayments.map(p => {
-          const patient = patientMap.get(p.patientId);
+          const patient = patientMap.get(p.userId);
           const doctor = doctorMap.get(p.doctorId || '');
           const method = paymentMethodMap.get(p.paymentMethodId);
           return [
@@ -225,7 +225,7 @@ export function FinanceTable({
         doc.setTextColor(0, 0, 0);
 
         // Patient info
-        const patient = patientMap.get(payment.patientId);
+        const patient = patientMap.get(payment.userId);
         const doctor = doctorMap.get(payment.doctorId || '');
         const paymentMethod = paymentMethodMap.get(payment.paymentMethodId);
         
@@ -707,7 +707,7 @@ export function FinanceTable({
                     <DialogDescription>ID: {selectedPayment.id}</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
-                    <p><strong>Paciente:</strong> {patientMap.get(selectedPayment.patientId)?.name ?? 'N/A'}</p>
+                    <p><strong>Paciente:</strong> {patientMap.get(selectedPayment.userId)?.name ?? 'N/A'}</p>
                     <p><strong>Doctor:</strong> {doctorMap.get(selectedPayment.doctorId || '')?.name ?? 'N/A'}</p>
                     <p><strong>Monto:</strong> ${selectedPayment.monto.toFixed(2)}</p>
                     <p><strong>Fecha:</strong> {new Date(selectedPayment.date).toLocaleDateString()}</p>

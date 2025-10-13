@@ -44,7 +44,7 @@ export default function AppointmentsPage() {
     )
   }
 
-  const { role, patientId: currentPatientId } = currentUser;
+  const { role, userId: currentPatientId } = currentUser;
   
   const renderContent = () => {
     switch (role) {
@@ -64,7 +64,7 @@ export default function AppointmentsPage() {
         return (
             <>
                 <PatientAppointments
-                    patientId={currentPatientId!}
+                    userId={currentPatientId!}
                 />
                 {can('appointments:write') && <AddAppointmentFab />}
             </>

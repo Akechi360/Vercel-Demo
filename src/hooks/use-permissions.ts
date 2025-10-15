@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@/components/layout/auth-provider';
-import { Permission, ROLE_PERMISSIONS } from '@/lib/types';
+import { Permission, ROLE_PERMISSIONS, UserRole } from '@/lib/types';
 
 export function usePermissions() {
   const { currentUser: user } = useAuth();
@@ -13,7 +13,7 @@ export function usePermissions() {
     if (user.role === 'admin') return true;
     
     // Verificar si el rol tiene el permiso específico
-    const rolePermissions = ROLE_PERMISSIONS[user.role] || [];
+    const rolePermissions = ROLE_PERMISSIONS[user.role as UserRole] || [];
     return rolePermissions.includes(permission);
   };
 

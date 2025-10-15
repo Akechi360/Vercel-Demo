@@ -80,14 +80,13 @@ async function emergencyReset() {
     console.log('4. Update documentation with new credentials');
     
     // Log the security event
-    await prisma.auditLog.create({
-      data: {
-        action: 'EMERGENCY_CREDENTIAL_RESET',
-        details: 'Development backdoor credentials reset due to security breach',
-        userId: updatedUser.id,
-        userAgent: 'Emergency Reset Script',
-      },
-    });
+      await prisma.auditLog.create({
+        data: {
+          action: 'EMERGENCY_CREDENTIAL_RESET',
+          details: 'Development backdoor credentials reset due to security breach',
+          userId: updatedUser.id,
+        },
+      });
     
     console.log('📝 Security event logged in audit trail');
     

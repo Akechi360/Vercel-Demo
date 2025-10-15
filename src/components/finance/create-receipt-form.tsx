@@ -157,7 +157,6 @@ export function CreateReceiptForm({ patients, onSuccess }: CreateReceiptFormProp
         amount: parseFloat(values.amount),
         concept: values.concept,
         method: values.method,
-        createdBy: currentUser.email,
       });
 
       toast({

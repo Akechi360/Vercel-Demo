@@ -172,7 +172,7 @@ export function ConsultationForm({ userId, onFormSubmit }: ConsultationFormProps
                 fileUrl: r.file?.name || '#',
                 type: 'Otro', // Or derive from file type
                 notes: '',
-                attachments: attachments,
+                attachments: attachments.map(att => att.name || 'file'), // Convert to string array
             };
         })), // Mock data
         labResults: (values.labResults || []).map(lr => ({

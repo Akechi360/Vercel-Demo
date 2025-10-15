@@ -21,14 +21,6 @@ export const prisma =
       db: {
         url: process.env.DATABASE_URL || 'postgresql://placeholder:placeholder@placeholder:5432/placeholder',
       },
-    },
-    // ✅ Configuración de pool de conexiones para alta concurrencia
-    __internal: {
-      engine: {
-        connectTimeout: 10000, // 10 segundos para conectar
-        queryTimeout: 30000,   // 30 segundos para consultas
-        poolTimeout: 10000,     // 10 segundos para pool
-      }
     }
   });
 

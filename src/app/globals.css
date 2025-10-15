@@ -1,0 +1,282 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* UroVital Light Theme - Colores Institucionales */
+    --background: 0 0% 100%; /* Blanco puro */
+    --foreground: 222 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 84% 4.9%;
+    
+    --primary: 210 100% 50%; /* UroVital Blue: #0384fc */
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 200 100% 95%; /* Azul claro institucional */
+    --secondary-foreground: 210 100% 50%;
+
+    --muted: 220 14% 93%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 210 100% 50%; /* UroVital Blue: #0384fc */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 100% 50%; /* UroVital Red: #fc1818 */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 210 100% 50%; /* Ring color from primary */
+
+    --radius: 1rem;
+
+    /* UroVital Brand Colors */
+    --urovital-blue: 210 100% 50%; /* #0384fc */
+    --urovital-blue-light: 200 100% 95%; /* #36b0f2 */
+    --urovital-red: 0 100% 50%; /* #fc1818 */
+    --urovital-gray: 220 14% 93%;
+
+    /* Sidebar (Light) */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 84% 4.9%;
+    --sidebar-primary: 210 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 200 100% 95%;
+    --sidebar-accent-foreground: 210 100% 50%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 210 100% 50%;
+  }
+
+  .dark {
+    /* UroVital Dark Theme - Colores Institucionales */
+    --background: 220 13% 11%; /* Azul oscuro institucional */
+    --foreground: 210 20% 98%;
+    --card: 220 13% 15%;
+    --card-foreground: 210 20% 98%;
+    --popover: 220 13% 11%;
+    --popover-foreground: 210 20% 98%;
+
+    --primary: 210 100% 50%; /* UroVital Blue: #0384fc */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 14% 24%;
+    --secondary-foreground: 210 20% 98%;
+
+    --muted: 215 14% 24%;
+    --muted-foreground: 215 10% 65%;
+
+    --accent: 210 100% 50%; /* UroVital Blue: #0384fc */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 100% 50%; /* UroVital Red: #fc1818 */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 14% 24%;
+    --input: 215 14% 24%;
+    --ring: 210 100% 50%; /* Ring color from primary */
+
+    /* UroVital Brand Colors (Dark) */
+    --urovital-blue: 210 100% 50%; /* #0384fc */
+    --urovital-blue-light: 200 100% 95%; /* #36b0f2 */
+    --urovital-red: 0 100% 50%; /* #fc1818 */
+    --urovital-gray: 220 14% 93%;
+
+    /* Sidebar (Dark) */
+    --sidebar-background: 220 13% 15%;
+    --sidebar-foreground: 210 20% 98%;
+    --sidebar-primary: 210 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 14% 24%;
+    --sidebar-accent-foreground: 210 20% 98%;
+    --sidebar-border: 215 14% 24%;
+    --sidebar-ring: 210 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* SweetAlert2 Custom Styles */
+.swal2-confirm-button {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  z-index: 9999 !important;
+  position: relative !important;
+}
+
+.swal2-popup {
+  z-index: 10000 !important;
+}
+
+.swal2-backdrop {
+  z-index: 9999 !important;
+}
+
+/* Ensure button is clickable and visible */
+.swal2-actions {
+  pointer-events: auto !important;
+}
+
+.swal2-confirm {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+}
+
+/* SweetAlert2 Theme Styles */
+.swal2-popup-theme {
+  border-radius: 1rem !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+}
+
+.swal2-title-theme {
+  font-weight: 600 !important;
+  font-size: 1.25rem !important;
+  line-height: 1.75rem !important;
+}
+
+.swal2-content-theme {
+  font-size: 0.875rem !important;
+  line-height: 1.25rem !important;
+}
+
+.swal2-confirm-theme {
+  border-radius: 0.5rem !important;
+  font-weight: 500 !important;
+  padding: 0.5rem 1rem !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.swal2-cancel-theme {
+  border-radius: 0.5rem !important;
+  font-weight: 500 !important;
+  padding: 0.5rem 1rem !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.swal2-actions-theme {
+  gap: 0.75rem !important;
+}
+
+/* Light theme specific styles */
+:root .swal2-popup {
+  background-color: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+}
+
+:root .swal2-title {
+  color: hsl(var(--foreground)) !important;
+}
+
+:root .swal2-content {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+:root .swal2-confirm {
+  background-color: hsl(var(--primary)) !important;
+  border-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+:root .swal2-cancel {
+  background-color: hsl(var(--muted)) !important;
+  border-color: hsl(var(--muted)) !important;
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* Dark theme specific styles */
+.dark .swal2-popup {
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--card-foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+}
+
+.dark .swal2-title {
+  color: hsl(var(--card-foreground)) !important;
+}
+
+.dark .swal2-content {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.dark .swal2-confirm {
+  background-color: hsl(var(--primary)) !important;
+  border-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+.dark .swal2-cancel {
+  background-color: hsl(var(--muted)) !important;
+  border-color: hsl(var(--muted)) !important;
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* UroVital Landing Page Enhancements */
+.bg-grid-pattern {
+  background-image: 
+    linear-gradient(rgba(3, 132, 252, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(3, 132, 252, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Smooth scrolling for better UX */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Focus styles for accessibility */
+.focus-visible:focus-visible {
+  outline: 2px solid hsl(var(--urovital-blue));
+  outline-offset: 2px;
+}
+
+/* Custom scrollbar for webkit browsers */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--urovital-blue));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--urovital-blue) / 0.8);
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

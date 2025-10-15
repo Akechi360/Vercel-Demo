@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { Patient } from '@/lib/types';
+import type { Patient, Company } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -51,7 +51,7 @@ interface PatientActionsProps {
 
 export default function PatientActions({ patient, onPatientUpdated, onPatientDeleted }: PatientActionsProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [companies, setCompanies] = useState<any[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
   const sweetAlertTheme = useSweetAlertTheme();
 
@@ -210,7 +210,7 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="gender">Género</Label>
-                <Select onValueChange={(value) => form.setValue('gender', value as any)} defaultValue={form.watch('gender')}>
+                <Select onValueChange={(value) => form.setValue('gender', value as 'Masculino' | 'Femenino' | 'Otro')} defaultValue={form.watch('gender')}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccione un género" />
                   </SelectTrigger>
@@ -226,7 +226,7 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
               </div>
               <div className="space-y-2">
                 <Label htmlFor="bloodType">Grupo Sanguíneo</Label>
-                <Select onValueChange={(value) => form.setValue('bloodType', value as any)} defaultValue={form.watch('bloodType')}>
+                <Select onValueChange={(value) => form.setValue('bloodType', value as string)} defaultValue={form.watch('bloodType')}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccione un tipo de sangre" />
                   </SelectTrigger>

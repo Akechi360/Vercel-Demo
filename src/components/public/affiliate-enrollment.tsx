@@ -493,7 +493,7 @@ function AffiliateEnrollmentContent() {
                 <Info className="h-4 w-4" />
                 <AlertTitle>¡Estás a un paso!</AlertTitle>
                 <AlertDescription>
-                    Al hacer clic en "Confirmar", tu solicitud será enviada. Recibirás un correo con la confirmación y los siguientes pasos para completar tu pago.
+                    Al hacer clic en &quot;Confirmar&quot;, tu solicitud será enviada. Recibirás un correo con la confirmación y los siguientes pasos para completar tu pago.
                 </AlertDescription>
             </Alert>
         </div>

@@ -21,10 +21,12 @@ export function useThemeDetection() {
 }
 
 export function getSweetAlertTheme() {
-  const { theme, systemTheme } = useTheme();
+  // Get theme from localStorage or default to dark
+  const storedTheme = typeof window !== 'undefined' ? localStorage.getItem('theme') : null;
+  const systemTheme = typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   
   // Determine the actual theme being used
-  const actualTheme = theme === 'system' ? systemTheme : theme;
+  const actualTheme = storedTheme === 'system' ? systemTheme : (storedTheme || 'dark');
   const isDark = actualTheme === 'dark';
 
   return {

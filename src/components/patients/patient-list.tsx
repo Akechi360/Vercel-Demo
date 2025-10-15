@@ -53,7 +53,7 @@ export default function PatientList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const router = useRouter();
-  const { patients, removePatient } = usePatients();
+  const { patients, removePatient, updatePatient } = usePatients();
   const { companies } = useCompanies();
   const companyMap = useMemo(() => new Map(companies.map(c => [c.id, c.name])), [companies]);
 
@@ -416,7 +416,6 @@ export default function PatientList() {
                                 patient={patient}
                                 onPatientUpdated={(updatedPatient) => {
                                     // Update the patient in the store
-                                    const { updatePatient } = usePatients();
                                     updatePatient(updatedPatient);
                                 }}
                                 onPatientDeleted={(patientId) => {
@@ -467,7 +466,6 @@ export default function PatientList() {
                                     patient={patient}
                                     onPatientUpdated={(updatedPatient) => {
                                         // Update the patient in the store
-                                        const { updatePatient } = usePatients();
                                         updatePatient(updatedPatient);
                                     }}
                                     onPatientDeleted={(patientId) => {

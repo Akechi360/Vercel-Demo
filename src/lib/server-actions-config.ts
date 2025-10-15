@@ -60,8 +60,8 @@ export function validateServerActionsConfig(): boolean {
 /**
  * Generar clave de encriptación segura para Server Actions
  */
-export function generateEncryptionKey(): string {
-  const crypto = require('crypto');
+export async function generateEncryptionKey(): Promise<string> {
+  const crypto = await import('crypto');
   return crypto.randomBytes(32).toString('base64');
 }
 

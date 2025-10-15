@@ -21,7 +21,7 @@
     "setup:dev-backdoor": "NODE_ENV=development tsx scripts/setup-dev-backdoor.ts",
     "setup:dev-backdoor:dry": "NODE_ENV=development tsx scripts/setup-dev-backdoor.ts --dry-run",
     "emergency:reset-credentials": "NODE_ENV=development tsx scripts/emergency-credential-reset.ts",
-    "lint": "next lint",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
@@ -90,11 +90,14 @@
     "zustand": "^4.5.7"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "eslint": "^9.37.0",
+    "eslint-config-next": "^15.5.5",
     "genkit-cli": "^1.14.1",
     "jest": "^30.2.0",
     "postcss": "^8",

@@ -8,6 +8,7 @@ import * as z from 'zod';
 import { Stethoscope, LogIn, Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { PasswordStrength } from './password-strength';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -33,7 +34,16 @@ const loginSchema = z.object({
 const registerSchema = z.object({
   name: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres.' }),
   email: z.string().email({ message: 'Dirección de correo inválida.' }),
-  password: z.string().min(8, { message: 'La contraseña debe tener al menos 8 caracteres.' }),
+  password: z.string()
+    .min(8, { message: 'La contraseña debe tener al menos 8 caracteres.' })
+    .regex(/[A-Z]/, { message: 'La contraseña debe contener al menos una letra mayúscula.' })
+    .regex(/[a-z]/, { message: 'La contraseña debe contener al menos una letra minúscula.' })
+    .regex(/\d/, { message: 'La contraseña debe contener al menos un número.' })
+    .regex(/[!@#$%^&*(),.?":{}|<>]/, { message: 'La contraseña debe contener al menos un carácter especial.' }),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Las contraseñas no coinciden",
+  path: ["confirmPassword"],
 });
 
 const forgotPasswordSchema = z.object({
@@ -55,6 +65,7 @@ const formSchemas = {
 export default function AuthForm({ mode: initialMode }: AuthFormProps) {
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
   const sweetAlertTheme = useSweetAlertTheme();
 
@@ -63,7 +74,7 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
       case 'login':
         return { email: '', password: '' };
       case 'register':
-        return { name: '', email: '', password: '' };
+        return { name: '', email: '', password: '', confirmPassword: '' };
       case 'forgot-password':
         return { email: '' };
       default:
@@ -284,6 +295,53 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
                               tabIndex={-1}
                             >
                               {showPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                        
+                        {/* Password Strength Component for Registration */}
+                        {mode === 'register' && (
+                          <PasswordStrength 
+                            password={field.value}
+                            confirmPassword={form.watch('confirmPassword')}
+                            showPassword={showPassword}
+                            onTogglePassword={() => setShowPassword(!showPassword)}
+                            className="mt-4"
+                          />
+                        )}
+                      </FormItem>
+                    )}
+                  />
+                )}
+                
+                {/* Confirm Password Field for Registration */}
+                {mode === 'register' && (
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirmar Contraseña</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input 
+                              type={showConfirmPassword ? 'text' : 'password'} 
+                              placeholder="••••••••" 
+                              {...field} 
+                              className="pr-10"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                              tabIndex={-1}
+                            >
+                              {showConfirmPassword ? (
                                 <EyeOff className="h-4 w-4" />
                               ) : (
                                 <Eye className="h-4 w-4" />

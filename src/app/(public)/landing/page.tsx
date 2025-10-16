@@ -178,12 +178,25 @@ const pricingPlans = [
 ];
 
 const partners = [
-  { name: "Banesco", logo: "/images/banks/banesco.png" },
-  { name: "BDV", logo: "/images/banks/bdv.png" },
-  { name: "Mercantil", logo: "/images/banks/mercantil.png" },
-  { name: "BNC", logo: "/images/banks/bnc.png" },
-  { name: "PayPal", logo: "/images/banks/paypal.png" },
-  { name: "Zinli", logo: "/images/banks/zinli.png" },
+  { name: "Banesco", logo: "/images/banks/banesco.png", badge: "Banesco Vzla/Banesco Panama" },
+  { name: "BDV", logo: "/images/banks/bdv.png", badge: "Banco de Venezuela" },
+  { name: "Mercantil", logo: "/images/banks/mercantil.png", badge: "Banco Mercantil" },
+  { name: "BNC", logo: "/images/banks/bnc.png", badge: "BNC" },
+  { name: "PayPal", logo: "/images/banks/paypal.png", badge: "PayPal" },
+  { name: "Wally", logo: "/images/banks/wally.png", badge: "WallyTech" },
+];
+
+const allies = [
+  {
+    name: "Oceánica de Seguros",
+    logo: "/images/aliados/oceanica.png",
+    description: "Empresa aseguradora líder, especializada en salud y bienestar, reconocida por su atención ágil y confiable."
+  },
+  {
+    name: "CliniCare Centro Médico",
+    logo: "/images/aliados/clinicare.png",
+    description: "Centro médico integral con tecnología avanzada y atención humanizada, orientado al cuidado experto de los pacientes."
+  }
 ];
 
 export default function LandingPage() {
@@ -597,7 +610,7 @@ export default function LandingPage() {
               variants={fadeIn()} 
               className="text-urovital-blue font-semibold text-sm uppercase mb-4 tracking-widest"
             >
-              Nuestros Aliados
+              Pagos Asegurados
             </motion.p>
             <motion.h2 
               variants={fadeIn()} 
@@ -626,7 +639,12 @@ export default function LandingPage() {
                 variants={fadeIn()} 
                 className="group"
               >
-                <div className="bg-white dark:bg-card rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-105 flex justify-center items-center h-[100px]">
+                <div className="bg-white dark:bg-card rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-105 flex flex-col justify-center items-center h-[120px] relative">
+                  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-full flex justify-center">
+                    <span className="bg-urovital-blue text-white text-xs font-semibold px-2 py-1 rounded-full shadow-lg whitespace-nowrap">
+                      {partner.badge}
+                    </span>
+                  </div>
                   <Image
                     src={partner.logo}
                     alt={partner.name}
@@ -634,6 +652,72 @@ export default function LandingPage() {
                     height={60}
                     className={`max-h-[48px] w-auto object-contain opacity-70 group-hover:opacity-100 transition-opacity duration-300 ${partner.name === "PayPal" ? "transform scale-[1.95]" : ""}`}
                   />
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Allies Section */}
+      <section className="py-20 md:py-28 bg-gray-50 dark:bg-[#0f172a]">
+        <div className="container mx-auto px-4">
+          <motion.div 
+            initial="hidden" 
+            whileInView="visible" 
+            viewport={{ once: true, amount: 0.3 }} 
+            variants={staggerContainer} 
+            className="text-center max-w-3xl mx-auto mb-16"
+          >
+            <motion.p 
+              variants={fadeIn()} 
+              className="text-urovital-blue font-semibold text-sm uppercase mb-4 tracking-widest"
+            >
+              Nuestros Aliados
+            </motion.p>
+            <motion.h2 
+              variants={fadeIn()} 
+              className="text-3xl md:text-5xl font-bold font-headline mb-6"
+            >
+              Aliados estratégicos para tu bienestar
+            </motion.h2>
+            <motion.p 
+              variants={fadeIn()} 
+              className="text-lg text-muted-foreground"
+            >
+              Trabajamos con instituciones reconocidas para brindarte la mejor atención médica y seguros de calidad.
+            </motion.p>
+          </motion.div>
+
+          <motion.div 
+            initial="hidden" 
+            whileInView="visible" 
+            viewport={{ once: true, amount: 0.2 }} 
+            variants={staggerContainer}
+            className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto"
+          >
+            {allies.map((ally, index) => (
+              <motion.div 
+                key={index}
+                variants={fadeIn()} 
+                className="group"
+              >
+                <div className="bg-white dark:bg-card rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-105 flex flex-col items-center text-center h-full">
+                  <div className="mb-6">
+                    <Image
+                      src={ally.logo}
+                      alt={ally.name}
+                      width={280}
+                      height={160}
+                      className="max-h-[120px] w-auto object-contain opacity-70 group-hover:opacity-100 transition-opacity duration-300"
+                    />
+                  </div>
+                  <h3 className="text-xl font-bold font-headline mb-4 text-foreground">
+                    {ally.name}
+                  </h3>
+                  <p className="text-muted-foreground leading-relaxed">
+                    {ally.description}
+                  </p>
                 </div>
               </motion.div>
             ))}

@@ -77,15 +77,8 @@ export const PAYMENT_METHODS = [
         id: 'wallytech',
         label: 'Wally Tech',
         description: 'Pasarela de Pago',
-        accountInfo: 'Alias: urovital',
+        accountInfo: 'Alias: +58 424-4303262\nJUAN CARLOS',
         logoSrc: '/images/banks/wally.png',
-    },
-    {
-        id: 'zinlli',
-        label: 'Zinli',
-        description: 'Billetera Digital',
-        accountInfo: 'Email: pagos@urovital.com',
-        logoSrc: '/images/banks/zinli.png',
     },
     {
         id: 'paypal',

@@ -8,35 +8,38 @@ datasource db {
 }
 
 model User {
-  id                   String         @id @default(cuid())
-  userId               String         @unique
-  email                String         @unique
-  name                 String
-  password             String
-  role                 String
-  status               String         @default("ACTIVE")
-  createdAt            DateTime       @default(now())
-  phone                String?
-  lastLogin            DateTime?
-  avatarUrl            String?        @default("/images/avatars/default-doctor.png")
-  affiliations         Affiliation[]
-  createdAppointments  Appointment[]  @relation("CreatedAppointments")
-  doctorAppointments   Appointment[]  @relation("DoctorAppointments")
-  patientAppointments  Appointment[]  @relation("PatientAppointments")
-  auditLogs            AuditLog[]
-  createdConsultations Consultation[] @relation("CreatedConsultations")
-  doctorConsultations  Consultation[] @relation("DoctorConsultations")
-  patientConsultations Consultation[] @relation("PatientConsultations")
-  doctorInfo           DoctorInfo?
-  promotoraInfo        PromotoraInfo?
-  secretariaInfo       SecretariaInfo?
-  labResults           LabResult[]
-  patientInfo          PatientInfo?
-  createdPayments      Payment[]      @relation("CreatedPayments")
-  patientPayments      Payment[]      @relation("PatientPayments")
-  prescriptions        Prescription[]
-  createdReceipts      Receipt[]      @relation("CreatedReceipts")
-  patientReceipts      Receipt[]      @relation("PatientReceipts")
+  id                     String                      @id @default(cuid())
+  userId                 String                      @unique
+  email                  String                      @unique
+  name                   String
+  password               String
+  role                   String
+  status                 String                      @default("ACTIVE")
+  createdAt              DateTime                    @default(now())
+  phone                  String?
+  lastLogin              DateTime?
+  avatarUrl              String?                     @default("/images/avatars/default-doctor.png")
+  affiliations           Affiliation[]
+  createdAppointments    Appointment[]               @relation("CreatedAppointments")
+  doctorAppointments     Appointment[]               @relation("DoctorAppointments")
+  patientAppointments    Appointment[]               @relation("PatientAppointments")
+  auditLogs              AuditLog[]
+  createdConsultations   Consultation[]              @relation("CreatedConsultations")
+  doctorConsultations    Consultation[]              @relation("DoctorConsultations")
+  patientConsultations   Consultation[]              @relation("PatientConsultations")
+  doctorInfo             DoctorInfo?
+  promotoraInfo          PromotoraInfo?
+  secretariaInfo         SecretariaInfo?
+  labResults             LabResult[]
+  patientInfo            PatientInfo?
+  createdPayments        Payment[]                   @relation("CreatedPayments")
+  patientPayments        Payment[]                   @relation("PatientPayments")
+  prescriptions          Prescription[]
+  createdReceipts        Receipt[]                   @relation("CreatedReceipts")
+  patientReceipts        Receipt[]                   @relation("PatientReceipts")
+  notifications          Notification[]
+  deviceTokens           DeviceToken[]
+  notificationPreference UserNotificationPreference?
 
   @@map("users")
 }
@@ -74,39 +77,39 @@ model DoctorInfo {
 }
 
 model PromotoraInfo {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  cedula          String   @unique
-  telefono        String?
-  direccion       String?
-  areaAsignada    String?
-  supervisor      String?
-  fechaIngreso    DateTime
-  salario         Decimal? @db.Decimal(10, 2)
-  comision        Decimal? @db.Decimal(5, 2)
-  estado          String   @default("ACTIVA")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  user            User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  cedula       String   @unique
+  telefono     String?
+  direccion    String?
+  areaAsignada String?
+  supervisor   String?
+  fechaIngreso DateTime
+  salario      Decimal? @db.Decimal(10, 2)
+  comision     Decimal? @db.Decimal(5, 2)
+  estado       String   @default("ACTIVA")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@map("promotora_info")
 }
 
 model SecretariaInfo {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  cedula          String   @unique
-  telefono        String?
-  direccion       String?
-  turno           String?
-  supervisor      String?
-  fechaIngreso    DateTime
-  salario         Decimal? @db.Decimal(10, 2)
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  cedula         String   @unique
+  telefono       String?
+  direccion      String?
+  turno          String?
+  supervisor     String?
+  fechaIngreso   DateTime
+  salario        Decimal? @db.Decimal(10, 2)
   especialidades String?
-  estado          String   @default("ACTIVA")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  user            User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  estado         String   @default("ACTIVA")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@map("secretaria_info")
 }
@@ -348,6 +351,60 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+// Modelo para almacenar notificaciones del sistema
+model Notification {
+  id        String              @id @default(cuid())
+  userId    String
+  type      NotificationType
+  channel   NotificationChannel
+  status    NotificationStatus  @default(PENDING)
+  title     String
+  message   String
+  data      Json?
+  sentAt    DateTime?
+  readAt    DateTime?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  user      User                @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([status])
+  @@map("notifications")
+}
+
+// Modelo para tokens de dispositivos móviles (push notifications)
+model DeviceToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  platform  String // 'ios', 'android', 'web'
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@map("device_tokens")
+}
+
+// Modelo para preferencias de notificación por usuario
+model UserNotificationPreference {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  emailEnabled         Boolean  @default(true)
+  smsEnabled           Boolean  @default(false)
+  pushEnabled          Boolean  @default(true)
+  appointmentReminders Boolean  @default(true)
+  paymentNotifications Boolean  @default(true)
+  systemAlerts         Boolean  @default(true)
+  marketingEmails      Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  user                 User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@map("user_notification_preferences")
+}
+
 enum UserRole {
   ADMIN
   DOCTOR
@@ -400,4 +457,28 @@ enum SupplyStatus {
   AGOTADO
   VENCIDO
   RESERVADO
+}
+
+// Enums para el sistema de notificaciones
+enum NotificationType {
+  APPOINTMENT_REMINDER
+  PAYMENT_CONFIRMATION
+  SYSTEM_ALERT
+  APPOINTMENT_CANCELLATION
+  NEW_MESSAGE
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  PUSH
+  IN_APP
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
 }

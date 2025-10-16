@@ -448,7 +448,16 @@ function AffiliateEnrollmentContent() {
                                                 : "border-muted bg-popover hover:bg-accent hover:text-accent-foreground"
                                             )}
                                         >
-                                            <Image src={method.logoSrc} alt={method.label} width={80} height={80} className="mb-2 object-contain" />
+                                            <Image 
+                                                src={method.logoSrc} 
+                                                alt={method.label} 
+                                                width={method.id === 'usdt' || method.id === 'paypal' ? 100 : 80} 
+                                                height={method.id === 'usdt' || method.id === 'paypal' ? 100 : 80} 
+                                                className={cn(
+                                                    "mb-2 object-contain",
+                                                    method.id === 'usdt' || method.id === 'paypal' ? "scale-110" : ""
+                                                )} 
+                                            />
                                             <span className="text-sm font-semibold text-center">{method.label}</span>
                                         </Label>
                                         {field.value === method.id && (
@@ -545,20 +554,38 @@ function AffiliateEnrollmentContent() {
             
             {currentStep < 3 && (
                  <div className="flex justify-between items-center pt-4">
-                    <Button type="button" variant="outline" onClick={handlePrevStep} disabled={currentStep === 1}>
-                    Anterior
+                    <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={handlePrevStep} 
+                        disabled={currentStep === 1}
+                        className="border-urovital-blue/30 text-urovital-blue hover:bg-urovital-blue/10 hover:border-urovital-blue/50 transition-all duration-300"
+                    >
+                        Anterior
                     </Button>
-                    <Button type="button" onClick={handleNextStep}>
+                    <Button 
+                        type="button" 
+                        onClick={handleNextStep}
+                        className="bg-urovital-blue hover:bg-urovital-blue/90 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold"
+                    >
                         Siguiente
                     </Button>
                 </div>
             )}
             {currentStep === 3 && (
                 <div className="flex justify-between items-center pt-4">
-                    <Button type="button" variant="outline" onClick={handlePrevStep}>
+                    <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={handlePrevStep}
+                        className="border-urovital-blue/30 text-urovital-blue hover:bg-urovital-blue/10 hover:border-urovital-blue/50 transition-all duration-300"
+                    >
                         Volver
                     </Button>
-                    <Button type="submit">
+                    <Button 
+                        type="submit"
+                        className="bg-urovital-blue hover:bg-urovital-blue/90 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold"
+                    >
                         Confirmar y Enviar Afiliación
                     </Button>
                 </div>
@@ -571,8 +598,12 @@ function AffiliateEnrollmentContent() {
 
 export function AffiliateEnrollment() {
   return (
-    <div className="w-full max-w-4xl mx-auto overflow-hidden rounded-2xl border border-border/20 bg-card/50 shadow-2xl shadow-primary/10 backdrop-blur-lg">
-      <div className="p-6 sm:p-8">
+    <div className="w-full max-w-4xl mx-auto overflow-hidden rounded-2xl border-2 border-urovital-blue/30 bg-white/98 dark:bg-[#131c36]/98 shadow-2xl shadow-urovital-blue/25 backdrop-blur-lg ring-2 ring-urovital-blue/10">
+      <div className="p-8">
+        <div className="mb-6 text-center">
+          <h1 className="text-3xl font-bold text-foreground font-headline mb-2">Afíliate Ahora</h1>
+          <p className="text-muted-foreground">Únete a UroVital y accede a los mejores servicios médicos</p>
+        </div>
         <Suspense fallback={<div>Cargando...</div>}>
             <AffiliateEnrollmentContent />
         </Suspense>

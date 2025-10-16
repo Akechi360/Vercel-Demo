@@ -1,0 +1,351 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String
+  password      String
+  createdAt     DateTime       @default(now())
+  lastLogin     DateTime?
+  patientId     String?
+  phone         String?
+  status        String         @default("ACTIVE")
+  role          String
+  affiliations  Affiliation[]
+  appointments  Appointment[]
+  auditLogs     AuditLog[]
+  consultations Consultation[]
+  payments      Payment[]
+
+  @@map("users")
+}
+
+model Company {
+  id           String        @id @default(cuid())
+  nombre       String
+  rif          String        @unique
+  direccion    String?
+  telefono     String?
+  email        String?
+  contacto     String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  affiliations Affiliation[]
+
+  @@map("companies")
+}
+
+model Provider {
+  id           String        @id @default(cuid())
+  nombre       String
+  especialidad String
+  telefono     String?
+  email        String?
+  direccion    String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  appointments Appointment[]
+
+  @@map("providers")
+}
+
+model Appointment {
+  id            String            @id @default(cuid())
+  fecha         DateTime
+  hora          String
+  tipo          AppointmentType
+  estado        AppointmentStatus @default(PROGRAMADA)
+  notas         String?
+  pacienteId    String
+  doctorId      String?
+  providerId    String?
+  userId        String
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  doctors       doctors?          @relation(fields: [doctorId], references: [id])
+  patients      patients          @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  provider      Provider?         @relation(fields: [providerId], references: [id])
+  users         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consultations Consultation[]
+
+  @@map("appointments")
+}
+
+model Consultation {
+  id            String         @id @default(cuid())
+  fecha         DateTime
+  motivo        String
+  sintomas      String?
+  diagnostico   String?
+  tratamiento   String?
+  observaciones String?
+  pacienteId    String
+  doctorId      String?
+  appointmentId String?
+  userId        String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  appointment   Appointment?   @relation(fields: [appointmentId], references: [id])
+  doctors       doctors?       @relation(fields: [doctorId], references: [id])
+  patients      patients       @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  users         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  labResults    LabResult[]
+  prescriptions Prescription[]
+
+  @@map("consultations")
+}
+
+model LabResult {
+  id             String        @id @default(cuid())
+  nombre         String
+  tipo           String
+  resultado      String
+  valores        Json?
+  fecha          DateTime
+  pacienteId     String
+  consultationId String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  consultation   Consultation? @relation(fields: [consultationId], references: [id])
+  patients       patients      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  @@map("lab_results")
+}
+
+model Prescription {
+  id             String        @id @default(cuid())
+  medicamento    String
+  dosis          String
+  frecuencia     String
+  duracion       String?
+  instrucciones  String?
+  pacienteId     String
+  consultationId String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  consultation   Consultation? @relation(fields: [consultationId], references: [id])
+  patients       patients      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  @@map("prescriptions")
+}
+
+model Payment {
+  id         String        @id @default(cuid())
+  monto      Decimal       @db.Decimal(10, 2)
+  tipo       PaymentType
+  metodo     String
+  estado     PaymentStatus @default(PENDIENTE)
+  fecha      DateTime
+  referencia String?
+  notas      String?
+  pacienteId String
+  userId     String
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  patients   patients      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  users      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model Affiliation {
+  id            String            @id @default(cuid())
+  planId        String
+  estado        AffiliationStatus @default(ACTIVA)
+  fechaInicio   DateTime
+  fechaFin      DateTime?
+  monto         Decimal           @db.Decimal(10, 2)
+  beneficiarios Json?
+  companyId     String?
+  userId        String
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  company       Company?          @relation(fields: [companyId], references: [id])
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("affiliations")
+}
+
+model Supply {
+  id               String       @id @default(cuid())
+  nombre           String
+  descripcion      String?
+  cantidad         Int
+  unidad           String
+  precio           Decimal      @db.Decimal(10, 2)
+  proveedor        String?
+  fechaVencimiento DateTime?
+  estado           SupplyStatus @default(DISPONIBLE)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@map("supplies")
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  titulo      String
+  descripcion String?
+  tipo        String
+  contenido   Json
+  fecha       DateTime
+  autor       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("reports")
+}
+
+model Estudio {
+  id          String   @id @default(cuid())
+  nombre      String
+  descripcion String?
+  tipo        String
+  precio      Decimal  @db.Decimal(10, 2)
+  duracion    Int?
+  requisitos  String?
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("estudios")
+}
+
+model SystemConfig {
+  id                 String   @id @default(cuid())
+  clinicName         String   @default("UroVital")
+  clinicAddress      String?
+  clinicPhone        String?
+  clinicEmail        String?
+  workingHours       String?
+  notifications      Boolean  @default(true)
+  emailNotifications Boolean  @default(true)
+  smsNotifications   Boolean  @default(false)
+  maintenanceMode    Boolean  @default(false)
+  autoBackup         Boolean  @default(true)
+  dataRetention      String   @default("2 años")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("system_config")
+}
+
+model Receipt {
+  id        String   @id @default(cuid())
+  number    String   @unique
+  patientId String
+  amount    Decimal  @db.Decimal(10, 2)
+  concept   String
+  method    String
+  createdAt DateTime @default(now())
+  createdBy String
+  patients  patients @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("receipts")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}
+
+model doctors {
+  id            String         @id
+  nombre        String
+  apellido      String
+  especialidad  String
+  cedula        String         @unique
+  telefono      String?
+  email         String?
+  direccion     String?
+  area          String?
+  contacto      String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime
+  appointments  Appointment[]
+  consultations Consultation[]
+}
+
+model patients {
+  id              String         @id
+  nombre          String
+  apellido        String
+  cedula          String         @unique
+  fechaNacimiento DateTime
+  telefono        String?
+  email           String?
+  direccion       String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime
+  appointments    Appointment[]
+  consultations   Consultation[]
+  lab_results     LabResult[]
+  payments        Payment[]
+  prescriptions   Prescription[]
+  receipts        Receipt[]
+}
+
+enum UserRole {
+  ADMIN
+  DOCTOR
+  USER
+  PROMOTORA
+}
+
+enum AppointmentType {
+  CONSULTA
+  SEGUIMIENTO
+  URGENCIA
+  PROCEDIMIENTO
+}
+
+enum AppointmentStatus {
+  PROGRAMADA
+  CONFIRMADA
+  EN_PROGRESO
+  COMPLETADA
+  CANCELADA
+  NO_ASISTIO
+}
+
+enum PaymentType {
+  CONSULTA_GENERAL
+  CONSULTA_SEGUIMIENTO
+  AFILIACION_ANUAL
+  ESTUDIO_LABORATORIO
+  PROCEDIMIENTO_MENOR
+}
+
+enum PaymentStatus {
+  PENDIENTE
+  PAGADO
+  CANCELADO
+  REEMBOLSADO
+}
+
+enum AffiliationStatus {
+  ACTIVA
+  INACTIVA
+  SUSPENDIDA
+  VENCIDA
+}
+
+enum SupplyStatus {
+  DISPONIBLE
+  AGOTADO
+  VENCIDO
+  RESERVADO
+}

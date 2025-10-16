@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useAuth } from './auth-provider';
 import type { User as UserType } from '@/lib/types';
+import NotificationBell from '@/components/notifications/notification-bell';
 
 const getGreeting = (currentUser: UserType | null): string => {
     if (!currentUser) return '';
@@ -79,6 +80,7 @@ export default function AppHeader() {
           <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           <span className="sr-only">Toggle theme</span>
         </Button>
+        <NotificationBell />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">

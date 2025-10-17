@@ -9,8 +9,8 @@ export function usePermissions() {
   const hasPermission = (permission: Permission): boolean => {
     if (!user) return false;
     
-    // Admin tiene acceso a todo
-    if (user.role === 'admin') return true;
+    // Admin tiene acceso a todo (tanto en mayúsculas como minúsculas)
+    if (user.role === 'ADMIN' || user.role === 'admin') return true;
     
     // Verificar si el rol tiene el permiso específico
     const rolePermissions = ROLE_PERMISSIONS[user.role as UserRole] || [];
@@ -82,7 +82,7 @@ export function usePermissions() {
   };
 
   const isAdmin = (): boolean => {
-    return user?.role === 'admin';
+    return user?.role === 'ADMIN' || user?.role === 'admin';
   };
 
   const isDoctor = (): boolean => {

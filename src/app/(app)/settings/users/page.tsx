@@ -177,15 +177,20 @@ export default function UsersManagementPage() {
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
+      case 'ADMIN':
       case 'admin':
         return 'destructive';
+      case 'DOCTOR':
       case 'doctor':
       case 'Doctor':
         return 'default';
+      case 'SECRETARIA':
       case 'secretaria':
         return 'secondary';
+      case 'PATIENT':
       case 'patient':
         return 'outline';
+      case 'PROMOTORA':
       case 'promotora':
         return 'secondary';
       default:
@@ -574,11 +579,11 @@ export default function UsersManagementPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant={getRoleBadgeVariant(user.role)}>
-                      {user.role === 'admin' ? 'Administrador' : 
-                       user.role === 'doctor' || user.role === 'Doctor' ? 'Doctor' : 
-                       user.role === 'secretaria' ? 'Secretaria' :
-                       user.role === 'patient' ? 'Paciente' :
-                       user.role === 'promotora' ? 'Promotora' : 'Desconocido'}
+                      {user.role === 'ADMIN' || user.role === 'admin' ? 'Administrador' : 
+                       user.role === 'DOCTOR' || user.role === 'doctor' || user.role === 'Doctor' ? 'Doctor' : 
+                       user.role === 'SECRETARIA' || user.role === 'secretaria' ? 'Secretaria' :
+                       user.role === 'PATIENT' || user.role === 'patient' ? 'Paciente' :
+                       user.role === 'PROMOTORA' || user.role === 'promotora' ? 'Promotora' : 'Desconocido'}
                     </Badge>
                   </TableCell>
                   <TableCell>

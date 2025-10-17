@@ -36,6 +36,14 @@ export default function NotificationBell() {
     filters: { unreadOnly: false }
   });
 
+  // Debug logs (temporal)
+  console.log('🔔 NotificationBell Debug:', {
+    notifications: notifications?.length || 0,
+    unreadCount,
+    loading,
+    error
+  });
+
   const [isOpen, setIsOpen] = useState(false);
   const [isRinging, setIsRinging] = useState(false);
   const previousUnreadCount = useRef(unreadCount);
@@ -121,6 +129,7 @@ export default function NotificationBell() {
             <Badge 
               variant="destructive" 
               className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center"
+              style={{ zIndex: 10 }}
             >
               {unreadCount > 99 ? '99+' : unreadCount}
             </Badge>

@@ -84,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!currentUser) return false;
     
     // Admin has all permissions
-    if (currentUser.role === 'admin') return true;
+    if (currentUser.role === 'ADMIN' || currentUser.role === 'admin') return true;
     
     // Safety check to ensure the role exists in ROLE_PERMISSIONS
     const rolePermissions = ROLE_PERMISSIONS[currentUser.role as UserRole];

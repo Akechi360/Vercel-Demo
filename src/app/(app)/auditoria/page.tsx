@@ -85,14 +85,19 @@ export default function AuditoriaPage() {
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
+      case 'ADMIN':
       case 'admin':
         return 'destructive';
+      case 'DOCTOR':
       case 'doctor':
         return 'default';
+      case 'SECRETARIA':
       case 'secretaria':
         return 'secondary';
+      case 'PATIENT':
       case 'patient':
         return 'outline';
+      case 'PROMOTORA':
       case 'promotora':
         return 'secondary';
       default:
@@ -102,14 +107,19 @@ export default function AuditoriaPage() {
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
+      case 'ADMIN':
       case 'admin':
         return 'Administrador';
+      case 'DOCTOR':
       case 'doctor':
         return 'Doctor';
+      case 'SECRETARIA':
       case 'secretaria':
         return 'Secretaria';
+      case 'PATIENT':
       case 'patient':
         return 'Paciente';
+      case 'PROMOTORA':
       case 'promotora':
         return 'Promotora';
       default:

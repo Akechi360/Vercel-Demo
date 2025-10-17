@@ -52,7 +52,7 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
     status: userStatus?.status,
     userId: userStatus?.userId,
     isRestricted,
-    isAdmin: userStatus?.role === 'admin' || userStatus?.role === 'master',
+    isAdmin: userStatus?.role === 'ADMIN' || userStatus?.role === 'admin' || userStatus?.role === 'master',
     restrictionLogic: userStatus?.role === 'patient' && userStatus?.status === 'INACTIVE',
   });
 

@@ -11,56 +11,81 @@ import type { User } from '@/lib/types';
  */
 
 /**
- * Obtener usuario autenticado desde las cookies de la sesión
+ * Obtener usuario autenticado desde las cookies de la sesión o headers
  * 
  * @param request - Request de Next.js
  * @returns Usuario autenticado o null si no está autenticado
  */
 export async function getAuthenticatedUser(request: NextRequest): Promise<User | null> {
   try {
-    // Obtener el token de sesión desde las cookies
+    // Método 1: Intentar obtener desde header X-User-ID (para desarrollo)
+    const userIdFromHeader = request.headers.get('X-User-ID');
+    
+    if (userIdFromHeader) {
+      console.log('[Auth] Usando autenticación por header X-User-ID:', userIdFromHeader);
+      
+      const user = await prisma.user.findUnique({
+        where: {
+          id: userIdFromHeader
+        },
+        select: {
+          id: true,
+          userId: true,
+          email: true,
+          name: true,
+          role: true,
+          status: true,
+          createdAt: true,
+          avatarUrl: true
+        }
+      });
+
+      if (user) {
+        return {
+          ...user,
+          role: user.role.toLowerCase() as 'admin' | 'doctor' | 'secretaria' | 'promotora',
+          password: '', // No incluimos la contraseña por seguridad
+          phone: null,
+          lastLogin: null
+        };
+      }
+    }
+
+    // Método 2: Intentar obtener desde cookies de sesión
     const sessionToken = request.cookies.get('session-token')?.value;
     
-    if (!sessionToken) {
-      return null;
-    }
+    if (sessionToken) {
+      console.log('[Auth] Usando autenticación por cookie session-token');
+      
+      const user = await prisma.user.findUnique({
+        where: {
+          id: sessionToken // Asumiendo que el token es el userId
+        },
+        select: {
+          id: true,
+          userId: true,
+          email: true,
+          name: true,
+          role: true,
+          status: true,
+          createdAt: true,
+          avatarUrl: true
+        }
+      });
 
-    // TODO: Implementar validación del token JWT si se usa
-    // Por ahora, asumimos que el token contiene el userId
-    // En un sistema real, deberías validar y decodificar el JWT
-    
-    // Buscar el usuario en la base de datos
-    const user = await prisma.user.findUnique({
-      where: {
-        id: sessionToken // Asumiendo que el token es el userId
-      },
-      select: {
-        id: true,
-        userId: true,
-        email: true,
-        name: true,
-        role: true,
-        status: true,
-        createdAt: true,
-        avatarUrl: true
+      if (user) {
+        return {
+          ...user,
+          role: user.role.toLowerCase() as 'admin' | 'doctor' | 'secretaria' | 'promotora',
+          password: '', // No incluimos la contraseña por seguridad
+          phone: null,
+          lastLogin: null
+        };
       }
-    });
-
-    if (!user) {
-      return null;
     }
 
-    // Mapear el usuario de Prisma al tipo User del proyecto
-    const mappedUser: User = {
-      ...user,
-      role: user.role.toLowerCase() as 'admin' | 'doctor' | 'secretaria' | 'promotora',
-      // Campos requeridos que no están en el select
-      password: '', // No incluimos la contraseña por seguridad
-      phone: null,
-      lastLogin: null
-    };
-
-    return mappedUser;
+    console.log('[Auth] No se encontró usuario autenticado');
+    return null;
 
   } catch (error) {
     console.error('[Auth] Error al obtener usuario autenticado:', error);
@@ -102,7 +127,7 @@ export function hasRole(user: User, requiredRole: string): boolean {
  * @returns true si el usuario es admin
  */
 export function isAdmin(user: User): boolean {
-  return user.role === 'admin';
+  return user.role === 'ADMIN' || user.role === 'admin';
 }
 
 /**

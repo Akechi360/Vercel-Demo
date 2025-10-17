@@ -16,10 +16,12 @@
  * TODO: Sincronizar con enum NotificationType de Prisma
  */
 export type NotificationType = 
+  | 'APPOINTMENT'
   | 'APPOINTMENT_REMINDER'
-  | 'PAYMENT_CONFIRMATION'
-  | 'SYSTEM_ALERT'
   | 'APPOINTMENT_CANCELLATION'
+  | 'PAYMENT_CONFIRMATION'
+  | 'PAYMENT_REMINDER'
+  | 'SYSTEM_ALERT'
   | 'NEW_MESSAGE'
   | 'LAB_RESULT_READY'
   | 'PRESCRIPTION_READY'

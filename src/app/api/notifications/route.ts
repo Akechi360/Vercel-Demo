@@ -22,16 +22,20 @@ import type { NotificationFilters, GetNotificationsResponse } from '@/lib/notifi
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('[API] GET /api/notifications - Iniciando...');
+    
     // Obtener usuario autenticado
     const user = await getAuthenticatedUser(request);
     
     if (!user) {
-      const errorResponse = createAuthErrorResponse();
+      console.log('[API] GET /api/notifications - Usuario no autenticado');
       return NextResponse.json(
-        { error: errorResponse.error },
-        { status: errorResponse.status }
+        { error: 'Usuario no autenticado' },
+        { status: 401 }
       );
     }
+
+    console.log('[API] GET /api/notifications - Usuario autenticado:', user.name);
 
     const userId = user.id;
     const { searchParams } = new URL(request.url);

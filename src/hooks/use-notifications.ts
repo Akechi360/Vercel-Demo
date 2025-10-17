@@ -56,6 +56,14 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
+
+  // Debug inicial (temporal)
+  console.log('🔔 useNotifications hook initialized:', {
+    currentUser: currentUser,
+    currentUserId: currentUser?.id,
+    isAuthenticated: !!currentUser,
+    initialUnreadCount: unreadCount
+  });
   
   // Referencias para control de polling
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -76,7 +84,15 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
    * Implementa filtros, paginación y manejo de errores
    */
   const fetchNotifications = useCallback(async (customFilters?: NotificationFilters) => {
-    if (!currentUser?.userId) {
+    console.log('🔔 fetchNotifications called:', {
+      currentUser: currentUser,
+      currentUserId: currentUser?.id,
+      hasCurrentUser: !!currentUser,
+      customFilters
+    });
+
+    if (!currentUser?.id) {
+      console.log('❌ No currentUser.id found');
       setError('Usuario no autenticado');
       return;
     }
@@ -111,12 +127,19 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
         queryParams.append('offset', activeFilters.cursor);
       }
 
+      // Crear headers con el ID del usuario para autenticación
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      // Agregar el ID del usuario como header personalizado
+      // Esto es temporal hasta implementar un sistema de cookies/JWT completo
+      headers['X-User-ID'] = currentUser.id;
+
       // Llamada real a la API
       const response = await fetch(`/api/notifications?${queryParams.toString()}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include', // Incluir cookies de sesión
       });
 
@@ -126,6 +149,13 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       }
 
       const data: GetNotificationsResponse = await response.json();
+
+      console.log('🔔 API Response received:', {
+        notificationsCount: data.notifications.length,
+        unreadCount: data.unreadCount,
+        totalCount: data.totalCount,
+        notifications: data.notifications
+      });
 
       if (isMountedRef.current) {
         setNotifications(data.notifications);
@@ -144,7 +174,7 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
         setLoading(false);
       }
     }
-  }, [currentUser?.userId, filters]);
+  }, [currentUser?.id, filters]);
 
   /**
    * ✅ Marcar notificación como leída
@@ -169,7 +199,8 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       const response = await fetch(`/api/notifications/${notificationId}/read`, {
         method: 'PATCH',
         headers: { 
-          'Content-Type': 'application/json' 
+          'Content-Type': 'application/json',
+          'X-User-ID': currentUser?.id || ''
         },
         credentials: 'include',
       });
@@ -225,7 +256,8 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       const response = await fetch('/api/notifications/read-all', {
         method: 'PATCH',
         headers: { 
-          'Content-Type': 'application/json' 
+          'Content-Type': 'application/json',
+          'X-User-ID': currentUser?.id || ''
         },
         credentials: 'include',
       });
@@ -280,7 +312,8 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       const response = await fetch(`/api/notifications/${notificationId}`, {
         method: 'DELETE',
         headers: { 
-          'Content-Type': 'application/json' 
+          'Content-Type': 'application/json',
+          'X-User-ID': currentUser?.id || ''
         },
         credentials: 'include',
       });
@@ -340,14 +373,16 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
   
   // Cargar notificaciones al montar el componente
   useEffect(() => {
-    if (currentUser?.userId) {
+    // Solo ejecutar si hay un usuario autenticado
+    if (currentUser?.id) {
+      console.log('🔔 Cargando notificaciones para usuario:', currentUser.id);
       fetchNotifications();
     }
-  }, [currentUser?.userId, fetchNotifications]);
+  }, [currentUser?.id, fetchNotifications]);
 
   // Configurar polling automático
   useEffect(() => {
-    if (enablePolling && currentUser?.userId) {
+    if (enablePolling && currentUser?.id) {
       pollingIntervalRef.current = setInterval(() => {
         fetchNotifications();
       }, pollingInterval);
@@ -358,11 +393,11 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
         }
       };
     }
-  }, [enablePolling, pollingInterval, currentUser?.userId, fetchNotifications]);
+  }, [enablePolling, pollingInterval, currentUser?.id, fetchNotifications]);
 
   // TODO: Implementar WebSocket para notificaciones en tiempo real
   useEffect(() => {
-    if (enableRealtime && currentUser?.userId) {
+    if (enableRealtime && currentUser?.id) {
       // TODO: Conectar con WebSocket
       // const ws = new WebSocket(`ws://localhost:3000/notifications/${currentUser.userId}`);
       // 
@@ -376,7 +411,7 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       //   ws.close();
       // };
     }
-  }, [enableRealtime, currentUser?.userId]);
+  }, [enableRealtime, currentUser?.id]);
 
   // Cleanup al desmontar
   useEffect(() => {

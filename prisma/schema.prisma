@@ -353,23 +353,23 @@ model AuditLog {
 
 // Modelo para almacenar notificaciones del sistema
 model Notification {
-  id        String              @id @default(cuid())
-  userId    String
-  type      NotificationType
-  channel   NotificationChannel
-  status    NotificationStatus  @default(PENDING)
-  title     String
-  message   String
-  data      Json?
-  sentAt    DateTime?
-  readAt    DateTime?
-  isRead    Boolean             @default(false)
-  priority  String?             @default("MEDIUM")
-  actionUrl String?
+  id         String              @id @default(cuid())
+  userId     String
+  type       NotificationType
+  channel    NotificationChannel
+  status     NotificationStatus  @default(PENDING)
+  title      String
+  message    String
+  data       Json?
+  sentAt     DateTime?
+  readAt     DateTime?
+  isRead     Boolean             @default(false)
+  priority   String?             @default("MEDIUM")
+  actionUrl  String?
   actionText String?
-  createdAt DateTime            @default(now())
-  updatedAt DateTime            @updatedAt
-  user      User                @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
   @@index([status])
@@ -466,11 +466,17 @@ enum SupplyStatus {
 
 // Enums para el sistema de notificaciones
 enum NotificationType {
+  APPOINTMENT
   APPOINTMENT_REMINDER
-  PAYMENT_CONFIRMATION
-  SYSTEM_ALERT
   APPOINTMENT_CANCELLATION
+  PAYMENT_CONFIRMATION
+  PAYMENT_REMINDER
+  SYSTEM_ALERT
   NEW_MESSAGE
+  LAB_RESULT_READY
+  PRESCRIPTION_READY
+  AFFILIATION_EXPIRING
+  MAINTENANCE_NOTICE
 }
 
 enum NotificationChannel {

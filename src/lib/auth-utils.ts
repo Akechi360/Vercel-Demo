@@ -52,14 +52,12 @@ export async function getAuthenticatedUser(request: NextRequest): Promise<User |
 
     // Mapear el usuario de Prisma al tipo User del proyecto
     const mappedUser: User = {
-      id: user.id,
-      userId: user.userId,
-      email: user.email,
-      name: user.name,
+      ...user,
       role: user.role.toLowerCase() as 'admin' | 'doctor' | 'secretaria' | 'promotora',
-      status: user.status,
-      createdAt: user.createdAt,
-      avatarUrl: user.avatarUrl
+      // Campos requeridos que no están en el select
+      password: '', // No incluimos la contraseña por seguridad
+      phone: null,
+      lastLogin: null
     };
 
     return mappedUser;

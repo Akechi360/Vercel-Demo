@@ -18,7 +18,7 @@ import type { NotificationApiResponse } from '@/lib/notification-types';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Obtener usuario autenticado
@@ -33,7 +33,7 @@ export async function PATCH(
     }
 
     const userId = user.id;
-    const notificationId = params.id;
+    const { id: notificationId } = await params;
 
     // Validar que el ID existe
     if (!notificationId) {

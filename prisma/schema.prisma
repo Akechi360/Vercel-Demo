@@ -363,12 +363,17 @@ model Notification {
   data      Json?
   sentAt    DateTime?
   readAt    DateTime?
+  isRead    Boolean             @default(false)
+  priority  String?             @default("MEDIUM")
+  actionUrl String?
+  actionText String?
   createdAt DateTime            @default(now())
   updatedAt DateTime            @updatedAt
   user      User                @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@index([userId, status])
   @@index([status])
+  @@index([userId, isRead])
   @@map("notifications")
 }
 

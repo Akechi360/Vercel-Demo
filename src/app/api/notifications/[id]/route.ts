@@ -18,7 +18,7 @@ import type { NotificationApiResponse } from '@/lib/notification-types';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Obtener usuario autenticado
@@ -33,7 +33,7 @@ export async function DELETE(
     }
 
     const userId = user.id;
-    const notificationId = params.id;
+    const { id: notificationId } = await params;
 
     // Validar que el ID existe
     if (!notificationId) {
@@ -94,7 +94,7 @@ export async function DELETE(
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Obtener usuario autenticado
@@ -109,7 +109,7 @@ export async function GET(
     }
 
     const userId = user.id;
-    const notificationId = params.id;
+    const { id: notificationId } = await params;
 
     // Validar que el ID existe
     if (!notificationId) {

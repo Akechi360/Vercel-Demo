@@ -113,10 +113,14 @@ export async function GET(request: NextRequest) {
     const response: GetNotificationsResponse = {
       notifications: notifications.map(notification => ({
         ...notification,
+        data: notification.data as Record<string, any> | undefined,
         createdAt: notification.createdAt,
         updatedAt: notification.updatedAt,
-        sentAt: notification.sentAt,
-        readAt: notification.readAt
+        sentAt: notification.sentAt || undefined,
+        readAt: notification.readAt || undefined,
+        priority: (notification.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT') || undefined,
+        actionUrl: notification.actionUrl || undefined,
+        actionText: notification.actionText || undefined
       })),
       totalCount,
       unreadCount,

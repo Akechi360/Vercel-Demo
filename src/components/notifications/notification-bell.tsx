@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { Bell } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Bell, Check, X, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
+import { useNotifications } from '@/hooks/use-notifications';
+import type { Notification } from '@/lib/notification-types';
 
 /**
  * 🔔 NotificationBell Component
@@ -18,48 +20,72 @@ import { Separator } from '@/components/ui/separator';
  * TODO: Implementar acciones de marcar como leída, eliminar, etc.
  */
 export default function NotificationBell() {
-  // TODO: Reemplazar con hook real de notificaciones
-  const [unreadCount] = useState(3); // Dummy data - conectar con backend
+  // Hook de notificaciones
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    error,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    refreshNotifications
+  } = useNotifications({
+    enablePolling: true,
+    pollingInterval: 30000, // 30 segundos
+    filters: { unreadOnly: false }
+  });
+
   const [isOpen, setIsOpen] = useState(false);
+  const [isRinging, setIsRinging] = useState(false);
+  const previousUnreadCount = useRef(unreadCount);
 
-  // TODO: Obtener notificaciones reales del backend
-  const notifications = [
-    // Dummy data - reemplazar con datos reales
-    {
-      id: '1',
-      title: 'Nueva cita programada',
-      message: 'Tienes una cita mañana a las 10:00 AM',
-      type: 'APPOINTMENT_REMINDER',
-      createdAt: new Date(),
-      isRead: false,
-    },
-    {
-      id: '2',
-      title: 'Pago confirmado',
-      message: 'Tu pago de $50.00 ha sido procesado',
-      type: 'PAYMENT_CONFIRMATION',
-      createdAt: new Date(),
-      isRead: false,
-    },
-    {
-      id: '3',
-      title: 'Sistema actualizado',
-      message: 'Nuevas funcionalidades disponibles',
-      type: 'SYSTEM_ALERT',
-      createdAt: new Date(),
-      isRead: true,
-    },
-  ];
+  /**
+   * 🎵 Animación de "ring" cuando llegan nuevas notificaciones
+   * 
+   * Detecta cuando el contador de notificaciones no leídas se incrementa
+   * y activa la animación de campana por 1 segundo.
+   * 
+   * TODO: Integrar con notificaciones en tiempo real (WebSocket, Server-Sent Events)
+   * TODO: Permitir configurar duración e intensidad de la animación
+   * TODO: Agregar sonido opcional (con preferencias de usuario)
+   */
+  useEffect(() => {
+    // Solo animar si el contador aumentó (nueva notificación)
+    if (unreadCount > previousUnreadCount.current) {
+      setIsRinging(true);
+      
+      // Remover la animación después de 1 segundo
+      const timer = setTimeout(() => {
+        setIsRinging(false);
+      }, 1000); // Duración de la animación (1 segundo)
+      
+      // Cleanup del timer
+      return () => clearTimeout(timer);
+    }
+    
+    // Actualizar la referencia para la próxima comparación
+    previousUnreadCount.current = unreadCount;
+  }, [unreadCount]);
 
-  const handleNotificationClick = (notificationId: string) => {
-    // TODO: Implementar lógica para marcar como leída
-    console.log('Notification clicked:', notificationId);
-    // TODO: Navegar a página relevante o mostrar detalles
+  // Las notificaciones ahora vienen del hook useNotifications
+
+  const handleNotificationClick = async (notification: Notification) => {
+    // Marcar como leída si no lo está
+    if (!notification.isRead) {
+      await markAsRead(notification.id);
+    }
+    
+    // Navegar a la URL de acción si existe
+    if (notification.actionUrl) {
+      window.location.href = notification.actionUrl;
+    }
+    
+    setIsOpen(false);
   };
 
-  const handleMarkAllAsRead = () => {
-    // TODO: Implementar lógica para marcar todas como leídas
-    console.log('Mark all as read');
+  const handleMarkAllAsRead = async () => {
+    await markAllAsRead();
   };
 
   const handleViewAllNotifications = () => {
@@ -67,6 +93,15 @@ export default function NotificationBell() {
     console.log('View all notifications');
     setIsOpen(false);
   };
+
+  const handleDeleteNotification = async (notificationId: string) => {
+    await deleteNotification(notificationId);
+  };
+
+  const handleRefreshNotifications = async () => {
+    await refreshNotifications();
+  };
+
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -77,7 +112,11 @@ export default function NotificationBell() {
           className="relative h-8 w-8"
           aria-label="Notificaciones"
         >
-          <Bell className="h-5 w-5" />
+          <Bell 
+            className={`h-5 w-5 transition-transform duration-200 ${
+              isRinging ? 'animate-ring' : ''
+            }`}
+          />
           {unreadCount > 0 && (
             <Badge 
               variant="destructive" 
@@ -95,7 +134,14 @@ export default function NotificationBell() {
         sideOffset={8}
       >
         <div className="flex items-center justify-between p-4 pb-2">
-          <h4 className="font-semibold text-sm">Notificaciones</h4>
+          <div className="flex items-center gap-2">
+            <h4 className="font-semibold text-sm">Notificaciones</h4>
+            {error && (
+              <span className="text-xs text-destructive" title={error}>
+                ⚠️
+              </span>
+            )}
+          </div>
           {unreadCount > 0 && (
             <Button
               variant="ghost"
@@ -123,7 +169,7 @@ export default function NotificationBell() {
                     className={`p-3 rounded-md cursor-pointer transition-colors hover:bg-accent ${
                       !notification.isRead ? 'bg-accent/50' : ''
                     }`}
-                    onClick={() => handleNotificationClick(notification.id)}
+                    onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex items-start gap-3">
                       <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
@@ -155,15 +201,26 @@ export default function NotificationBell() {
         {notifications.length > 0 && (
           <>
             <Separator />
-            <div className="p-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-center text-xs"
-                onClick={handleViewAllNotifications}
-              >
-                Ver todas las notificaciones
-              </Button>
+            <div className="p-2 space-y-2">
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex-1 justify-center text-xs"
+                  onClick={handleViewAllNotifications}
+                >
+                  Ver todas
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex-1 justify-center text-xs"
+                  onClick={handleRefreshNotifications}
+                  disabled={loading}
+                >
+                  {loading ? '...' : 'Actualizar'}
+                </Button>
+              </div>
             </div>
           </>
         )}

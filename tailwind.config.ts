@@ -102,12 +102,25 @@ export default {
         'pulse-slow': {
           '0%, 100%': { transform: 'scale(1)', opacity: '1' },
           '50%': { transform: 'scale(1.05)', opacity: '.8' },
+        },
+        'ring': {
+          '0%, 100%': { transform: 'rotate(0deg)' },
+          '10%': { transform: 'rotate(-15deg)' },
+          '20%': { transform: 'rotate(15deg)' },
+          '30%': { transform: 'rotate(-15deg)' },
+          '40%': { transform: 'rotate(15deg)' },
+          '50%': { transform: 'rotate(-10deg)' },
+          '60%': { transform: 'rotate(10deg)' },
+          '70%': { transform: 'rotate(-5deg)' },
+          '80%': { transform: 'rotate(5deg)' },
+          '90%': { transform: 'rotate(-2deg)' },
         }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'pulse-slow': 'pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'ring': 'ring 1s ease-in-out',
       },
     },
   },

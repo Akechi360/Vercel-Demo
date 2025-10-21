@@ -27,31 +27,26 @@ export default function PatientDetailLayout({
   const [patient, setPatient] = useState<PatientWithCompany | null>(null);
 
   // ✅ VALIDACIÓN CRÍTICA - Verificar que patientId sea válido
-  if (!patientId || typeof patientId !== 'string' || patientId.trim() === '') {
+  const isValidPatientId = patientId && typeof patientId === 'string' && patientId.trim() !== '';
+  
+  if (!isValidPatientId) {
     console.error('❌ PatientDetailLayout - patientId inválido desde params:', { 
       patientId, 
       type: typeof patientId,
       pathname
     });
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <h3 className="text-lg font-semibold text-destructive">Error de Navegación</h3>
-          <p className="text-muted-foreground">ID de paciente inválido o no encontrado.</p>
-        </div>
-      </div>
-    );
   }
 
   console.log('🔍 PatientDetailLayout - patientId extraído de params:', {
     patientId,
     type: typeof patientId,
-    length: patientId.length,
+    length: patientId?.length,
     pathname,
     rawParams: { patientId }
   });
 
   useEffect(() => {
+    if (!isValidPatientId) return;
     console.log('🔍 PatientDetailLayout - useEffect ejecutado para patientId:', patientId);
     
     const fetchPatientData = async () => {
@@ -75,6 +70,18 @@ export default function PatientDetailLayout({
   }, [patientId]);
   
   const isHistoryPage = pathname === `/patients/${patientId}`;
+
+  // Mostrar error si patientId es inválido
+  if (!isValidPatientId) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-destructive">Error de Navegación</h3>
+          <p className="text-muted-foreground">ID de paciente inválido o no encontrado.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!patient) {
     // You can show a loading skeleton here

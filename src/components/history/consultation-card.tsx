@@ -21,27 +21,23 @@ export function ConsultationCard({ consultation }: ConsultationCardProps) {
     const [patient, setPatient] = useState<Patient | null>(null);
 
     // ✅ VALIDACIÓN CRÍTICA - Verificar que consultation sea válido
-    if (!consultation || !consultation.id) {
+    const isValidConsultation = consultation && consultation.id;
+    
+    if (!isValidConsultation) {
         console.error('❌ ConsultationCard - consultation inválido:', { consultation });
-        return (
-            <Card>
-                <CardContent className="p-4 text-center text-destructive">
-                    <p>Error: Consulta inválida</p>
-                </CardContent>
-            </Card>
-        );
     }
 
     console.log('🔍 ConsultationCard - consultation recibida:', {
-        id: consultation.id,
-        userId: consultation.userId,
-        userIdType: typeof consultation.userId,
-        date: consultation.date,
-        doctor: consultation.doctor,
-        type: consultation.type
+        id: consultation?.id,
+        userId: consultation?.userId,
+        userIdType: typeof consultation?.userId,
+        date: consultation?.date,
+        doctor: consultation?.doctor,
+        type: consultation?.type
     });
 
     useEffect(() => {
+        if (!isValidConsultation) return;
         // ✅ VALIDACIÓN CRÍTICA - Verificar que consultation.userId no sea undefined/null
         if (!consultation.userId || typeof consultation.userId !== 'string') {
             console.error('❌ ConsultationCard - consultation.userId inválido:', { 
@@ -157,6 +153,17 @@ export function ConsultationCard({ consultation }: ConsultationCardProps) {
             title: "Receta Exportada",
             description: "El PDF de la receta ha sido generado.",
         });
+    }
+
+    // Mostrar error si consultation es inválido
+    if (!isValidConsultation) {
+        return (
+            <Card>
+                <CardContent className="p-4 text-center text-destructive">
+                    <p>Error: Consulta inválida</p>
+                </CardContent>
+            </Card>
+        );
     }
 
     return (

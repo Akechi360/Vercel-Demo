@@ -27,32 +27,27 @@ export default function PatientHistoryPage({ params }: { params: Promise<{ patie
   const [loading, setLoading] = useState(true);
 
   // ✅ VALIDACIÓN CRÍTICA - Verificar que userId sea válido
-  if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+  const isValidUserId = userId && typeof userId === 'string' && userId.trim() !== '';
+  
+  if (!isValidUserId) {
     console.error('❌ PatientHistoryPage - userId inválido desde params:', { 
       userId, 
       type: typeof userId,
       params: { patientId: userId }
     });
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <h3 className="text-lg font-semibold text-destructive">Error de Navegación</h3>
-          <p className="text-muted-foreground">ID de paciente inválido o no encontrado.</p>
-        </div>
-      </div>
-    );
   }
 
   console.log('🔍 PatientHistoryPage - userId extraído de params:', {
     userId,
     type: typeof userId,
-    length: userId.length,
+    length: userId?.length,
     params: { patientId: userId }
   });
 
   const canViewHistory = can('patients:write') || currentUser?.userId === userId;
 
   useEffect(() => {
+    if (!isValidUserId) return;
     console.log('🔍 PatientHistoryPage - useEffect ejecutado');
     console.log('🔍 PatientHistoryPage - canViewHistory:', canViewHistory);
     console.log('🔍 PatientHistoryPage - userId:', userId);
@@ -99,6 +94,18 @@ export default function PatientHistoryPage({ params }: { params: Promise<{ patie
     };
     setHistory(prevHistory => [fullConsultation, ...prevHistory]);
   };
+
+  // Mostrar error si userId es inválido
+  if (!isValidUserId) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-destructive">Error de Navegación</h3>
+          <p className="text-muted-foreground">ID de paciente inválido o no encontrado.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     // You can replace this with a proper skeleton loader for the timeline

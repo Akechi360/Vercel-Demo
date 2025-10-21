@@ -10,7 +10,6 @@ export function LenisProvider({ children }: { children: React.ReactNode }) {
       lerp: 0.1,
       duration: 1.2,
       wheelMultiplier: 1,
-      smoothTouch: false,
     })
 
     // Exponer Lenis globalmente para debugging

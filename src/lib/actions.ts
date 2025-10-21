@@ -2278,7 +2278,7 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
         if (secretariaId) {
           console.log('✅ Secretaria record created/verified for user:', userId);
         }
-      } else if (data.role === 'patient' || data.role === 'PATIENT' || data.role === UserRole.USER) {
+      } else if (data.role === 'patient' || data.role === 'PATIENT') {
         // ✨ Create patient record if changing TO patient
         try {
           await withDatabase(async (prisma) => {
@@ -2326,8 +2326,8 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
         // Remove secretaria record if changing FROM secretaria
         await removeSecretariaRecord(userId);
         console.log('✅ Secretaria record removed for user:', userId);
-      } else if ((currentUser.role === 'patient' || currentUser.role === 'PATIENT' || currentUser.role === UserRole.USER) && 
-                 (data.role !== 'patient' && data.role !== 'PATIENT' && data.role !== UserRole.USER)) {
+      } else if ((currentUser.role === 'patient' || currentUser.role === 'PATIENT') && 
+                 (data.role !== 'patient' && data.role !== 'PATIENT')) {
         // ✨ Remove patient record if changing FROM patient
         try {
           await withDatabase(async (prisma) => {

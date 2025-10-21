@@ -8,10 +8,12 @@ import { prisma } from '@/lib/db'
  * Maneja la creación automática de notificaciones para eventos del sistema.
  */
 
+import type { NotificationType, NotificationChannel } from '@prisma/client'
+
 interface CreateNotificationParams {
   userId: string
-  type: string
-  channel: string
+  type: NotificationType
+  channel: NotificationChannel
   title: string
   message: string
   priority?: string

@@ -226,7 +226,7 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
               </div>
               <div className="space-y-2">
                 <Label htmlFor="bloodType">Grupo Sanguíneo</Label>
-                <Select onValueChange={(value) => form.setValue('bloodType', value as string)} defaultValue={form.watch('bloodType')}>
+                <Select onValueChange={(value) => form.setValue('bloodType', value as "O+" | "O-" | "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-")} defaultValue={form.watch('bloodType')}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccione un tipo de sangre" />
                   </SelectTrigger>

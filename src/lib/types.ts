@@ -1,0 +1,313 @@
+// Centralized UserRole enum to prevent inconsistencies
+export enum UserRole {
+  ADMIN = 'admin',
+  DOCTOR = 'doctor',
+  PATIENT = 'patient',
+  PROMOTORA = 'promotora',
+  SECRETARIA = 'secretaria'
+}
+
+// UserContext interface for dynamic user context injection
+export interface UserContext {
+  userId: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  currentTime: Date;
+  timezone?: string;
+}
+
+export const ALL_PERMISSIONS = [
+  'admin:all',
+  'dashboard:read',
+  'appointments:read',
+  'appointments:write',
+  'patients:read',
+  'patients:write',
+  'companies:read',
+  'companies:write',
+  'settings:read',
+  'settings:write',
+  'finance:read',
+  'finance:write',
+  'finance:admin', // Para ver montos totales y estadísticas
+  'finance:receipts', // Para generar comprobantes
+  'finance:download', // Para descargar comprobantes existentes
+  'affiliations:read',
+  'affiliations:write',
+  'medical_history:read',
+  'own_data:read',
+  'own_data:write',
+] as const;
+export type Permission = (typeof ALL_PERMISSIONS)[number];
+
+export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+  [UserRole.ADMIN]: [
+    'admin:all',
+    'dashboard:read',
+    'appointments:read',
+    'appointments:write',
+    'patients:read',
+    'patients:write',
+    'companies:read',
+    'companies:write',
+    'settings:read',
+    'settings:write',
+    'finance:read',
+    'finance:write',
+    'finance:admin',
+    'finance:receipts',
+    'finance:download',
+    'affiliations:read',
+    'affiliations:write',
+    'medical_history:read',
+  ],
+  [UserRole.DOCTOR]: [
+    'dashboard:read',
+    'appointments:read',
+    'patients:read',
+    'patients:write',
+    'medical_history:read',
+    'own_data:read',
+    'own_data:write',
+  ],
+  [UserRole.SECRETARIA]: [
+    'dashboard:read',
+    'appointments:read',
+    'appointments:write',
+    'patients:read',
+    'patients:write',
+    'companies:read',
+    'companies:write',
+    'finance:read',
+    'finance:receipts',
+    'finance:download',
+    'own_data:read',
+    'own_data:write',
+  ],
+  [UserRole.PATIENT]: [
+    'appointments:read',
+    'appointments:write',
+    'medical_history:read',
+    'finance:read',
+    'finance:download',
+    'own_data:read',
+    'own_data:write',
+  ],
+  [UserRole.PROMOTORA]: [
+    'dashboard:read',
+    'affiliations:read',
+    'own_data:read',
+    'own_data:write',
+  ],
+};
+
+export interface Patient {
+  id: string;
+  name: string;
+  cedula: string;
+  age: number;
+  gender: 'Masculino' | 'Femenino' | 'Otro';
+  bloodType: string;
+  status: 'Activo' | 'Inactivo';
+  lastVisit?: string;
+  contact: {
+    phone: string;
+    email: string;
+  };
+  avatarUrl?: string;
+  companyId?: string;
+  companyName?: string;
+}
+
+export interface Appointment {
+  id: string;
+  userId: string;
+  doctorUserId: string;
+  date: string;
+  reason: string;
+  status: 'Programada' | 'Completada' | 'Cancelada';
+}
+
+export interface Prescription {
+  id: string;
+  medication: string;
+  dosage: string;
+  duration: string;
+}
+
+export interface LabResult {
+  id: string;
+  userId?: string;
+  testName: string;
+  value: string;
+  referenceRange?: string;
+  date: string;
+}
+
+export interface Report {
+  id: string;
+  userId: string;
+  title: string;
+  date: string;
+  type: string;
+  notes: string;
+  fileUrl: string;
+  attachments: string[];
+}
+
+export interface Consultation {
+  id: string;
+  userId: string;
+  date: string;
+  doctor: string;
+  type: 'Inicial' | 'Seguimiento' | 'Pre-operatorio' | 'Post-operatorio';
+  notes: string;
+  prescriptions: Prescription[];
+  labResults: LabResult[];
+  reports: Report[];
+}
+
+import { User as PrismaUser } from "@prisma/client"
+
+// Extender el tipo User de Prisma para incluir userId como alias de userId
+export type User = PrismaUser & {
+  userId?: string; // Alias para userId cuando se usa como paciente
+}
+
+// Helper function para mapear userId a userId
+export function mapUserToPatient(user: PrismaUser): User {
+  return {
+    ...user,
+    userId: user.userId
+  };
+}
+
+export interface IpssScore {
+  id: string;
+  userId: string;
+  date: string;
+  score: number;
+  category: 'Leve' | 'Moderado' | 'Severo';
+}
+
+export interface Company {
+  id: string;
+  name: string;
+  ruc: string;
+  phone?: string;
+  email?: string;
+  status: 'Activo' | 'Inactivo';
+}
+
+export type NewReportFormValues = Omit<
+  Report,
+  'id' | 'userId' | 'fileUrl'
+> & { userId?: string };
+
+export interface Supply {
+  id: string;
+  name: string;
+  category: string;
+  stock: number;
+  unit: string;
+  expiryDate: string;
+}
+
+export interface Provider {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  address: string;
+}
+
+export interface PaymentMethod {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+}
+
+export interface PaymentType {
+  id: string;
+  name: string;
+  description: string;
+  defaultAmount?: number;
+}
+
+export interface Payment {
+    id: string;
+    userId: string;
+    doctorId?: string;
+    paymentTypeId: string;
+    paymentMethodId: string;
+    date: string;
+    monto: number;
+    status: 'Pagado' | 'Pendiente' | 'Anulado';
+}
+
+export interface Doctor {
+  id: string;
+  nombre: string;
+  especialidad: string;
+  area: string;
+  contacto: string;
+  avatarUrl?: string;
+}
+
+export interface Estudio {
+  id: string;
+  categoria: string;
+  nombre: string;
+}
+
+export interface Affiliation {
+    id: string;
+    planId: string;
+    tipoPago?: string;
+    estado: string;
+    fechaInicio: string;
+    fechaFin?: string | null;
+    monto: number;
+    beneficiarios?: any;
+    companyId?: string | null;
+    userId: string;
+    createdAt: string;
+    company?: {
+        id: string;
+        nombre: string;
+        rif: string;
+        direccion?: string;
+        telefono?: string;
+        email?: string;
+        contacto?: string;
+        createdAt: string;
+        updatedAt: string;
+    } | null;
+    user?: {
+        id: string;
+        email: string;
+        name: string;
+        role: string;
+        status: string;
+        createdAt: string;
+        phone?: string | null;
+        lastLogin?: string | null;
+        userId?: string | null;
+        avatarUrl?: string | null;
+    } | null;
+}
+
+export interface AffiliateLead {
+  fullName: string;
+  documentId: string;
+  birthDate: string;
+  phone: string;
+  email: string;
+  address: string;
+  planId: 'tarjeta-saludable' | 'fondo-espiritu-santo';
+  paymentMode: 'contado' | 'credito';
+  paymentMethod: string;
+  schedule?: { upfront: number; installments: number; installmentValue: number; frequencyDays: number; };
+}

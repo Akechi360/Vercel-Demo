@@ -30,7 +30,8 @@ model User {
   doctorInfo             DoctorInfo?
   promotoraInfo          PromotoraInfo?
   secretariaInfo         SecretariaInfo?
-  labResults             LabResult[]
+  patientLabResults      LabResult[]                 @relation("PatientLabResults")
+  doctorLabResults       LabResult[]                 @relation("DoctorLabResults")
   patientInfo            PatientInfo?
   createdPayments        Payment[]                   @relation("CreatedPayments")
   patientPayments        Payment[]                   @relation("PatientPayments")
@@ -191,18 +192,25 @@ model Consultation {
 
 model LabResult {
   id             String        @id @default(cuid())
-  nombre         String
-  tipo           String
-  resultado      String
-  valores        Json?
-  fecha          DateTime
+  nombre         String        // Nombre del test (ej: "PSA Total")
+  tipo           String        // Tipo/categoría (ej: "Urológico")
+  resultado      String        // Valor del resultado
+  valores        Json?         // Valores adicionales en JSON
+  fecha          DateTime      @default(now())
+  estado         String        @default("PENDIENTE") // PENDIENTE, COMPLETADO, CANCELADO
   patientUserId  String
   consultationId String?
+  doctorUserId   String?       // Doctor que solicitó el estudio
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
+  
+  patient        User          @relation("PatientLabResults", fields: [patientUserId], references: [userId], onDelete: Cascade)
   consultation   Consultation? @relation(fields: [consultationId], references: [id])
-  patient        User          @relation(fields: [patientUserId], references: [userId], onDelete: Cascade)
-
+  doctor         User?         @relation("DoctorLabResults", fields: [doctorUserId], references: [userId])
+  
+  @@index([patientUserId])
+  @@index([doctorUserId])
+  @@index([estado])
   @@map("lab_results")
 }
 

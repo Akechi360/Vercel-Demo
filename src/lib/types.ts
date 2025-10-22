@@ -143,6 +143,8 @@ export interface LabResult {
   value: string;
   referenceRange?: string;
   date: string;
+  estado?: string;        // PENDIENTE, COMPLETADO, CANCELADO
+  doctor?: string;        // Nombre del doctor que solicitó el estudio
 }
 
 export interface Report {

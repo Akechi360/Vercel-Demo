@@ -2441,6 +2441,7 @@ export async function getLabResultsByUserId(userId: string): Promise<LabResult[]
       include: {
         patient: true,
         consultation: true,
+        doctor: true,
       },
       orderBy: { fecha: 'desc' },
       });
@@ -2448,15 +2449,56 @@ export async function getLabResultsByUserId(userId: string): Promise<LabResult[]
 
     return labResults.map((result: any) => ({
       id: result.id,
-      userId: result.paciente.id,
+      userId: result.patientUserId, // ✅ Usar el campo directo en vez de result.patient.id
       testName: result.nombre,
       value: result.resultado,
       referenceRange: result.tipo,
       date: result.fecha.toISOString(),
+      estado: result.estado, // ✅ NUEVO: agregar estado
+      doctor: result.doctor?.name, // ✅ NUEVO: nombre del doctor
     }));
   } catch (error) {
     console.error('Error fetching lab results by patient:', error);
   return [];
+  }
+}
+
+/**
+ * Obtener resultados de laboratorio por patientId (userId)
+ */
+export async function getLabResultsByPatientId(patientId: string): Promise<LabResult[]> {
+  try {
+    console.log('[LAB_RESULTS] 🔍 Buscando por patientId:', patientId);
+    
+    const labResults = await withDatabase(async (prisma) => {
+      // patientId ES el userId - buscar directamente
+      const results = await prisma.labResult.findMany({
+        where: { patientUserId: patientId },
+        include: {
+          patient: { select: { name: true, userId: true } },
+          doctor: { select: { name: true, userId: true } }
+        },
+        orderBy: { fecha: 'desc' }
+      });
+      
+      console.log('[LAB_RESULTS] ✅ Encontrados:', results.length, 'resultados');
+      return results;
+    });
+
+    return labResults.map((result: any) => ({
+      id: result.id,
+      userId: result.patientUserId,
+      testName: result.nombre,
+      value: result.resultado,
+      referenceRange: result.tipo,
+      date: result.fecha.toISOString(),
+      estado: result.estado,
+      doctor: result.doctor?.name
+    }));
+    
+  } catch (error) {
+    console.error('[LAB_RESULTS] ❌ Error:', error);
+    return [];
   }
 }
 
@@ -3561,6 +3603,124 @@ export async function updateAffiliation(affiliationId: string, updateData: {
     console.log('✅ Affiliation updated successfully');
   } catch (error) {
     console.error('❌ Error updating affiliation:', error);
+    throw error;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// LAB RESULTS FUNCTIONS
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * 🔬 Agregar resultado de laboratorio
+ * 
+ * Crea un nuevo resultado de laboratorio con estado PENDIENTE.
+ * El resultado se marca como completado usando updateLabResultStatus().
+ */
+export async function addLabResult(
+  labData: {
+    nombre: string;
+    tipo: string;
+    resultado?: string;
+    valores?: any;
+    patientUserId: string; // userId del paciente
+    doctorUserId?: string;
+    consultationId?: string;
+  },
+  userContext: UserContext
+) {
+  try {
+    console.log('[LAB_RESULT] Creando resultado de laboratorio:', labData.nombre);
+    console.log('[LAB_RESULT] PatientUserId recibido:', labData.patientUserId);
+    
+    // Validar permisos (solo doctor y admin pueden crear)
+    if (userContext.role !== UserRole.ADMIN && userContext.role !== UserRole.DOCTOR) {
+      throw new Error('No tienes permisos para crear resultados de laboratorio');
+    }
+    
+    const result = await withDatabase(async (prisma) => {
+      // Usar directamente el patientUserId (ya es el userId)
+      const labResult = await prisma.labResult.create({
+        data: {
+          nombre: labData.nombre,
+          tipo: labData.tipo,
+          resultado: labData.resultado || 'Pendiente',
+          valores: labData.valores || null,
+          fecha: new Date(),
+          estado: 'PENDIENTE',
+          patientUserId: labData.patientUserId,
+          doctorUserId: labData.doctorUserId || userContext.userId,
+          consultationId: labData.consultationId
+        },
+        include: {
+          patient: { select: { name: true, userId: true } },
+          doctor: { select: { name: true, userId: true } }
+        }
+      });
+      
+      console.log('[LAB_RESULT] ✅ Resultado creado:', labResult.id);
+      return labResult;
+    });
+    
+    return result;
+    
+  } catch (error) {
+    console.error('[LAB_RESULT] ❌ Error al crear:', error);
+    throw error;
+  }
+}
+
+/**
+ * 🔄 Actualizar estado de resultado de laboratorio
+ * 
+ * Cuando se marca como COMPLETADO, se envía notificación al doctor y paciente.
+ */
+export async function updateLabResultStatus(
+  labResultId: string,
+  nuevoEstado: 'PENDIENTE' | 'COMPLETADO' | 'CANCELADO',
+  resultado?: string,
+  userContext?: UserContext
+) {
+  try {
+    console.log('[LAB_RESULT] Actualizando estado a:', nuevoEstado);
+    
+    const updated = await withDatabase(async (prisma) => {
+      // Actualizar el resultado
+      const labResult = await prisma.labResult.update({
+        where: { id: labResultId },
+        data: {
+          estado: nuevoEstado,
+          resultado: resultado || undefined,
+          updatedAt: new Date()
+        },
+        include: {
+          patient: { select: { id: true, name: true, userId: true } },
+          doctor: { select: { id: true, name: true, userId: true } }
+        }
+      });
+      
+      console.log('[LAB_RESULT] ✅ Estado actualizado a:', nuevoEstado);
+      
+      // 🔔 Si se marca como COMPLETADO → Enviar notificaciones
+      if (nuevoEstado === 'COMPLETADO') {
+        console.log('[LAB_RESULT] 📧 Enviando notificaciones...');
+        
+        // Importar función de notificaciones
+        const { notifyLabResultReady } = await import('./notification-service');
+        
+        // Enviar notificaciones en background
+        notifyLabResultReady(labResult.id).catch(error => {
+          console.error('[LAB_RESULT] Error al enviar notificaciones:', error);
+        });
+      }
+      
+      return labResult;
+    });
+    
+    return updated;
+    
+  } catch (error) {
+    console.error('[LAB_RESULT] ❌ Error al actualizar:', error);
     throw error;
   }
 }

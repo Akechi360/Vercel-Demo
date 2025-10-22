@@ -1,15 +1,50 @@
+'use client';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import type { LabResult } from '@/lib/types';
 import { format } from 'date-fns';
 import { Microscope } from 'lucide-react';
+import CompleteLabResultButton from '@/components/lab-results/complete-lab-result-button';
+import { useRouter } from 'next/navigation';
 
 interface LabResultsCardProps {
-  labResults: LabResult[];
+  results?: LabResult[];
+  labResults?: LabResult[];
 }
 
-export default function LabResultsCard({ labResults }: LabResultsCardProps) {
-  const sortedResults = [...labResults].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+export default function LabResultsCard({ results, labResults }: LabResultsCardProps) {
+  const router = useRouter();
+  const data = results || labResults || [];
+  console.log('📊 LabResultsCard rendering with:', data.length, 'results');
+  const sortedResults = [...data].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const handleSuccess = () => {
+    router.refresh(); // Recargar datos
+  };
+
+  const getEstadoBadge = (estado?: string) => {
+    if (!estado) return null;
+    
+    const variants = {
+      PENDIENTE: 'outline' as const,
+      COMPLETADO: 'default' as const,
+      CANCELADO: 'destructive' as const,
+    };
+    
+    const colors = {
+      PENDIENTE: 'text-yellow-600',
+      COMPLETADO: 'text-green-600',
+      CANCELADO: 'text-red-600',
+    };
+    
+    return (
+      <Badge variant={variants[estado as keyof typeof variants] || 'outline'} className={colors[estado as keyof typeof colors]}>
+        {estado}
+      </Badge>
+    );
+  };
 
   return (
     <Card>
@@ -26,6 +61,9 @@ export default function LabResultsCard({ labResults }: LabResultsCardProps) {
                 <TableHead>Prueba</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Referencia</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>Doctor</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -35,6 +73,20 @@ export default function LabResultsCard({ labResults }: LabResultsCardProps) {
                   <TableCell className="font-medium">{result.testName}</TableCell>
                   <TableCell>{result.value}</TableCell>
                   <TableCell className="text-muted-foreground">{result.referenceRange || 'N/A'}</TableCell>
+                  <TableCell>{getEstadoBadge(result.estado)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{result.doctor || '-'}</TableCell>
+                  <TableCell>
+                    {result.estado === 'PENDIENTE' && (
+                      <div className="flex justify-end">
+                        <CompleteLabResultButton
+                          labResultId={result.id}
+                          testName={result.testName}
+                          currentValue={result.value}
+                          onSuccess={handleSuccess}
+                        />
+                      </div>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

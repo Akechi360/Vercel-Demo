@@ -129,3 +129,64 @@ export async function notifyNewAppointment(appointmentId: string) {
   }
 }
 
+/**
+ * 🔬 EVENTO: Resultado de Laboratorio Listo
+ * 
+ * Notifica al paciente y al doctor cuando un resultado está COMPLETADO.
+ */
+export async function notifyLabResultReady(labResultId: string) {
+  try {
+    console.log('[NOTIFICATIONS] 🔬 Resultado de laboratorio listo:', labResultId)
+    
+    // Obtener datos del resultado con relaciones
+    const labResult = await prisma.labResult.findUnique({
+      where: { id: labResultId },
+      include: {
+        patient: { select: { id: true, name: true, userId: true } },
+        doctor: { select: { id: true, name: true, userId: true } }
+      }
+    })
+    
+    if (!labResult) {
+      console.log('[NOTIFICATIONS] ⚠️ Resultado de laboratorio no encontrado')
+      return
+    }
+    
+    const testName = labResult.nombre
+    const patientName = labResult.patient.name
+    
+    // 1️⃣ Notificar al PACIENTE
+    await createNotification({
+      userId: labResult.patient.id,
+      type: 'LAB_RESULT_READY',
+      channel: 'IN_APP',
+      title: 'Resultado de laboratorio disponible',
+      message: `Tu resultado de ${testName} ya está disponible`,
+      priority: 'HIGH',
+      actionUrl: `/patients/${labResult.patient.userId}/urology`,
+      actionText: 'Ver resultado',
+      data: { labResultId, testName }
+    })
+    console.log('[NOTIFICATIONS] ✅ Paciente notificado:', patientName)
+    
+    // 2️⃣ Notificar al DOCTOR (si está asignado)
+    if (labResult.doctor && labResult.doctorUserId) {
+      await createNotification({
+        userId: labResult.doctor.id,
+        type: 'LAB_RESULT_READY',
+        channel: 'IN_APP',
+        title: 'Resultado de laboratorio completado',
+        message: `Resultado de ${testName} para ${patientName} disponible`,
+        priority: 'MEDIUM',
+        actionUrl: `/patients/${labResult.patient.userId}/urology`,
+        actionText: 'Ver resultado',
+        data: { labResultId, testName, patientName }
+      })
+      console.log('[NOTIFICATIONS] ✅ Doctor notificado:', labResult.doctor.name)
+    }
+    
+  } catch (error) {
+    console.error('[NOTIFICATIONS] ❌ Error en notifyLabResultReady:', error)
+  }
+}
+

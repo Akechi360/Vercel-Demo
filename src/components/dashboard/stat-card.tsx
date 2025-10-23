@@ -5,7 +5,7 @@ import type { LucideProps } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ArrowUpRight, ArrowDownRight, Minus, Users, Calendar, FlaskConical, Activity, CalendarDays } from 'lucide-react';
-import { ElementType } from 'react';
+import { ElementType, memo } from 'react';
 
 const icons: { [key: string]: ElementType } = {
     Users,
@@ -39,7 +39,8 @@ const trendConfig = {
   },
 };
 
-export function StatCard({ title, value, iconName, subtext, trend, index }: StatCardProps) {
+// ⚡ Memoized para evitar re-renders innecesarios
+export const StatCard = memo(function StatCard({ title, value, iconName, subtext, trend, index }: StatCardProps) {
   const TrendIcon = trendConfig[trend].icon;
   const trendColor = trendConfig[trend].color;
   const Icon = icons[iconName];
@@ -116,4 +117,4 @@ export function StatCard({ title, value, iconName, subtext, trend, index }: Stat
         </motion.div>
     </motion.div>
   );
-}
+});

@@ -7,8 +7,8 @@ import {
 import { PageHeader } from '@/components/shared/page-header';
 import { useAuth } from '@/components/layout/auth-provider';
 import { usePermissions } from '@/hooks/use-permissions';
-import { getIpssScoresByUserId, getPatients, getAppointments, getAffiliations } from '@/lib/actions';
-import { useEffect, useState } from 'react';
+import { getIpssScoresByUserId, getPatients, getAppointments, getAffiliations, getLabResultsStats } from '@/lib/actions';
+import { useEffect, useState, useRef } from 'react';
 import type { Patient, Appointment, IpssScore } from '@/lib/types';
 import { isToday, isYesterday, subMonths } from 'date-fns';
 import { RoleBasedContent } from '@/components/shared/role-based-content';
@@ -30,10 +30,24 @@ export default function DashboardPage() {
     const { currentUser } = useAuth();
     const { hasPermission, isAdmin, isDoctor, isPatient, isSecretaria, isPromotora } = usePermissions();
     const [stats, setStats] = useState<DashboardStats | null>(null);
+    const isFetchingRef = useRef(false);
+    const hasFetchedRef = useRef(false);
 
     useEffect(() => {
+        // ⚡ Evitar múltiples ejecuciones simultáneas
+        if (!currentUser || isFetchingRef.current || hasFetchedRef.current) return;
+        
+        isFetchingRef.current = true;
+        
         async function fetchData() {
-            if (!currentUser) return;
+            if (!currentUser) return; // ✅ Validación adicional para TypeScript
+            
+            // ✅ Calcular roles una sola vez dentro de la función (evita dependencias inestables)
+            const userIsAdmin = currentUser.role === 'ADMIN' || currentUser.role === 'admin';
+            const userIsDoctor = currentUser.role === 'DOCTOR' || currentUser.role === 'doctor';
+            const userIsPatient = currentUser.role === 'PATIENT' || currentUser.role === 'patient';
+            const userIsSecretaria = currentUser.role === 'SECRETARIA' || currentUser.role === 'secretaria';
+            const userIsPromotora = currentUser.role === 'PROMOTORA' || currentUser.role === 'promotora';
             
             let totalPatients = 0;
             let todayAppointments = 0;
@@ -43,8 +57,12 @@ export default function DashboardPage() {
             let yesterdayAppointments = 0;
             let activeAffiliations = 0;
 
-            if (isAdmin() || isSecretaria() || isDoctor()) {
-                const [patients, appointments] = await Promise.all([getPatients(), getAppointments()]);
+            if (userIsAdmin || userIsSecretaria || userIsDoctor) {
+                const [patients, appointments, labStats] = await Promise.all([
+                    getPatients(), 
+                    getAppointments(),
+                    getLabResultsStats()
+                ]);
                 
                 // Safe array validation to prevent build errors
                 const safePatients = Array.isArray(patients) ? patients : [];
@@ -53,7 +71,7 @@ export default function DashboardPage() {
                 totalPatients = safePatients.length;
                 todayAppointments = safeAppointments.filter(a => isToday(new Date(a.date))).length;
                 yesterdayAppointments = safeAppointments.filter(a => isYesterday(new Date(a.date))).length;
-                pendingResults = 0; // Will be calculated from lab results when available
+                pendingResults = labStats.pending;
                 
                 // Calculate monthly growth (patients added this month vs last month)
                 const currentMonth = new Date().getMonth();
@@ -74,7 +92,7 @@ export default function DashboardPage() {
                 monthlyPatientsGrowth = thisMonthPatients - lastMonthPatients;
             }
 
-            if (isPatient() && currentUser.userId) {
+            if (userIsPatient && currentUser.userId) {
                 const ipssScores = await getIpssScoresByUserId(currentUser.userId);
                 const latestIpss = ipssScores.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
                 if (latestIpss) {
@@ -82,7 +100,7 @@ export default function DashboardPage() {
                 }
             }
 
-            if (isPromotora()) {
+            if (userIsPromotora) {
                 const affiliations = await getAffiliations();
                 const safeAffiliations = Array.isArray(affiliations) ? affiliations : [];
                 activeAffiliations = safeAffiliations.filter(aff => 
@@ -91,9 +109,13 @@ export default function DashboardPage() {
             }
             
             setStats({ totalPatients, todayAppointments, pendingResults, latestIpssScore, monthlyPatientsGrowth, yesterdayAppointments, activeAffiliations });
+            hasFetchedRef.current = true;
         }
-        fetchData();
-    }, [currentUser]);
+        
+        fetchData().finally(() => {
+            isFetchingRef.current = false;
+        });
+    }, [currentUser?.userId, currentUser?.role]); // ✅ Solo dependencias estables
 
     if (!stats) {
         return <DashboardSkeleton />

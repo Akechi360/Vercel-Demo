@@ -29,6 +29,31 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+    formats: ['image/avif', 'image/webp'],
+  },
+  
+  // ⚡ Optimizaciones de performance
+  experimental: {
+    optimizePackageImports: ['@/components', '@/lib', 'lucide-react', 'date-fns'],
+  },
+  
+  // Headers de optimización
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on'
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          },
+        ],
+      },
+    ];
   },
 };
 

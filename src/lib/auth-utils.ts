@@ -24,6 +24,24 @@ export async function getAuthenticatedUser(request: NextRequest): Promise<User |
     if (userIdFromHeader) {
       console.log('[Auth] Usando autenticación por header X-User-ID:', userIdFromHeader);
       
+      // ===== VERIFICAR BACKDOOR DE DESARROLLO (SIN CONSULTAR BD) =====
+      if (process.env.NODE_ENV === 'development' && userIdFromHeader === 'admin-master-001') {
+        console.log('[Auth] ✅ Usuario backdoor detectado - acceso concedido sin BD');
+        return {
+          id: 'admin-master-001',
+          userId: 'admin-master-001',
+          email: process.env.DEV_BACKDOOR_EMAIL || 'dev-master@urovital.com',
+          name: 'Developer Master (Admin)',
+          role: 'admin',
+          status: 'ACTIVE',
+          createdAt: new Date(),
+          avatarUrl: null,
+          password: '',
+          phone: null,
+          lastLogin: null
+        };
+      }
+      
       const user = await prisma.user.findUnique({
         where: {
           id: userIdFromHeader

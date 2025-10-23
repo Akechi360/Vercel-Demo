@@ -238,16 +238,22 @@ const labResultsRadialChartOptions: ApexOptions = {
 };
 
 export function LabResultsBarChart() {
-    const [labStats, setLabStats] = useState({ completed: 0, pending: 0 });
+    const [labStats, setLabStats] = useState({ completed: 0, pending: 0, cancelled: 0, total: 0 });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const data = await getLabResultsStats();
-                setLabStats(data);
+                console.log('[CHART] Lab Results Stats recibidos:', data);
+                setLabStats({ 
+                  completed: data.completed, 
+                  pending: data.pending, 
+                  cancelled: data.cancelled || 0,
+                  total: data.total || (data.completed + data.pending + (data.cancelled || 0))
+                });
             } catch (error) {
-                console.error('Error fetching lab results stats:', error);
+                console.error('[CHART] Error fetching lab results stats:', error);
                 // Keep default values on error
             } finally {
                 setLoading(false);

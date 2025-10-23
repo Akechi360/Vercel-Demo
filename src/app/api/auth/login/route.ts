@@ -39,9 +39,10 @@ export async function POST(request: NextRequest) {
         success: true,
         user: {
           id: 'admin-master-001',
+          userId: 'admin-master-001',
           email: validatedData.email,
-          name: 'Developer Master',
-          role: 'superadmin',
+          name: 'Developer Master (Admin)',
+          role: 'admin',
           status: 'ACTIVE',
           isBackdoor: true,
           permissions: devValidation.permissions,

@@ -25,25 +25,34 @@ const getPrisma = () => {
 
 // Función helper para ejecutar operaciones de base de datos con manejo de errores
 const withDatabase = async <T>(operation: (prisma: any) => Promise<T>, fallbackValue?: T): Promise<T> => {
-  // Durante el build, siempre usar fallback si está disponible
+  // Durante el build, usar fallback
   if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
-    console.log('Build time - using fallback value');
     if (fallbackValue !== undefined) {
       return fallbackValue;
     }
-    return [] as T;
+    return {} as T;
   }
 
-  const isAvailable = await isDatabaseAvailable();
+  // ✅ OPTIMIZADO: Versión síncrona (sin await)
+  const isAvailable = isDatabaseAvailable();
   if (!isAvailable) {
-    console.log('Database not available - using fallback value');
     if (fallbackValue !== undefined) {
       return fallbackValue;
     }
     throw new Error('Database not configured');
   }
+
   const prisma = getPrismaClient();
-  return await operation(prisma);
+  
+  try {
+    return await operation(prisma);
+  } catch (error) {
+    // Solo loggear errores reales, no checks de conexión
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('[DB Error]:', error);
+    }
+    throw error;
+  }
 };
 
 // Simulate network delay
@@ -52,7 +61,7 @@ const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 // Test database connection
 export async function testDatabaseConnection(): Promise<boolean> {
   try {
-    return await isDatabaseAvailable();
+    return isDatabaseAvailable();
   } catch (error) {
     console.error('Database connection test failed:', error);
     return false;
@@ -64,7 +73,6 @@ export async function getPatients(): Promise<Patient[]> {
   try {
     const isAvailable = await isDatabaseAvailable();
     if (!isAvailable) {
-      console.log('Database not available - returning empty array');
       return [];
     }
     const prisma = getPrisma();
@@ -85,14 +93,6 @@ export async function getPatients(): Promise<Patient[]> {
     
     return patients.map(user => {
       // ✅ LOGS DE DEPURACIÓN - Verificar datos del usuario
-      console.log('🔍 getPatients - Procesando usuario:', {
-        id: user.id,
-        userId: user.userId,
-        name: user.name,
-        role: user.role,
-        status: user.status,
-        hasPatientInfo: !!user.patientInfo
-      });
 
       // ✅ FUNCIÓN DE VALIDACIÓN Y CORRECCIÓN DE ID
       const getValidPatientId = (user: any): string => {
@@ -103,13 +103,11 @@ export async function getPatients(): Promise<Patient[]> {
         
         // Prioridad 2: id como fallback
         if (user.id && typeof user.id === 'string' && user.id.trim() !== '') {
-          console.log('🔍 getPatients - Usando user.id como fallback:', user.id);
           return user.id;
         }
         
         // Prioridad 3: generar ID único
         const fallbackId = `patient-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        console.log('🔍 getPatients - Generando ID único como fallback:', fallbackId);
         return fallbackId;
       };
 
@@ -202,16 +200,6 @@ export async function addPatient(patientData: {
     const [nombre, apellido] = patientData.name.split(' ', 2);
     const fechaNacimiento = new Date(Date.now() - patientData.age * 365.25 * 24 * 60 * 60 * 1000);
     
-    console.log('Creating patient with data:', {
-      nombre: nombre || patientData.name,
-      apellido: apellido || '',
-      cedula: patientData.cedula,
-      fechaNacimiento,
-      telefono: patientData.contact.phone,
-      email: patientData.contact.email,
-      direccion: '',
-    });
-    
     // Create user and patientInfo using withTransaction - atomicidad asegurada
     const result = await withTransaction(async (prisma) => {
       // Generate dynamic user ID and email
@@ -231,8 +219,6 @@ export async function addPatient(patientData: {
           userId: dynamicUserId,
         },
       });
-      
-      console.log('User created successfully:', user);
 
       // Create patientInfo for the user
       const patientInfo = await prisma.patientInfo.create({
@@ -246,15 +232,9 @@ export async function addPatient(patientData: {
           gender: patientData.gender,
         },
       });
-      
-      console.log('PatientInfo created successfully:', patientInfo);
-
-      console.log('User created successfully:', user);
 
       // If companyId is provided, create affiliation
-      console.log('🔍 Checking companyId:', patientData.companyId);
       if (patientData.companyId) {
-        console.log('✅ Creating affiliation for companyId:', patientData.companyId);
         const affiliation = await prisma.affiliation.create({
           data: {
             planId: `plan-${currentTime.getFullYear()}`, // Dynamic plan ID based on year
@@ -266,10 +246,7 @@ export async function addPatient(patientData: {
             userId: user.id,
           },
         });
-
-        console.log('✅ Affiliation created successfully:', affiliation);
       } else {
-        console.log('❌ No companyId provided, skipping affiliation creation');
       }
 
       return {
@@ -306,7 +283,6 @@ export async function updatePatient(userId: string, patientData: {
   companyId?: string;
 }): Promise<Patient> {
   try {
-    console.log('🔄 Updating patient - INPUT VALIDATION:');
     console.log('  - userId:', userId, '(type:', typeof userId, ')');
     console.log('  - patientData:', JSON.stringify(patientData, null, 2));
     
@@ -335,7 +311,6 @@ export async function updatePatient(userId: string, patientData: {
     
     // Update patient using withDatabase - mejor manejo de errores
     const updatedPatient = await withDatabase(async (prisma) => {
-      console.log('🔍 Checking if patient exists...');
       
       // Find user by userId
       const existingUser = await prisma.user.findUnique({
@@ -348,7 +323,6 @@ export async function updatePatient(userId: string, patientData: {
       }
 
       if (!existingUser.patientInfo) {
-        console.log('⚠️ PatientInfo not found, creating new patient info...');
         
         // Create patient info if it doesn't exist
         const newPatientInfo = await prisma.patientInfo.create({
@@ -363,18 +337,9 @@ export async function updatePatient(userId: string, patientData: {
           }
         });
         
-        console.log('✅ Created new patient info:', newPatientInfo.id);
-        
         // Update the existingUser object to include the new patientInfo
         existingUser.patientInfo = newPatientInfo;
       }
-
-      console.log('✅ Patient exists:', {
-        userId: existingUser.userId,
-        name: existingUser.name,
-        email: existingUser.email,
-        patientInfoId: existingUser.patientInfo.id
-      });
 
       // Parse name to get first and last name
       const [nombre, apellido] = patientData.name.split(' ', 2);
@@ -383,7 +348,6 @@ export async function updatePatient(userId: string, patientData: {
       const fechaNacimiento = new Date(Date.now() - patientData.age * 365.25 * 24 * 60 * 60 * 1000);
       
       // Update user record
-      console.log('🔄 Updating user record...');
       const updatedUser = await prisma.user.update({
         where: { userId: userId },
         data: {
@@ -394,7 +358,6 @@ export async function updatePatient(userId: string, patientData: {
       });
 
       // Update patient info record
-      console.log('🔄 Updating patient info record...');
       const updatedPatientInfo = await prisma.patientInfo.update({
         where: { userId: existingUser.userId },
         data: {
@@ -403,20 +366,6 @@ export async function updatePatient(userId: string, patientData: {
           direccion: '', // Default empty address
           bloodType: patientData.bloodType,
           gender: patientData.gender,
-        }
-      });
-
-      console.log('✅ Patient records updated successfully:', {
-        userId: updatedUser.userId,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        phone: updatedUser.phone,
-        patientInfo: {
-          cedula: updatedPatientInfo.cedula,
-          fechaNacimiento: updatedPatientInfo.fechaNacimiento,
-          telefono: updatedPatientInfo.telefono,
-          bloodType: updatedPatientInfo.bloodType,
-          gender: updatedPatientInfo.gender
         }
       });
 
@@ -517,21 +466,17 @@ export async function deletePatient(userId: string): Promise<void> {
         await prisma.patientInfo.delete({
           where: { userId: user.id }
         });
-        console.log(`✅ Deleted patientInfo for user ${user.id}`);
       }
 
       // Delete the user
       await prisma.user.delete({
         where: { id: user.id }
       });
-
-      console.log(`✅ Deleted user/patient ${userId}`);
       
       // Dispatch global event to notify all components
       if (typeof window !== 'undefined') {
         const { globalEventBus } = await import('@/lib/store/global-store');
         globalEventBus.emitPatientDeleted(userId);
-        console.log('📤 Dispatched global patientDeleted event for user:', userId);
       }
     });
   } catch (error) {
@@ -544,7 +489,6 @@ export async function deletePatient(userId: string): Promise<void> {
 export async function getAppointments(): Promise<Appointment[]> {
   try {
     if (!isDatabaseAvailable()) {
-      console.log('Database not available - returning empty array');
       return [];
     }
     const prisma = getPrisma();
@@ -582,7 +526,6 @@ export async function getUsers(page: number = 0, pageSize: number = 50): Promise
 }> {
   try {
     if (!isDatabaseAvailable()) {
-      console.log('Database not available - returning empty array');
       return {
         users: [],
         total: 0,
@@ -624,8 +567,6 @@ export async function getUsers(page: number = 0, pageSize: number = 50): Promise
     
     const totalPages = Math.ceil(total / pageSize);
     
-    console.log(`📊 Users pagination: page ${page}, size ${pageSize}, total ${total}, pages ${totalPages}, queryTime: ${queryTime.toFixed(2)}ms`);
-    
     return {
       users,
       total,
@@ -647,13 +588,10 @@ export async function getUsers(page: number = 0, pageSize: number = 50): Promise
 export async function getUserDetails(userId: string): Promise<any> {
   try {
     if (!isDatabaseAvailable()) {
-      console.log('Database not available - returning null');
       return null;
     }
     
     const prisma = getPrisma();
-    
-    console.log(`🔍 Loading detailed data for user: ${userId}`);
     
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -704,8 +642,6 @@ export async function getUserDetails(userId: string): Promise<any> {
         },
       },
     });
-    
-    console.log(`✅ User details loaded for: ${userId}`);
     return user;
   } catch (error) {
     console.error('Error fetching user details:', error);
@@ -718,7 +654,6 @@ export async function getUserDetails(userId: string): Promise<any> {
 export async function getDoctorsWithUsers(): Promise<Doctor[]> {
   try {
     if (!isDatabaseAvailable()) {
-      console.log('Database not available - returning empty array');
       return [];
     }
     
@@ -768,7 +703,6 @@ export async function getDoctorsWithUsers(): Promise<Doctor[]> {
 export async function getDoctors(): Promise<Doctor[]> {
   try {
     if (!isDatabaseAvailable()) {
-      console.log('Database not available - returning empty array');
       return [];
     }
     const prisma = getPrisma();
@@ -816,7 +750,6 @@ export async function getDoctors(): Promise<Doctor[]> {
 // COMPANY ACTIONS
 export async function getCompanies(): Promise<Company[]> {
   try {
-    console.log('🔍 Fetching companies from database...');
     const companies = await withDatabase(async (prisma) => {
       return await prisma.company.findMany({
         select: {
@@ -830,8 +763,6 @@ export async function getCompanies(): Promise<Company[]> {
         orderBy: { createdAt: 'desc' },
       });
     }, []); // Fallback to empty array
-
-    console.log(`📊 Found ${companies.length} companies in database`);
     
     const mappedCompanies = companies.map((company: any) => ({
       id: company.id,
@@ -841,8 +772,6 @@ export async function getCompanies(): Promise<Company[]> {
       email: company.email || '',
       status: 'Activo' as const,
     }));
-
-    console.log('✅ Mapped companies:', mappedCompanies);
     return mappedCompanies;
   } catch (error) {
     console.error('❌ Error fetching companies:', error);
@@ -858,7 +787,6 @@ export async function listSelectablePatientUsers(): Promise<Array<{
   status: string;
 }>> {
   try {
-    console.log('🔍 Fetching selectable patient users...');
     
     const users = await withDatabase(async (prisma) => {
       // Get users with role 'patient' but without patientInfo (not added to patients module yet)
@@ -888,8 +816,6 @@ export async function listSelectablePatientUsers(): Promise<Array<{
         status: user.status
       }));
     }, []);
-
-    console.log(`📊 Found ${users.length} selectable patient users without patientInfo`);
     return users;
   } catch (error) {
     console.error('❌ Error fetching selectable patient users:', error);
@@ -906,7 +832,6 @@ export async function getCurrentUserWithStatus(userId: string): Promise<{
   status: string;
 } | null> {
   try {
-    console.log('🔍 Getting current user with status for userId:', userId);
     
     const user = await withDatabase(async (prisma) => {
       return await prisma.user.findUnique({
@@ -922,11 +847,8 @@ export async function getCurrentUserWithStatus(userId: string): Promise<{
     });
 
     if (!user) {
-      console.log('❌ User not found');
       return null;
     }
-
-    console.log('✅ User found:', { id: user.id, name: user.name, role: user.role, status: user.status });
     return user;
   } catch (error) {
     console.error('❌ Error getting current user with status:', error);
@@ -952,7 +874,6 @@ export async function addPatientFromUser(userId: string, patientData: {
     
     const prisma = getPrisma();
     await prisma.$connect();
-    console.log('Database connection successful');
     
     // Get the user first
     const user = await prisma.user.findUnique({
@@ -999,16 +920,6 @@ export async function addPatientFromUser(userId: string, patientData: {
     const [nombre, apellido] = user.name.split(' ', 2);
     const fechaNacimiento = new Date(Date.now() - patientData.age * 365.25 * 24 * 60 * 60 * 1000);
     
-    console.log('Creating patient from user with data:', {
-      nombre: nombre || user.name,
-      apellido: apellido || '',
-      cedula: patientData.cedula,
-      fechaNacimiento,
-      telefono: user.phone || '',
-      email: user.email,
-      direccion: '',
-    });
-    
     // Create patient
     // const patient = await prisma.patient.create({
     //   data: {
@@ -1036,7 +947,6 @@ export async function addPatientFromUser(userId: string, patientData: {
 
     // If companyId is provided, create affiliation
     if (patientData.companyId) {
-      console.log('🔍 Creating affiliation for company:', patientData.companyId);
       
       const affiliation = await prisma.affiliation.create({
         data: {
@@ -1150,25 +1060,14 @@ export async function addConsultation(consultationData: {
       throw new Error('userContext.userId es requerido para crear la consulta');
     }
 
-    console.log('🔄 Creating consultation with data:', {
-      userId: consultationData.userId,
-      date: consultationData.date,
-      doctor: consultationData.doctor,
-      type: consultationData.type,
-      createdBy: userContext.userId
-    });
-
     // Validación de fecha - validateDate
     const validatedDate = validateDate(consultationData.date, 'Fecha de la consulta');
     console.log('✅ Consultation date validation passed:', validatedDate.toISOString());
     
     // ✅ TRANSACCIÓN OPTIMIZADA - Solo cliente tx, consultas simplificadas
     const consultation = await withTransaction(async (tx) => {
-      console.log('🔄 Iniciando transacción optimizada para crear consulta');
-      console.log('🔍 Cliente de transacción disponible:', !!tx);
       
       // ✅ CONSULTA OPTIMIZADA 1: Validar paciente (solo campos necesarios)
-      console.log('🔍 Buscando paciente con userId:', consultationData.userId);
       const patient = await tx.user.findUnique({
         where: { userId: consultationData.userId },
         select: { 
@@ -1187,7 +1086,6 @@ export async function addConsultation(consultationData: {
       validateUserRole(patient, UserRole.PATIENT);
 
       // ✅ CONSULTA OPTIMIZADA 2: Buscar doctor (una sola consulta con OR optimizado)
-      console.log('🔍 Buscando doctor con nombre:', consultationData.doctor);
       const doctor = await tx.doctorInfo.findFirst({
         where: {
           OR: [
@@ -1202,11 +1100,8 @@ export async function addConsultation(consultationData: {
           cedula: true 
         }
       });
-      
-      console.log('🔍 Doctor encontrado:', !!doctor);
 
       // ✅ CONSULTA OPTIMIZADA 3: Crear consulta (una sola operación)
-      console.log('🔍 Creando consulta...');
       return await tx.consultation.create({
         data: {
           fecha: validatedDate,
@@ -1468,7 +1363,6 @@ export async function addAffiliation(affiliationData: {
   estado?: string;
 }, userContext?: UserContext): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
-    console.log('🔍 Creating affiliation with data:', affiliationData);
     
     // Create affiliation using withTransaction - atomicidad asegurada
     const affiliation = await withTransaction(async (prisma) => {
@@ -1480,8 +1374,6 @@ export async function addAffiliation(affiliationData: {
       if (!userExists) {
         throw new Error(`Usuario con ID ${affiliationData.userId} no existe`);
       }
-      
-      console.log('✅ User exists:', userExists.name);
       
       // Use dynamic context for affiliation creation
       const currentTime = userContext?.currentTime || new Date();
@@ -1504,8 +1396,6 @@ export async function addAffiliation(affiliationData: {
         },
       });
     });
-
-    console.log('✅ Affiliation created successfully:', affiliation);
     
     // Convert Decimal to Number for serialization
     const result = {
@@ -1537,7 +1427,6 @@ export async function addAffiliation(affiliationData: {
 
 export async function getAffiliations(): Promise<any[]> {
   try {
-    console.log('🔍 Fetching affiliations from database...');
     const affiliations = await withDatabase(async (prisma) => {
       return await prisma.affiliation.findMany({
         include: {
@@ -1547,8 +1436,6 @@ export async function getAffiliations(): Promise<any[]> {
         orderBy: { createdAt: 'desc' },
       });
     }, []); // Fallback to empty array
-
-    console.log(`📊 Found ${affiliations.length} affiliations in database`);
     
     const mappedAffiliations = affiliations.map((affiliation: any) => ({
       id: affiliation.id,
@@ -1565,8 +1452,6 @@ export async function getAffiliations(): Promise<any[]> {
       company: affiliation.company,
       user: affiliation.user,
     }));
-
-    console.log('✅ Mapped affiliations:', mappedAffiliations);
     return mappedAffiliations;
   } catch (error) {
     console.error('❌ Error fetching affiliations:', error);
@@ -1600,14 +1485,11 @@ export async function cleanDuplicateAffiliations(): Promise<{ success: boolean; 
       // For each group with more than 1 affiliation, keep the oldest and remove the rest
       for (const [key, group] of grouped) {
         if (group.length > 1) {
-          console.log(`🔍 Found ${group.length} duplicate affiliations for key: ${key}`);
           
           // Sort by createdAt (oldest first) and keep the first one
           const sorted = group.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
           const toKeep = sorted[0];
           const toRemove = sorted.slice(1);
-          
-          console.log(`✅ Keeping affiliation ${toKeep.id} (oldest), removing ${toRemove.length} duplicates`);
           
           // Remove the duplicates
           for (const duplicate of toRemove) {
@@ -1615,15 +1497,12 @@ export async function cleanDuplicateAffiliations(): Promise<{ success: boolean; 
               where: { id: duplicate.id }
             });
             removedCount++;
-            console.log(`🗑️ Removed duplicate affiliation: ${duplicate.id}`);
           }
         }
       }
       
       return removedCount;
     });
-    
-    console.log(`✅ Cleanup completed. Removed ${result} duplicate affiliations.`);
     return { success: true, removed: result };
     
   } catch (error) {
@@ -1821,7 +1700,6 @@ export async function getAuditLogs(): Promise<any[]> {
 // USER MANAGEMENT ACTIONS
 export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<User> {
   try {
-    console.log('🔄 Creando usuario:', { name: data.name, email: data.email, role: data.role });
     
     const isAvailable = await isDatabaseAvailable();
     if (!isAvailable) {
@@ -1840,7 +1718,6 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
     });
 
     if (existingUser) {
-      console.log('❌ Usuario ya existe con email:', data.email);
       throw new Error('Ya existe un usuario registrado con ese correo electrónico.');
     }
 
@@ -1848,8 +1725,6 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
     
     // Generate unique userId
     const userId = `U${Date.now().toString().slice(-6)}`;
-    
-    console.log('🔄 Creando usuario con userId:', userId);
     
     const newUser = await prisma.user.create({
       data: {
@@ -1864,8 +1739,6 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
         userId: userId,
       },
     });
-
-    console.log('✅ Usuario creado exitosamente:', { id: newUser.id, userId: newUser.userId, name: newUser.name });
 
     // ✨ Si es paciente, crear PatientInfo automáticamente
     if (data.role === 'patient' || data.role === 'PATIENT' || data.role === 'USER') {
@@ -1884,8 +1757,6 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
             gender: 'Otro' // Género por defecto
           }
         });
-        
-        console.log('✅ PatientInfo creado automáticamente:', { cedula: patientInfo.cedula });
       } catch (patientInfoError) {
         console.error('⚠️ Error creando PatientInfo (no crítico):', patientInfoError);
         // No fallar el registro si PatientInfo falla - se puede crear después
@@ -1968,14 +1839,11 @@ export async function getUserStatusForAccess(userId: string): Promise<{
   userId: string | null;
 } | null> {
   try {
-    console.log('🔍 getUserStatusForAccess called with userId:', userId);
     
     const { unstable_noStore: noStore } = await import('next/cache');
     noStore();
-    console.log('🔍 unstable_noStore applied');
 
     const user = await withDatabase(async (prisma) => {
-      console.log('🔍 Inside withDatabase, calling prisma.user.findUnique...');
       const result = await prisma.user.findUnique({
         where: { id: userId },
         select: {
@@ -1985,11 +1853,8 @@ export async function getUserStatusForAccess(userId: string): Promise<{
           userId: true,
         },
       });
-      console.log('🔍 prisma.user.findUnique result:', result);
       return result;
     });
-    
-    console.log('✅ getUserStatusForAccess returning:', user);
     return user;
   } catch (error) {
     console.error('❌ Error fetching user status for access:', error);
@@ -2016,7 +1881,6 @@ export async function getCurrentUserIdFromRequest(): Promise<string | null> {
 // Helper function to create doctor record when user role changes to "Doctor"
 export async function ensureDoctorRecord(userId: string, userData: Partial<User>): Promise<string | null> {
   try {
-    console.log('🔄 Ensuring doctor record for user:', userId);
     
     const doctorId = await withDatabase(async (prisma) => {
       // Check if doctor record already exists
@@ -2025,7 +1889,6 @@ export async function ensureDoctorRecord(userId: string, userData: Partial<User>
       });
       
       if (existingDoctor) {
-        console.log('✅ Doctor record already exists:', existingDoctor.id);
         return existingDoctor.id;
       }
       
@@ -2041,8 +1904,6 @@ export async function ensureDoctorRecord(userId: string, userData: Partial<User>
           contacto: userData.name || 'Dr. Usuario'
         }
       });
-      
-      console.log('✅ Doctor record created:', newDoctor.id);
       return newDoctor.id;
     });
     
@@ -2056,7 +1917,6 @@ export async function ensureDoctorRecord(userId: string, userData: Partial<User>
 // Helper function to remove doctor record when user role changes from "Doctor"
 export async function removeDoctorRecord(userId: string): Promise<void> {
   try {
-    console.log('🔄 Removing doctor record for user:', userId);
     
     await withDatabase(async (prisma) => {
       // Find and delete doctor record
@@ -2068,9 +1928,7 @@ export async function removeDoctorRecord(userId: string): Promise<void> {
         await prisma.doctorInfo.delete({
           where: { id: doctor.id }
         });
-        console.log('✅ Doctor record removed:', doctor.id);
       } else {
-        console.log('⚠️ No doctor record found to remove');
       }
     });
   } catch (error) {
@@ -2081,7 +1939,6 @@ export async function removeDoctorRecord(userId: string): Promise<void> {
 // Helper function to create promotora record when user role changes to "promotora"
 export async function ensurePromotoraRecord(userId: string, userData: Partial<User>): Promise<string | null> {
   try {
-    console.log('🔄 Ensuring promotora record for user:', userId);
     
     const promotoraId = await withDatabase(async (prisma) => {
       // Check if promotora record already exists
@@ -2090,7 +1947,6 @@ export async function ensurePromotoraRecord(userId: string, userData: Partial<Us
       });
       
       if (existingPromotora) {
-        console.log('✅ Promotora record already exists:', existingPromotora.id);
         return existingPromotora.id;
       }
       
@@ -2109,8 +1965,6 @@ export async function ensurePromotoraRecord(userId: string, userData: Partial<Us
           estado: 'ACTIVA'
         }
       });
-      
-      console.log('✅ Promotora record created:', newPromotora.id);
       return newPromotora.id;
     });
     
@@ -2124,7 +1978,6 @@ export async function ensurePromotoraRecord(userId: string, userData: Partial<Us
 // Helper function to remove promotora record when user role changes from "promotora"
 export async function removePromotoraRecord(userId: string): Promise<void> {
   try {
-    console.log('🔄 Removing promotora record for user:', userId);
     
     await withDatabase(async (prisma) => {
       // Find and delete promotora record
@@ -2136,9 +1989,7 @@ export async function removePromotoraRecord(userId: string): Promise<void> {
         await prisma.promotoraInfo.delete({
           where: { id: promotora.id }
         });
-        console.log('✅ Promotora record removed:', promotora.id);
       } else {
-        console.log('⚠️ No promotora record found to remove');
       }
     });
   } catch (error) {
@@ -2149,7 +2000,6 @@ export async function removePromotoraRecord(userId: string): Promise<void> {
 // Helper function to create secretaria record when user role changes to "secretaria"
 export async function ensureSecretariaRecord(userId: string, userData: Partial<User>): Promise<string | null> {
   try {
-    console.log('🔄 Ensuring secretaria record for user:', userId);
     
     const secretariaId = await withDatabase(async (prisma) => {
       // Check if secretaria record already exists
@@ -2158,7 +2008,6 @@ export async function ensureSecretariaRecord(userId: string, userData: Partial<U
       });
       
       if (existingSecretaria) {
-        console.log('✅ Secretaria record already exists:', existingSecretaria.id);
         return existingSecretaria.id;
       }
       
@@ -2177,8 +2026,6 @@ export async function ensureSecretariaRecord(userId: string, userData: Partial<U
           estado: 'ACTIVA'
         }
       });
-      
-      console.log('✅ Secretaria record created:', newSecretaria.id);
       return newSecretaria.id;
     });
     
@@ -2192,7 +2039,6 @@ export async function ensureSecretariaRecord(userId: string, userData: Partial<U
 // Helper function to remove secretaria record when user role changes from "secretaria"
 export async function removeSecretariaRecord(userId: string): Promise<void> {
   try {
-    console.log('🔄 Removing secretaria record for user:', userId);
     
     await withDatabase(async (prisma) => {
       // Find and delete secretaria record
@@ -2204,9 +2050,7 @@ export async function removeSecretariaRecord(userId: string): Promise<void> {
         await prisma.secretariaInfo.delete({
           where: { id: secretaria.id }
         });
-        console.log('✅ Secretaria record removed:', secretaria.id);
       } else {
-        console.log('⚠️ No secretaria record found to remove');
       }
     });
   } catch (error) {
@@ -2216,9 +2060,6 @@ export async function removeSecretariaRecord(userId: string): Promise<void> {
 
 export async function updateUser(userId: string, data: Partial<Omit<User, "id" | "createdAt">>): Promise<User> {
   try {
-    console.log('🔄 updateUser called with userId:', userId);
-    console.log('🔄 updateUser called with data:', data);
-    console.log('🔄 updateUser data type:', typeof data);
     console.log('🔄 updateUser data keys:', Object.keys(data));
     
     // Get current user data to check role changes
@@ -2231,18 +2072,15 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
     
     // Update user using withTransaction - atomicidad asegurada
     const updatedUser = await withTransaction(async (prisma) => {
-      console.log('🔄 Inside withTransaction, calling prisma.user.update...');
       const result = await prisma.user.update({
         where: { id: userId },
         data,
       });
-      console.log('✅ prisma.user.update completed:', result);
       return result;
     });
     
     // Handle role changes
     if (data.role && currentUser && data.role !== currentUser.role) {
-      console.log('🔄 Role changed from', currentUser.role, 'to', data.role);
       
       // Handle changes TO specific roles - Validación de roles estandarizada
       if (data.role === UserRole.DOCTOR) {
@@ -2254,7 +2092,6 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
         });
         
         if (doctorId) {
-          console.log('✅ Doctor record created/verified for user:', userId);
         }
       } else if (data.role === UserRole.PROMOTORA) {
         // Create promotora record if changing TO promotora
@@ -2265,7 +2102,6 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
         });
         
         if (promotoraId) {
-          console.log('✅ Promotora record created/verified for user:', userId);
         }
       } else if (data.role === UserRole.SECRETARIA) {
         // Create secretaria record if changing TO secretaria
@@ -2276,7 +2112,6 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
         });
         
         if (secretariaId) {
-          console.log('✅ Secretaria record created/verified for user:', userId);
         }
       } else if (data.role === 'patient' || data.role === 'PATIENT') {
         // ✨ Create patient record if changing TO patient
@@ -2302,10 +2137,7 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
                   gender: 'Otro'
                 }
               });
-              
-              console.log('✅ PatientInfo created for user:', userId);
             } else {
-              console.log('✅ PatientInfo already exists for user:', userId);
             }
           });
         } catch (error) {
@@ -2317,15 +2149,12 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
       if (currentUser.role === UserRole.DOCTOR && data.role !== UserRole.DOCTOR) {
         // Remove doctor record if changing FROM doctor
         await removeDoctorRecord(userId);
-        console.log('✅ Doctor record removed for user:', userId);
       } else if (currentUser.role === UserRole.PROMOTORA && data.role !== UserRole.PROMOTORA) {
         // Remove promotora record if changing FROM promotora
         await removePromotoraRecord(userId);
-        console.log('✅ Promotora record removed for user:', userId);
       } else if (currentUser.role === UserRole.SECRETARIA && data.role !== UserRole.SECRETARIA) {
         // Remove secretaria record if changing FROM secretaria
         await removeSecretariaRecord(userId);
-        console.log('✅ Secretaria record removed for user:', userId);
       } else if ((currentUser.role === 'patient' || currentUser.role === 'PATIENT') && 
                  (data.role !== 'patient' && data.role !== 'PATIENT')) {
         // ✨ Remove patient record if changing FROM patient
@@ -2335,18 +2164,14 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
               where: { userId: updatedUser.userId }
             });
           });
-          console.log('✅ PatientInfo removed for user:', userId);
         } catch (error) {
           console.error('⚠️ Error removing PatientInfo:', error);
         }
       }
     }
-    
-    console.log('✅ withDatabase completed, updatedUser:', updatedUser);
 
     // If status or role was changed, revalidate relevant routes
     if (data.status || data.role) {
-      console.log('🔄 User status or role changed, revalidating routes...');
       // Revalidate patient-related pages to update access gates and dropdowns
       try {
         const { revalidatePath } = await import('next/cache');
@@ -2355,7 +2180,6 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
         revalidatePath('/(app)/appointments');
         revalidatePath('/(app)/settings/users');
         revalidatePath('/(app)/afiliaciones');
-        console.log('✅ Routes revalidated after user change');
       } catch (revalidateError) {
         console.warn('⚠️ Could not revalidate paths:', revalidateError);
       }
@@ -2504,10 +2328,8 @@ export async function getLabResultsByPatientId(patientId: string): Promise<LabRe
 
 export async function getConsultationsByUserId(userId: string): Promise<Consultation[]> {
   try {
-    console.log('🔍 getConsultationsByUserId - Buscando consultas para userId:', userId);
     
     const consultations = await withDatabase(async (prisma) => {
-      console.log('🔍 getConsultationsByUserId - Cliente de base de datos disponible:', !!prisma);
       
       const result = await prisma.consultation.findMany({
         where: { patientUserId: userId },
@@ -2518,8 +2340,6 @@ export async function getConsultationsByUserId(userId: string): Promise<Consulta
         },
         orderBy: { fecha: 'desc' },
       });
-      
-      console.log('🔍 getConsultationsByUserId - Consultas encontradas:', result.length);
       return result;
     });
 
@@ -2548,13 +2368,8 @@ export async function getPatientById(userId: string): Promise<Patient | null> {
       throw new Error('userId requerido y debe ser string para exportar informe PDF');
     }
     
-    console.log('🔍 getPatientById - Buscando paciente con userId:', userId);
-    console.log('🔍 getPatientById - Tipo de userId:', typeof userId);
-    console.log('🔍 getPatientById - Longitud de userId:', userId.length);
-    
     // userId es el identificador principal
     const user = await withDatabase(async (prisma) => {
-      console.log('🔍 getPatientById - Cliente de base de datos disponible:', !!prisma);
       
       const result = await prisma.user.findUnique({
         where: { userId: userId },
@@ -2568,11 +2383,7 @@ export async function getPatientById(userId: string): Promise<Patient | null> {
           }
         }
       });
-      
-      console.log('🔍 getPatientById - Usuario encontrado:', !!result);
       if (result) {
-        console.log('🔍 getPatientById - Usuario tiene patientInfo:', !!result.patientInfo);
-        console.log('🔍 getPatientById - Usuario tiene affiliations:', result.affiliations.length);
       }
       
       return result;
@@ -2608,13 +2419,6 @@ export async function getPatientById(userId: string): Promise<Patient | null> {
     }
 
     const age = Math.floor((Date.now() - patientInfo.fechaNacimiento.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-    
-    console.log('🔍 getPatientById - User affiliations:', user.affiliations.map((aff: any) => ({
-      id: aff.id,
-      companyId: aff.companyId,
-      estado: aff.estado,
-      companyName: aff.company?.nombre
-    })));
 
     return {
       id: user.userId, // Usar userId como ID
@@ -2754,7 +2558,6 @@ export async function ensureDoctorExists(): Promise<string> {
     const doctors = await getDoctors();
     
     if (doctors.length === 0) {
-      console.log('⚠️ No doctors found, creating a default doctor...');
       
       const defaultDoctor = await withDatabase(async (prisma) => {
         return await prisma.doctorInfo.create({
@@ -2771,8 +2574,6 @@ export async function ensureDoctorExists(): Promise<string> {
           }
         });
       });
-      
-      console.log('✅ Default doctor created:', defaultDoctor.id);
       return defaultDoctor.id;
     }
     
@@ -2787,7 +2588,6 @@ export async function ensureDoctorExists(): Promise<string> {
 // Function to sync orphaned doctors (doctors without corresponding users)
 export async function syncOrphanedDoctors(): Promise<{ created: number; errors: string[] }> {
   try {
-    console.log('🔄 Syncing orphaned doctors...');
     
     const result = await withDatabase(async (prisma) => {
       // Find doctors that don't have corresponding users
@@ -2818,8 +2618,6 @@ export async function syncOrphanedDoctors(): Promise<{ created: number; errors: 
         }
       });
       
-      console.log(`Found ${orphanedDoctors.length} orphaned doctors`);
-      
       let created = 0;
       const errors: string[] = [];
       
@@ -2839,8 +2637,6 @@ export async function syncOrphanedDoctors(): Promise<{ created: number; errors: 
               userId: `U${Date.now().toString().slice(-6)}`,
             }
           });
-          
-          console.log(`✅ Created user for doctor ${doctor.nombre} ${doctor.apellido}:`, newUser.id);
           created++;
         } catch (error) {
           const errorMsg = `Error creating user for doctor ${doctor.nombre} ${doctor.apellido}: ${error instanceof Error ? error.message : 'Unknown error'}`;
@@ -2851,8 +2647,6 @@ export async function syncOrphanedDoctors(): Promise<{ created: number; errors: 
       
       return { created, errors };
     });
-    
-    console.log(`✅ Sync completed: ${result.created} users created, ${result.errors.length} errors`);
     return result;
   } catch (error) {
     console.error('❌ Error syncing orphaned doctors:', error);
@@ -2863,7 +2657,6 @@ export async function syncOrphanedDoctors(): Promise<{ created: number; errors: 
 // Function to create a sample doctor for testing
 export async function createSampleDoctor(): Promise<Doctor> {
   try {
-    console.log('🔄 Creating sample doctor...');
     
     const doctor = await withDatabase(async (prisma) => {
       return await prisma.doctorInfo.create({
@@ -2880,8 +2673,6 @@ export async function createSampleDoctor(): Promise<Doctor> {
         }
       });
     });
-    
-    console.log('✅ Sample doctor created:', doctor.id);
     return {
       id: doctor.id,
       nombre: doctor.nombre,
@@ -2903,7 +2694,6 @@ export async function updateAppointment(appointmentId: string, appointmentData: 
   doctorId?: string;
 }): Promise<Appointment> {
   try {
-    console.log('🔄 Updating appointment:', appointmentId, appointmentData);
     
     // Validación de fecha - validateDate (si se proporciona)
     if (appointmentData.date) {
@@ -2953,15 +2743,12 @@ export async function updateAppointment(appointmentId: string, appointmentData: 
 
 export async function deleteAppointment(appointmentId: string): Promise<void> {
   try {
-    console.log('🔄 Deleting appointment:', appointmentId);
     
     await withDatabase(async (prisma) => {
       await prisma.appointment.delete({
         where: { id: appointmentId },
       });
     });
-    
-    console.log('✅ Appointment deleted successfully');
   } catch (error) {
     // Manejo centralizado de errores - DatabaseErrorHandler
     DatabaseErrorHandler.handle(error, 'eliminar cita');
@@ -2976,7 +2763,6 @@ export async function addAppointment(appointmentData: {
   time?: string; // Optional time parameter
 }, userContext: UserContext): Promise<Appointment> {
   try {
-    console.log('🔄 Creating appointment with data:', appointmentData);
     
     // Validación obligatoria del contexto de usuario - createdBy debe ser siempre un userId válido
     if (!userContext || !userContext.userId) {
@@ -2986,12 +2772,6 @@ export async function addAppointment(appointmentData: {
     if (!userContext.name || !userContext.email) {
       throw new Error('Contexto de usuario incompleto: name y email son obligatorios');
     }
-    
-    console.log('✅ User context validated:', {
-      userId: userContext.userId,
-      name: userContext.name,
-      role: userContext.role
-    });
     
     // Validación de fecha - validateDate
     const validatedDate = validateDate(appointmentData.date, 'Fecha de la cita');
@@ -3011,8 +2791,6 @@ export async function addAppointment(appointmentData: {
       // Validación de roles estandarizada
       validateUserRole(patient, UserRole.PATIENT);
       
-      console.log('✅ Patient exists:', patient.name);
-      
       // Validate doctor exists if doctorId is provided
       let validDoctorUserId: string | undefined = undefined;
       
@@ -3029,8 +2807,6 @@ export async function addAppointment(appointmentData: {
         
         // Validación de roles estandarizada
         validateUserRole(doctor, UserRole.DOCTOR);
-        
-        console.log('✅ Doctor exists:', doctor.name);
         validDoctorUserId = appointmentData.doctorId;
       } else {
         console.log('ℹ️ No doctor selected for this appointment');
@@ -3049,13 +2825,6 @@ export async function addAppointment(appointmentData: {
       if (creatorUser.status !== 'ACTIVE') {
         throw new Error(`Usuario creador ${creatorUser.name} (${creatorUser.userId}) no está activo. Estado actual: ${creatorUser.status}`);
       }
-      
-      console.log('✅ Creator user validated:', {
-        userId: creatorUser.userId,
-        name: creatorUser.name,
-        role: creatorUser.role,
-        status: creatorUser.status
-      });
       
       // Prepare appointment data using validated user context - createdBy siempre debe ser un userId válido
       const currentTime = userContext.currentTime || new Date();
@@ -3091,8 +2860,6 @@ export async function addAppointment(appointmentData: {
       
       return result;
     });
-
-    console.log('✅ Appointment created successfully:', appointment.id);
     
     return {
       id: appointment.id,
@@ -3152,31 +2919,26 @@ export async function getAppointmentsWeeklyStats(): Promise<number[]> {
   }
 }
 
-export async function getLabResultsStats(): Promise<{ completed: number; pending: number }> {
+export async function getLabResultsStats(): Promise<{ completed: number; pending: number; cancelled: number; total: number }> {
   try {
-    const now = new Date();
-    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    
-    const labResults = await withDatabase(async (prisma) => {
-      return await prisma.labResult.findMany({
-      where: {
-        fecha: {
-          gte: monthAgo,
-          lte: now,
-        },
-      },
+    const labResultsStats = await withDatabase(async (prisma) => {
+      return await prisma.labResult.groupBy({
+        by: ['estado'],
+        _count: {
+          id: true
+        }
       });
     });
 
-    // For now, we'll consider all lab results as "completed"
-    // In a real scenario, you might have a status field
-    const completed = labResults.length;
-    const pending = 0; // This would need to be calculated based on pending lab orders
+    const completed = labResultsStats.find((s: any) => s.estado === 'COMPLETADO')?._count.id || 0;
+    const pending = labResultsStats.find((s: any) => s.estado === 'PENDIENTE')?._count.id || 0;
+    const cancelled = labResultsStats.find((s: any) => s.estado === 'CANCELADO')?._count.id || 0;
+    const total = completed + pending + cancelled;
 
-    return { completed, pending };
+    return { completed, pending, cancelled, total };
   } catch (error) {
     console.error('Error fetching lab results stats:', error);
-    return { completed: 0, pending: 0 };
+    return { completed: 0, pending: 0, cancelled: 0, total: 0 };
   }
 }
 
@@ -3350,8 +3112,6 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
       });
     });
 
-    console.log(`Found ${affiliations.length} affiliations for company ${companyId}`);
-
     // Get company name for display
     const company = await withDatabase(async (prisma) => {
       return await prisma.company.findUnique({
@@ -3395,8 +3155,6 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
         companyName: company?.nombre || undefined,
       };
     });
-
-    console.log(`Returning ${mappedPatients.length} mapped patients`);
     return mappedPatients;
   } catch (error) {
     console.error('Error fetching patients by company ID:', error);
@@ -3424,12 +3182,6 @@ export async function createReceipt(receiptData: {
       const currentTime = userContext?.currentTime || new Date();
       const createdBy = userContext?.userId || 'system';
       const creatorName = userContext?.name || 'Sistema';
-      
-      console.log('Creating receipt with user context:', {
-        createdBy,
-        creatorName,
-        currentTime: currentTime.toISOString()
-      });
       
       // Check if receipt model is available
       if (!prisma.receipt) {
@@ -3462,15 +3214,6 @@ export async function createReceipt(receiptData: {
       
       const receiptNumber = `REC-${year}${month}${day}-${String(todayReceipts + 1).padStart(3, '0')}`;
       console.log('Generated receipt number:', receiptNumber);
-
-      console.log('Creating receipt with data:', {
-        number: receiptNumber,
-        userId: receiptData.userId,
-        amount: receiptData.amount,
-        concept: receiptData.concept,
-        method: receiptData.method,
-        createdBy: createdBy,
-      });
 
       const receipt = await prisma.receipt.create({
         data: {
@@ -3516,7 +3259,6 @@ export async function createReceipt(receiptData: {
 export async function getReceipts(): Promise<any[]> {
   try {
     if (!isDatabaseAvailable()) {
-      console.log('Database not available - returning empty array');
       return [];
     }
 
@@ -3591,7 +3333,6 @@ export async function updateAffiliation(affiliationId: string, updateData: {
   estado?: string;
 }): Promise<void> {
   try {
-    console.log('🔍 Updating affiliation:', affiliationId, updateData);
     
     await withDatabase(async (prisma) => {
       await prisma.affiliation.update({
@@ -3599,8 +3340,6 @@ export async function updateAffiliation(affiliationId: string, updateData: {
         data: updateData
       });
     });
-    
-    console.log('✅ Affiliation updated successfully');
   } catch (error) {
     console.error('❌ Error updating affiliation:', error);
     throw error;

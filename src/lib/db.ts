@@ -8,15 +8,11 @@ if (!process.env.DATABASE_URL && process.env.NODE_ENV !== 'production') {
   console.warn('⚠️ DATABASE_URL no está configurado en las variables de entorno');
 }
 
-if (process.env.DATABASE_URL) {
-  console.log('🧩 Prisma conectado a:', process.env.DATABASE_URL);
-}
-
-// ✅ CONFIGURACIÓN OPTIMIZADA - Pool de conexiones y timeouts
+// ⚡ CONFIGURACIÓN OPTIMIZADA - Sin logs innecesarios
 export const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
+    log: ['error'], // Solo errores críticos, sin 'query', 'info', 'warn'
     datasources: {
       db: {
         url: process.env.DATABASE_URL || 'postgresql://placeholder:placeholder@placeholder:5432/placeholder',
@@ -28,22 +24,12 @@ if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
 
-// Función robusta para verificar disponibilidad de base de datos
-export const isDatabaseAvailable = async (): Promise<boolean> => {
-  try {
-    if (!process.env.DATABASE_URL) {
-      console.warn('⚠️ DATABASE_URL not found. Database unavailable.');
-      return false;
-    }
-
-    // Probar conexión real con una consulta simple
-    await prisma.$queryRaw`SELECT 1`;
-    console.log('✅ Conectado correctamente a Railway');
-    return true;
-  } catch (error) {
-    console.error('❌ Error de conexión a la base de datos:', error);
-    return false;
-  }
+// ⚡ OPTIMIZADO: Verificar disponibilidad SIN queries innecesarias
+// Solo valida que DATABASE_URL existe - No hace queries a BD
+export const isDatabaseAvailable = (): boolean => {
+  // Simplemente verificar que DATABASE_URL existe
+  // No hacer queries, solo validar configuración
+  return !!process.env.DATABASE_URL && process.env.DATABASE_URL.trim() !== '';
 };
 
 // Función para obtener el cliente de Prisma

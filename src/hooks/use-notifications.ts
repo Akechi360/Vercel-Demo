@@ -132,6 +132,15 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
         const message = errorData.error || `HTTP ${response.status}`;
+        
+        // Si es error 401 (no autenticado), es normal al inicio - solo loggear
+        if (response.status === 401) {
+          console.log('[NOTIFICATIONS] ⏳ Usuario aún no autenticado - esperando...');
+          setLoading(false);
+          isFetchingRef.current = false;
+          return;
+        }
+        
         // Si es error de servidor/servicio no disponible, no lanzar excepción
         if (response.status >= 500 || response.status === 503) {
           console.warn('[NOTIFICATIONS] Servicio temporalmente no disponible. Silenciando error.');
@@ -139,7 +148,12 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
           isFetchingRef.current = false;
           return;
         }
-        throw new Error(message);
+        
+        // Para otros errores, solo loggear sin romper la UI
+        console.error('[NOTIFICATIONS] ❌ Error:', message);
+        setLoading(false);
+        isFetchingRef.current = false;
+        return; // No lanzar error para no romper la UI
       }
 
       const data = await response.json();

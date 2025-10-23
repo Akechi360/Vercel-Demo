@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { Consultation, Doctor } from "@/lib/types";
+import type { Consultation, Doctor, Report } from "@/lib/types";
 import { FileInput } from "../ui/file-input";
 import { getDoctors } from "@/lib/actions";
 
@@ -163,18 +163,67 @@ export function ConsultationForm({ userId, onFormSubmit }: ConsultationFormProps
         date: values.date.toISOString(),
         prescriptions: (values.prescriptions || []).map(p => ({ ...p, id: p.id || `rx-${Date.now()}-${Math.random()}` })),
         reports: await Promise.all((values.reports || []).map(async r => {
+            console.log('📝 Procesando reporte:', {
+                hasFile: !!r.file,
+                fileName: r.file?.name,
+                fileType: r.file?.type,
+                fileSize: r.file?.size
+            });
+            
             const attachments = r.file ? await processFiles([r.file]) : [];
-            return {
-                id: r.id || `rep-${Date.now()}`,
+            const firstAttachment = attachments[0];
+            
+            console.log('📎 Archivos procesados:', {
+                attachmentsCount: attachments.length,
+                firstAttachment: firstAttachment ? {
+                    name: firstAttachment.name,
+                    type: firstAttachment.type,
+                    size: firstAttachment.size,
+                    hasData: !!firstAttachment.data,
+                    dataLength: firstAttachment.data?.length || 0,
+                    dataPreview: firstAttachment.data?.substring(0, 100)
+                } : null
+            });
+            
+            // Limpiar el prefijo "data:...;base64," del contenido base64
+            let cleanBase64 = firstAttachment?.data;
+            if (cleanBase64 && cleanBase64.includes(',')) {
+                cleanBase64 = cleanBase64.split(',')[1]; // Obtener solo la parte base64
+            }
+            
+            console.log('🧹 Base64 limpio:', {
+                hasCleanBase64: !!cleanBase64,
+                cleanBase64Length: cleanBase64?.length || 0,
+                cleanBase64Preview: cleanBase64?.substring(0, 100)
+            });
+            
+            const reportData: Report = {
+                id: `temp-${Date.now()}-${Math.random()}`, // ID temporal, se reemplazará en la BD
                 userId: userId,
-                title: r.title,
-                date: new Date().toISOString(), 
-                fileUrl: r.file?.name || '#',
-                type: 'Otro', // Or derive from file type
+                title: r.title || 'Sin título',
+                date: new Date().toISOString(),
+                type: firstAttachment?.type || r.file?.type || 'application/pdf',
                 notes: '',
-                attachments: attachments.map(att => att.name || 'file'), // Convert to string array
+                fileUrl: firstAttachment?.name || r.file?.name || '#',
+                attachments: attachments.map(att => att.name || 'file'),
+                // Campos necesarios para almacenar el archivo en base64
+                archivoNombre: firstAttachment?.name || r.file?.name,
+                archivoTipo: firstAttachment?.type || r.file?.type,
+                archivoContenido: cleanBase64, // Base64 limpio (sin prefijo data:)
+                archivoTamaño: firstAttachment?.size || r.file?.size,
             };
-        })), // Mock data
+            
+            console.log('✅ Datos del reporte a enviar:', {
+                title: reportData.title,
+                archivoNombre: reportData.archivoNombre,
+                archivoTipo: reportData.archivoTipo,
+                archivoTamaño: reportData.archivoTamaño,
+                hasArchivoContenido: !!reportData.archivoContenido,
+                archivoContenidoLength: reportData.archivoContenido?.length || 0
+            });
+            
+            return reportData;
+        })),
         labResults: (values.labResults || []).map(lr => ({
           ...lr,
           id: lr.id || `lab-${Date.now()}-${Math.random()}`
@@ -197,7 +246,7 @@ export function ConsultationForm({ userId, onFormSubmit }: ConsultationFormProps
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
-        <ScrollArea className="h-[65vh] pr-6">
+        <div className="max-h-[70vh] overflow-y-auto pr-4">
           <div className="space-y-4">
             <FormField
               control={form.control}
@@ -407,7 +456,7 @@ export function ConsultationForm({ userId, onFormSubmit }: ConsultationFormProps
               </AccordionItem>
             </Accordion>
           </div>
-        </ScrollArea>
+        </div>
         <div className="pt-4 flex justify-end">
             <Button type="submit" disabled={isProcessingFiles}>
               {isProcessingFiles ? 'Procesando archivos...' : 'Guardar Consulta'}

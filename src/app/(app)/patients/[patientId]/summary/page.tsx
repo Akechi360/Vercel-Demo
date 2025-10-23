@@ -1,5 +1,5 @@
 'use client';
-import { getPatientById, getAppointments, getConsultationsByUserId, getIpssScoresByUserId } from '@/lib/actions';
+import { getPatientById, getAppointments, getConsultationsByUserId, getIpssScoresByUserId, getLatestPsaByUserId } from '@/lib/actions';
 import { use, useEffect, useState } from 'react';
 import PatientSummaryClient from '@/components/patients/patient-summary-client';
 import type { Patient, Appointment, Consultation, IpssScore } from '@/lib/types';
@@ -12,6 +12,7 @@ type SummaryData = {
     upcomingAppointments: Appointment[];
     latestConsultations: Consultation[];
     latestIpss: IpssScore | null;
+    latestPsa: { value: string; date: string; unit?: string } | null;
 };
 
 function DeniedAccess() {
@@ -26,24 +27,25 @@ function DeniedAccess() {
     )
 }
 
-export default function PatientSummaryPage({ params }: { params: Promise<{ userId: string }> }) {
-    const { userId } = use(params);
+export default function PatientSummaryPage({ params }: { params: Promise<{ patientId: string }> }) {
+    const { patientId } = use(params);
     const { currentUser, can } = useAuth();
     const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const canView = can('patients:write') || currentUser?.userId === userId;
+    const canView = can('patients:write') || currentUser?.userId === patientId;
 
     useEffect(() => {
         if (canView) {
             Promise.all([
-                getPatientById(userId),
+                getPatientById(patientId),
                 getAppointments(),
-                getConsultationsByUserId(userId),
-                getIpssScoresByUserId(userId),
-            ]).then(([patient, appointments, consultations, ipssScores]) => {
+                getConsultationsByUserId(patientId),
+                getIpssScoresByUserId(patientId),
+                getLatestPsaByUserId(patientId),
+            ]).then(([patient, appointments, consultations, ipssScores, psaResult]) => {
                 if (patient) {
-                    const upcomingAppointments = appointments.filter(a => new Date(a.date) > new Date() && a.userId === userId);
+                    const upcomingAppointments = appointments.filter(a => new Date(a.date) > new Date() && a.userId === patientId);
                     const latestConsultations = consultations.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3);
                     const latestIpss = ipssScores.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0] || null;
                     
@@ -51,7 +53,8 @@ export default function PatientSummaryPage({ params }: { params: Promise<{ userI
                         patient,
                         upcomingAppointments,
                         latestConsultations,
-                        latestIpss
+                        latestIpss,
+                        latestPsa: psaResult,
                     });
                 }
                 setLoading(false);
@@ -59,7 +62,7 @@ export default function PatientSummaryPage({ params }: { params: Promise<{ userI
         } else {
             setLoading(false);
         }
-    }, [userId, canView]);
+    }, [patientId, canView]);
 
     if (loading) {
         return <div>Cargando resumen...</div>;
@@ -79,6 +82,7 @@ export default function PatientSummaryPage({ params }: { params: Promise<{ userI
             upcomingAppointments={summaryData.upcomingAppointments}
             latestConsultations={summaryData.latestConsultations}
             latestIpss={summaryData.latestIpss}
+            latestPsa={summaryData.latestPsa}
         />
     );
 }

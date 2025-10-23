@@ -24,7 +24,7 @@ const getPrisma = () => {
 };
 
 // Función helper para ejecutar operaciones de base de datos con manejo de errores
-const withDatabase = async <T>(operation: (prisma: any) => Promise<T>, fallbackValue?: T): Promise<T> => {
+export const withDatabase = async <T>(operation: (prisma: any) => Promise<T>, fallbackValue?: T): Promise<T> => {
   // Durante el build, usar fallback
   if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
     if (fallbackValue !== undefined) {
@@ -1101,8 +1101,8 @@ export async function addConsultation(consultationData: {
         }
       });
 
-      // ✅ CONSULTA OPTIMIZADA 3: Crear consulta (una sola operación)
-      return await tx.consultation.create({
+      // ✅ CONSULTA OPTIMIZADA 3: Crear consulta
+      const newConsultation = await tx.consultation.create({
         data: {
           fecha: validatedDate,
           motivo: consultationData.type,
@@ -1112,7 +1112,7 @@ export async function addConsultation(consultationData: {
           observaciones: consultationData.notes,
           patientUserId: consultationData.userId,
           doctorUserId: doctor?.userId || null,
-          createdBy: userContext.userId, // ✅ Usar userContext directamente
+          createdBy: userContext.userId,
         },
         select: {
           id: true,
@@ -1130,6 +1130,82 @@ export async function addConsultation(consultationData: {
           }
         }
       });
+
+      // ✅ GUARDAR PRESCRIPCIONES
+      if (consultationData.prescriptions && consultationData.prescriptions.length > 0) {
+        await tx.prescription.createMany({
+          data: consultationData.prescriptions.map(prescription => ({
+            medicamento: prescription.medication,
+            dosis: prescription.dosage,
+            frecuencia: prescription.duration, // Mapear duration a frecuencia
+            duracion: prescription.duration,
+            instrucciones: prescription.dosage, // Usar dosage como instrucciones
+            patientUserId: consultationData.userId,
+            consultationId: newConsultation.id,
+          }))
+        });
+      }
+
+      // ✅ GUARDAR RESULTADOS DE LABORATORIO
+      if (consultationData.labResults && consultationData.labResults.length > 0) {
+        await tx.labResult.createMany({
+          data: consultationData.labResults.map(labResult => ({
+            nombre: labResult.testName,
+            tipo: 'Consulta', // Tipo por defecto
+            resultado: labResult.value,
+            valores: labResult.referenceRange ? { referencia: labResult.referenceRange } : null,
+            fecha: new Date(labResult.date),
+            estado: 'COMPLETADO',
+            patientUserId: consultationData.userId,
+            consultationId: newConsultation.id,
+            doctorUserId: doctor?.userId || userContext.userId,
+          }))
+        });
+      }
+
+      // GUARDAR REPORTES DE CONSULTA
+      if (consultationData.reports && consultationData.reports.length > 0) {
+        console.log('💾 Guardando reportes en BD:', consultationData.reports.map(r => ({
+          title: r.title,
+          archivoNombre: r.archivoNombre,
+          archivoTipo: r.archivoTipo,
+          archivoTamaño: r.archivoTamaño,
+          hasArchivoContenido: !!r.archivoContenido,
+          archivoContenidoLength: r.archivoContenido?.length || 0,
+          archivoContenidoPreview: r.archivoContenido?.substring(0, 100)
+        })));
+        
+        await tx.consultationReport.createMany({
+          data: consultationData.reports.map(report => {
+            const reportData = {
+              titulo: report.title,
+              descripcion: report.notes || '',
+              tipo: 'Informe',
+              archivoNombre: report.archivoNombre || report.attachments?.[0] || report.fileUrl || '',
+              archivoUrl: report.fileUrl || report.attachments?.[0] || '',
+              archivoTipo: report.archivoTipo || report.type || 'application/pdf',
+              archivoTamaño: report.archivoTamaño || report.size || null,
+              archivoContenido: report.archivoContenido || report.fileContent || null, // Contenido base64 del archivo
+              patientUserId: consultationData.userId,
+              consultationId: newConsultation.id,
+              createdBy: userContext.userId,
+            };
+            
+            console.log('💾 Datos a insertar en BD:', {
+              titulo: reportData.titulo,
+              archivoNombre: reportData.archivoNombre,
+              archivoTipo: reportData.archivoTipo,
+              archivoTamaño: reportData.archivoTamaño,
+              hasArchivoContenido: !!reportData.archivoContenido,
+              archivoContenidoLength: reportData.archivoContenido?.length || 0
+            });
+            
+            return reportData;
+          })
+        });
+      }
+
+      return newConsultation;
     });
 
     return {
@@ -2298,7 +2374,18 @@ export async function getLabResultsByPatientId(patientId: string): Promise<LabRe
       // patientId ES el userId - buscar directamente
       const results = await prisma.labResult.findMany({
         where: { patientUserId: patientId },
-        include: {
+        select: {
+          id: true,
+          nombre: true,
+          tipo: true,
+          resultado: true,
+          fecha: true,
+          estado: true,
+          patientUserId: true,
+          archivoContenido: true,
+          archivoNombre: true,
+          archivoTipo: true,
+          archivoTamaño: true,
           patient: { select: { name: true, userId: true } },
           doctor: { select: { name: true, userId: true } }
         },
@@ -2317,7 +2404,11 @@ export async function getLabResultsByPatientId(patientId: string): Promise<LabRe
       referenceRange: result.tipo,
       date: result.fecha.toISOString(),
       estado: result.estado,
-      doctor: result.doctor?.name
+      doctor: result.doctor?.name,
+      archivoContenido: result.archivoContenido,
+      archivoNombre: result.archivoNombre,
+      archivoTipo: result.archivoTipo,
+      archivoTamaño: result.archivoTamaño
     }));
     
   } catch (error) {
@@ -2337,6 +2428,9 @@ export async function getConsultationsByUserId(userId: string): Promise<Consulta
           patient: true,
           doctor: true,
           creator: true,
+          prescriptions: true, // ✅ Incluir prescripciones
+          labResults: true,    // ✅ Incluir resultados de laboratorio
+          reports: true,        // ✅ Incluir reportes de consulta
         },
         orderBy: { fecha: 'desc' },
       });
@@ -2348,11 +2442,34 @@ export async function getConsultationsByUserId(userId: string): Promise<Consulta
       userId: consultation.patientUserId, // userId del paciente
       date: consultation.fecha.toISOString(),
       doctor: consultation.doctor ? consultation.doctor.name : 'No especificado',
-      type: 'Inicial' as const,
+      type: consultation.motivo as 'Inicial' | 'Seguimiento' | 'Pre-operatorio' | 'Post-operatorio',
       notes: consultation.observaciones || '',
-      prescriptions: [],
-      labResults: [],
-      reports: [],
+      prescriptions: consultation.prescriptions?.map((prescription: any) => ({
+        id: prescription.id,
+        medication: prescription.medicamento,
+        dosage: prescription.dosis,
+        duration: prescription.duracion || prescription.frecuencia,
+      })) || [],
+      labResults: consultation.labResults?.map((labResult: any) => ({
+        id: labResult.id,
+        testName: labResult.nombre,
+        value: labResult.resultado,
+        referenceRange: labResult.valores?.referencia || '',
+        date: labResult.fecha.toISOString(),
+      })) || [],
+      reports: consultation.reports?.map((report: any) => ({
+        id: report.id,
+        title: report.titulo,
+        date: report.createdAt.toISOString(),
+        type: report.tipo,
+        notes: report.descripcion || '',
+        fileUrl: report.archivoUrl || '',
+        attachments: report.archivoNombre ? [report.archivoNombre] : [],
+        archivoNombre: report.archivoNombre,
+        archivoTipo: report.archivoTipo,
+        archivoContenido: report.archivoContenido,
+        archivoTamaño: report.archivoTamaño,
+      })) || [],
     }));
   } catch (error) {
     console.error('Error fetching consultations by patient:', error);
@@ -2974,6 +3091,66 @@ export async function getPsaTrends(): Promise<{ dates: string[]; values: number[
   }
 }
 
+export async function getLatestPsaByUserId(userId: string): Promise<{ value: string; date: string; unit?: string; valores?: any[] } | null> {
+  try {
+    const latestPsa = await withDatabase(async (prisma) => {
+      return await prisma.labResult.findFirst({
+        where: {
+          patientUserId: userId,
+          estado: { in: ['COMPLETADO', 'PENDIENTE'] },
+          OR: [
+            { tipo: 'PSA' },
+            {
+              nombre: {
+                contains: 'PSA',
+                mode: 'insensitive',
+              }
+            }
+          ]
+        },
+        orderBy: {
+          fecha: 'desc',
+        },
+      });
+    });
+    if (!latestPsa) return null;
+    let valorPSA = null;
+    let valores = undefined;
+    try {
+      // First try to parse from resultado field
+      if (latestPsa.resultado && latestPsa.resultado.trim().startsWith('[')) {
+        const arr = JSON.parse(latestPsa.resultado);
+        valores = arr;
+        if (Array.isArray(arr)) {
+          const psaObj = arr.find(v => v.name && v.name.toLowerCase().includes('psa'));
+          if (psaObj) valorPSA = psaObj.value;
+        }
+      }
+      // Fallback: check valores field directly
+      if (!valorPSA && latestPsa.valores && Array.isArray(latestPsa.valores)) {
+        valores = latestPsa.valores;
+        const psaObj = latestPsa.valores.find((v: any) => v.name && v.name.toLowerCase().includes('psa'));
+        if (psaObj) valorPSA = psaObj.value;
+      }
+    } catch { /* silent fail */ }
+    // fallback texto plano
+    if (!valorPSA) {
+      const match = latestPsa.resultado.match(/(\d+\.?\d*)/);
+      valorPSA = match ? match[1] : latestPsa.resultado;
+    }
+    const date = latestPsa.fecha.toISOString().split('T')[0];
+    return {
+      value: valorPSA,
+      date,
+      unit: 'ng/mL',
+      valores
+    };
+  } catch (error) {
+    console.error('Error fetching latest PSA for user:', userId, error);
+    return null;
+  }
+}
+
 // ADDITIONAL MISSING FUNCTIONS
 export async function getReportsByPatientId(userId: string): Promise<Report[]> {
   try {
@@ -3004,27 +3181,28 @@ export async function getPatientMedicalHistoryAsString(userId: string): Promise<
   try {
     const patient = await withDatabase(async (prisma) => {
       return await prisma.user.findUnique({
-      where: { userId: userId },
-      include: {
-        patientInfo: true,
-        consultations: {
-          include: {
-            doctor: true,
-            labResults: true,
-            prescriptions: true,
+        where: { userId: userId },
+        include: {
+          patientInfo: true,
+          patientConsultations: {
+            include: {
+              doctor: true,
+              labResults: true,
+              prescriptions: true,
+              reports: true,
+            },
+            orderBy: { fecha: 'desc' },
           },
-        orderBy: { fecha: 'desc' },
-      },
-        labResults: {
-          orderBy: { fecha: 'desc' },
-        },
-        appointments: {
-          include: {
-            doctor: true,
+          patientLabResults: {
+            orderBy: { fecha: 'desc' },
           },
-          orderBy: { fecha: 'desc' },
+          patientAppointments: {
+            include: {
+              doctor: true,
+            },
+            orderBy: { fecha: 'desc' },
+          },
         },
-      },
       });
     });
 
@@ -3032,34 +3210,59 @@ export async function getPatientMedicalHistoryAsString(userId: string): Promise<
       return 'Paciente no encontrado';
     }
 
-    let history = `HISTORIA MÉDICA - ${patient.nombre} ${patient.apellido}\n`;
-    history += `Cédula: ${patient.cedula}\n`;
-    history += `Fecha de Nacimiento: ${patient.fechaNacimiento.toLocaleDateString()}\n`;
-    history += `Teléfono: ${patient.telefono || 'No disponible'}\n`;
-    history += `Email: ${patient.email || 'No disponible'}\n`;
-    history += `Dirección: ${patient.direccion || 'No disponible'}\n\n`;
+    // Usar datos del User y PatientInfo
+    const patientName = patient.name;
+    const patientInfo = patient.patientInfo;
+    
+    let history = `HISTORIA MÉDICA - ${patientName}\n`;
+    if (patientInfo) {
+      history += `Cédula: ${patientInfo.cedula || 'No disponible'}\n`;
+      history += `Fecha de Nacimiento: ${patientInfo.fechaNacimiento ? patientInfo.fechaNacimiento.toLocaleDateString() : 'No disponible'}\n`;
+      history += `Teléfono: ${patientInfo.telefono || 'No disponible'}\n`;
+      history += `Email: ${patient.email || 'No disponible'}\n`;
+      history += `Dirección: ${patientInfo.direccion || 'No disponible'}\n\n`;
+    } else {
+      history += `Email: ${patient.email || 'No disponible'}\n\n`;
+    }
 
     // Consultas
-    if (patient.consultations.length > 0) {
+    if (patient.patientConsultations.length > 0) {
       history += 'CONSULTAS MÉDICAS:\n';
       history += '='.repeat(50) + '\n';
-      patient.consultations.forEach((consultation: any, index: number) => {
+      patient.patientConsultations.forEach((consultation: any, index: number) => {
         history += `${index + 1}. Fecha: ${consultation.fecha.toLocaleDateString()}\n`;
-        history += `   Doctor: ${consultation.doctor ? `${consultation.doctor.nombre} ${consultation.doctor.apellido}` : 'No especificado'}\n`;
+        history += `   Doctor: ${consultation.doctor ? consultation.doctor.name : 'No especificado'}\n`;
         history += `   Motivo: ${consultation.motivo}\n`;
         if (consultation.sintomas) history += `   Síntomas: ${consultation.sintomas}\n`;
         if (consultation.diagnostico) history += `   Diagnóstico: ${consultation.diagnostico}\n`;
         if (consultation.tratamiento) history += `   Tratamiento: ${consultation.tratamiento}\n`;
         if (consultation.observaciones) history += `   Observaciones: ${consultation.observaciones}\n`;
+        
+        // Prescripciones
+        if (consultation.prescriptions && consultation.prescriptions.length > 0) {
+          history += `   Prescripciones:\n`;
+          consultation.prescriptions.forEach((prescription: any) => {
+            history += `     - ${prescription.medicamento}: ${prescription.dosis} (${prescription.duracion || prescription.frecuencia})\n`;
+          });
+        }
+        
+        // Reportes
+        if (consultation.reports && consultation.reports.length > 0) {
+          history += `   Reportes:\n`;
+          consultation.reports.forEach((report: any) => {
+            history += `     - ${report.titulo}: ${report.descripcion || 'Sin descripción'}\n`;
+          });
+        }
+        
         history += '\n';
       });
     }
 
     // Resultados de Laboratorio
-    if (patient.labResults.length > 0) {
+    if (patient.patientLabResults.length > 0) {
       history += 'RESULTADOS DE LABORATORIO:\n';
       history += '='.repeat(50) + '\n';
-      patient.labResults.forEach((result: any, index: number) => {
+      patient.patientLabResults.forEach((result: any, index: number) => {
         history += `${index + 1}. Fecha: ${result.fecha.toLocaleDateString()}\n`;
         history += `   Estudio: ${result.nombre}\n`;
         history += `   Tipo: ${result.tipo}\n`;
@@ -3069,16 +3272,16 @@ export async function getPatientMedicalHistoryAsString(userId: string): Promise<
     }
 
     // Citas
-    if (patient.appointments.length > 0) {
+    if (patient.patientAppointments.length > 0) {
       history += 'CITAS MÉDICAS:\n';
       history += '='.repeat(50) + '\n';
-      patient.appointments.forEach((appointment: any, index: number) => {
+      patient.patientAppointments.forEach((appointment: any, index: number) => {
         history += `${index + 1}. Fecha: ${appointment.fecha.toLocaleDateString()}\n`;
         history += `   Hora: ${appointment.hora}\n`;
         history += `   Tipo: ${appointment.tipo}\n`;
         history += `   Estado: ${appointment.estado}\n`;
         if (appointment.doctor) {
-          history += `   Doctor: ${appointment.doctor.nombre} ${appointment.doctor.apellido}\n`;
+          history += `   Doctor: ${appointment.doctor.name}\n`;
         }
         if (appointment.notas) history += `   Notas: ${appointment.notas}\n`;
         history += '\n';
@@ -3365,12 +3568,22 @@ export async function addLabResult(
     patientUserId: string; // userId del paciente
     doctorUserId?: string;
     consultationId?: string;
+    archivoNombre?: string;
+    archivoTipo?: string;
+    archivoTamaño?: number;
+    archivoContenido?: string;
   },
   userContext: UserContext
 ) {
   try {
     console.log('[LAB_RESULT] Creando resultado de laboratorio:', labData.nombre);
     console.log('[LAB_RESULT] PatientUserId recibido:', labData.patientUserId);
+    console.log('[LAB_RESULT] Archivo adjunto:', {
+      archivoNombre: labData.archivoNombre,
+      archivoTipo: labData.archivoTipo,
+      archivoTamaño: labData.archivoTamaño,
+      hasArchivoContenido: !!labData.archivoContenido
+    });
     
     // Validar permisos (solo doctor y admin pueden crear)
     if (userContext.role !== UserRole.ADMIN && userContext.role !== UserRole.DOCTOR) {
@@ -3389,7 +3602,11 @@ export async function addLabResult(
           estado: 'PENDIENTE',
           patientUserId: labData.patientUserId,
           doctorUserId: labData.doctorUserId || userContext.userId,
-          consultationId: labData.consultationId
+          consultationId: labData.consultationId,
+          archivoNombre: labData.archivoNombre,
+          archivoTipo: labData.archivoTipo,
+          archivoTamaño: labData.archivoTamaño,
+          archivoContenido: labData.archivoContenido
         },
         include: {
           patient: { select: { name: true, userId: true } },

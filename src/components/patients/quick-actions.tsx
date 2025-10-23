@@ -18,7 +18,7 @@ interface QuickActionsProps {
     upcomingAppointments: Appointment[];
     latestConsultations: Consultation[];
     latestIpss: IpssScore | null;
-    latestPsa: { value: string; date: string; };
+    latestPsa: { value: string; date: string; unit?: string } | null;
 }
 
 export function QuickActions({ patient, upcomingAppointments, latestConsultations, latestIpss, latestPsa }: QuickActionsProps) {
@@ -122,7 +122,7 @@ export function QuickActions({ patient, upcomingAppointments, latestConsultation
             theme: 'striped',
             head: [['Indicador', 'Valor', 'Fecha/Info']],
             body: [
-                ['Último PSA', `${latestPsa.value} ng/mL`, latestPsa.date ? format(new Date(latestPsa.date), 'dd/MM/yyyy') : 'N/A'],
+                ['Último PSA', latestPsa ? `${latestPsa.value} ${latestPsa.unit || 'ng/mL'}` : 'Sin resultados', latestPsa?.date ? format(new Date(latestPsa.date), 'dd/MM/yyyy') : 'N/A'],
                 ['Último IPSS', latestIpss ? `${latestIpss.score} (${latestIpss.category})` : 'N/A', latestIpss ? format(new Date(latestIpss.date), 'dd/MM/yyyy') : 'N/A'],
                 ['Próxima Cita', upcomingAppointments.length > 0 ? format(new Date(upcomingAppointments[0].date), 'dd/MM/yyyy HH:mm') : 'Ninguna', upcomingAppointments.length > 0 ? upcomingAppointments[0].reason : 'N/A'],
             ],
@@ -165,27 +165,14 @@ export function QuickActions({ patient, upcomingAppointments, latestConsultation
 
     return (
         <>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Button variant="outline" className="justify-start text-left h-auto py-3 bg-card/50" onClick={() => setIsHistoryModalOpen(true)}>
-                    <ClipboardPlus className="mr-4 h-6 w-6 text-primary" />
-                    <div>
-                        <p className="font-semibold">Agregar Historia</p>
-                        <p className="text-xs text-muted-foreground">Nueva consulta, nota o resultado.</p>
-                    </div>
-                </Button>
-                <Button variant="outline" className="justify-start text-left h-auto py-3 bg-card/50" onClick={() => setIsAppointmentModalOpen(true)}>
-                    <CalendarPlus className="mr-4 h-6 w-6 text-primary" />
-                    <div>
-                        <p className="font-semibold">Agendar Cita</p>
-                        <p className="text-xs text-muted-foreground">Programar una nueva cita.</p>
-                    </div>
-                </Button>
-                <Button variant="outline" className="justify-start text-left h-auto py-3 bg-card/50" onClick={() => setIsExportModalOpen(true)}>
-                    <FileDown className="mr-4 h-6 w-6 text-primary" />
-                    <div>
-                        <p className="font-semibold">Exportar Resumen</p>
-                        <p className="text-xs text-muted-foreground">Descargar un resumen en PDF.</p>
-                    </div>
+            <div className="flex justify-end">
+                <Button 
+                    onClick={() => setIsExportModalOpen(true)}
+                    className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all"
+                    size="lg"
+                >
+                    <FileDown className="h-5 w-5" />
+                    Descargar Resumen (PDF)
                 </Button>
             </div>
 

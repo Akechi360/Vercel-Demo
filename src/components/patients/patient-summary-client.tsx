@@ -12,13 +12,15 @@ interface PatientSummaryClientProps {
     upcomingAppointments: Appointment[];
     latestConsultations: Consultation[];
     latestIpss: IpssScore | null;
+    latestPsa: { value: string; date: string; unit?: string; valores?: any[] } | null;
 }
 
 export default function PatientSummaryClient({
     patient,
     upcomingAppointments,
     latestConsultations,
-    latestIpss
+    latestIpss,
+    latestPsa
 }: PatientSummaryClientProps) {
 
     const [companyName, setCompanyName] = useState<string | undefined>(undefined);
@@ -30,9 +32,6 @@ export default function PatientSummaryClient({
             });
         }
     }, [patient.companyId]);
-
-    // This would eventually come from lab results
-    const latestPsa = { value: "4.1", date: "2024-05-01" };
 
     const patientWithCompany = { ...patient, companyName };
 
@@ -46,11 +45,19 @@ export default function PatientSummaryClient({
                 latestPsa={latestPsa}
             />
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <IndicatorCard 
                     title="Último PSA"
-                    value={`${latestPsa.value} ng/mL`}
-                    subtext={`del ${new Date(latestPsa.date).toLocaleDateString()}`}
+                    value={(() => {
+                        if (!latestPsa) return 'Sin resultados';
+                        if (Array.isArray(latestPsa.valores)) {
+                          const psaObj = latestPsa.valores.find((v: any) => v.name && v.name.toLowerCase().includes('psa'));
+                          return psaObj ? `${psaObj.value} ${latestPsa.unit || ''}` : 'Sin resultados';
+                        }
+                        // fallback string
+                        return latestPsa.value ? `${latestPsa.value} ${latestPsa.unit || ''}` : 'Sin resultados';
+                    })()}
+                    subtext={latestPsa ? `del ${new Date(latestPsa.date).toLocaleDateString()}` : 'No hay datos disponibles'}
                     icon="Droplets"
                 />
                 <IndicatorCard 
@@ -58,12 +65,6 @@ export default function PatientSummaryClient({
                     value={latestIpss ? latestIpss.score.toString() : 'N/A'}
                     subtext={latestIpss ? `(${latestIpss.category})` : "Sin registro"}
                     icon="Calculator"
-                />
-                <IndicatorCard 
-                    title="Próxima Cita"
-                    value={upcomingAppointments.length > 0 ? new Date(upcomingAppointments[0].date).toLocaleDateString() : "Ninguna"}
-                    subtext={upcomingAppointments.length > 0 ? new Date(upcomingAppointments[0].date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : " "}
-                    icon="Calendar"
                 />
             </div>
 

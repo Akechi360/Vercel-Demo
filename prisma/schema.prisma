@@ -8,39 +8,41 @@ datasource db {
 }
 
 model User {
-  id                     String                      @id @default(cuid())
-  userId                 String                      @unique
-  email                  String                      @unique
-  name                   String
-  password               String
-  role                   String
-  status                 String                      @default("ACTIVE")
-  createdAt              DateTime                    @default(now())
-  phone                  String?
-  lastLogin              DateTime?
-  avatarUrl              String?                     @default("/images/avatars/default-doctor.png")
-  affiliations           Affiliation[]
-  createdAppointments    Appointment[]               @relation("CreatedAppointments")
-  doctorAppointments     Appointment[]               @relation("DoctorAppointments")
-  patientAppointments    Appointment[]               @relation("PatientAppointments")
-  auditLogs              AuditLog[]
-  createdConsultations   Consultation[]              @relation("CreatedConsultations")
-  doctorConsultations    Consultation[]              @relation("DoctorConsultations")
-  patientConsultations   Consultation[]              @relation("PatientConsultations")
-  doctorInfo             DoctorInfo?
-  promotoraInfo          PromotoraInfo?
-  secretariaInfo         SecretariaInfo?
-  patientLabResults      LabResult[]                 @relation("PatientLabResults")
-  doctorLabResults       LabResult[]                 @relation("DoctorLabResults")
-  patientInfo            PatientInfo?
-  createdPayments        Payment[]                   @relation("CreatedPayments")
-  patientPayments        Payment[]                   @relation("PatientPayments")
-  prescriptions          Prescription[]
-  createdReceipts        Receipt[]                   @relation("CreatedReceipts")
-  patientReceipts        Receipt[]                   @relation("PatientReceipts")
-  notifications          Notification[]
-  deviceTokens           DeviceToken[]
-  notificationPreference UserNotificationPreference?
+  id                         String                      @id @default(cuid())
+  email                      String                      @unique
+  name                       String
+  password                   String
+  createdAt                  DateTime                    @default(now())
+  lastLogin                  DateTime?
+  phone                      String?
+  status                     String                      @default("ACTIVE")
+  role                       String
+  avatarUrl                  String?                     @default("/images/avatars/default-doctor.png")
+  userId                     String                      @unique
+  affiliations               Affiliation[]
+  createdAppointments        Appointment[]               @relation("CreatedAppointments")
+  doctorAppointments         Appointment[]               @relation("DoctorAppointments")
+  patientAppointments        Appointment[]               @relation("PatientAppointments")
+  auditLogs                  AuditLog[]
+  createdConsultationReports ConsultationReport[]        @relation("CreatedConsultationReports")
+  patientConsultationReports ConsultationReport[]        @relation("PatientConsultationReports")
+  createdConsultations       Consultation[]              @relation("CreatedConsultations")
+  doctorConsultations        Consultation[]              @relation("DoctorConsultations")
+  patientConsultations       Consultation[]              @relation("PatientConsultations")
+  deviceTokens               DeviceToken[]
+  doctorInfo                 DoctorInfo?
+  doctorLabResults           LabResult[]                 @relation("DoctorLabResults")
+  patientLabResults          LabResult[]                 @relation("PatientLabResults")
+  notifications              Notification[]
+  patientInfo                PatientInfo?
+  createdPayments            Payment[]                   @relation("CreatedPayments")
+  patientPayments            Payment[]                   @relation("PatientPayments")
+  prescriptions              Prescription[]
+  promotoraInfo              PromotoraInfo?
+  createdReceipts            Receipt[]                   @relation("CreatedReceipts")
+  patientReceipts            Receipt[]                   @relation("PatientReceipts")
+  secretariaInfo             SecretariaInfo?
+  notificationPreference     UserNotificationPreference?
 
   @@map("users")
 }
@@ -151,12 +153,12 @@ model Appointment {
   tipo          AppointmentType
   estado        AppointmentStatus @default(PROGRAMADA)
   notas         String?
-  patientUserId String
-  doctorUserId  String?
   providerId    String?
-  createdBy     String
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
+  createdBy     String
+  doctorUserId  String?
+  patientUserId String
   creator       User              @relation("CreatedAppointments", fields: [createdBy], references: [userId], onDelete: Cascade)
   doctor        User?             @relation("DoctorAppointments", fields: [doctorUserId], references: [userId], onDelete: Cascade)
   patient       User              @relation("PatientAppointments", fields: [patientUserId], references: [userId], onDelete: Cascade)
@@ -167,23 +169,24 @@ model Appointment {
 }
 
 model Consultation {
-  id            String         @id @default(cuid())
+  id            String               @id @default(cuid())
   fecha         DateTime
   motivo        String
   sintomas      String?
   diagnostico   String?
   tratamiento   String?
   observaciones String?
-  patientUserId String
-  doctorUserId  String?
   appointmentId String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
   createdBy     String
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  appointment   Appointment?   @relation(fields: [appointmentId], references: [id])
-  creator       User           @relation("CreatedConsultations", fields: [createdBy], references: [userId], onDelete: Cascade)
-  doctor        User?          @relation("DoctorConsultations", fields: [doctorUserId], references: [userId], onDelete: Cascade)
-  patient       User           @relation("PatientConsultations", fields: [patientUserId], references: [userId], onDelete: Cascade)
+  doctorUserId  String?
+  patientUserId String
+  reports       ConsultationReport[]
+  appointment   Appointment?         @relation(fields: [appointmentId], references: [id])
+  creator       User                 @relation("CreatedConsultations", fields: [createdBy], references: [userId], onDelete: Cascade)
+  doctor        User?                @relation("DoctorConsultations", fields: [doctorUserId], references: [userId], onDelete: Cascade)
+  patient       User                 @relation("PatientConsultations", fields: [patientUserId], references: [userId], onDelete: Cascade)
   labResults    LabResult[]
   prescriptions Prescription[]
 
@@ -191,23 +194,26 @@ model Consultation {
 }
 
 model LabResult {
-  id             String        @id @default(cuid())
-  nombre         String        // Nombre del test (ej: "PSA Total")
-  tipo           String        // Tipo/categoría (ej: "Urológico")
-  resultado      String        // Valor del resultado
-  valores        Json?         // Valores adicionales en JSON
-  fecha          DateTime      @default(now())
-  estado         String        @default("PENDIENTE") // PENDIENTE, COMPLETADO, CANCELADO
-  patientUserId  String
-  consultationId String?
-  doctorUserId   String?       // Doctor que solicitó el estudio
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  
-  patient        User          @relation("PatientLabResults", fields: [patientUserId], references: [userId], onDelete: Cascade)
-  consultation   Consultation? @relation(fields: [consultationId], references: [id])
-  doctor         User?         @relation("DoctorLabResults", fields: [doctorUserId], references: [userId])
-  
+  id               String        @id @default(cuid())
+  nombre           String
+  tipo             String
+  resultado        String
+  valores          Json?
+  fecha            DateTime      @default(now())
+  consultationId   String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  patientUserId    String
+  doctorUserId     String?
+  estado           String        @default("PENDIENTE")
+  archivoContenido String?
+  archivoNombre    String?
+  archivoTamaño   Int?
+  archivoTipo      String?
+  consultation     Consultation? @relation(fields: [consultationId], references: [id])
+  doctor           User?         @relation("DoctorLabResults", fields: [doctorUserId], references: [userId])
+  patient          User          @relation("PatientLabResults", fields: [patientUserId], references: [userId], onDelete: Cascade)
+
   @@index([patientUserId])
   @@index([doctorUserId])
   @@index([estado])
@@ -221,14 +227,36 @@ model Prescription {
   frecuencia     String
   duracion       String?
   instrucciones  String?
-  patientUserId  String
   consultationId String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
+  patientUserId  String
   consultation   Consultation? @relation(fields: [consultationId], references: [id])
   patient        User          @relation(fields: [patientUserId], references: [userId], onDelete: Cascade)
 
   @@map("prescriptions")
+}
+
+model ConsultationReport {
+  id               String       @id @default(cuid())
+  titulo           String
+  descripcion      String?
+  tipo             String       @default("Informe")
+  archivoNombre    String?
+  archivoUrl       String?
+  archivoTipo      String?
+  archivoTamaño   Int?
+  patientUserId    String
+  consultationId   String
+  createdBy        String
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  archivoContenido String?
+  consultation     Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  creator          User         @relation("CreatedConsultationReports", fields: [createdBy], references: [userId], onDelete: Cascade)
+  patient          User         @relation("PatientConsultationReports", fields: [patientUserId], references: [userId], onDelete: Cascade)
+
+  @@map("consultation_reports")
 }
 
 model Payment {
@@ -240,10 +268,10 @@ model Payment {
   fecha         DateTime
   referencia    String?
   notas         String?
-  patientUserId String
-  createdBy     String
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+  createdBy     String
+  patientUserId String
   creator       User          @relation("CreatedPayments", fields: [createdBy], references: [userId], onDelete: Cascade)
   patient       User          @relation("PatientPayments", fields: [patientUserId], references: [userId], onDelete: Cascade)
 
@@ -336,12 +364,12 @@ model SystemConfig {
 model Receipt {
   id            String   @id @default(cuid())
   number        String   @unique
-  patientUserId String
   amount        Decimal  @db.Decimal(10, 2)
   concept       String
   method        String
   createdAt     DateTime @default(now())
   createdBy     String
+  patientUserId String
   creator       User     @relation("CreatedReceipts", fields: [createdBy], references: [userId], onDelete: Cascade)
   patient       User     @relation("PatientReceipts", fields: [patientUserId], references: [userId], onDelete: Cascade)
 
@@ -359,7 +387,6 @@ model AuditLog {
   @@map("audit_logs")
 }
 
-// Modelo para almacenar notificaciones del sistema
 model Notification {
   id         String              @id @default(cuid())
   userId     String
@@ -371,12 +398,12 @@ model Notification {
   data       Json?
   sentAt     DateTime?
   readAt     DateTime?
-  isRead     Boolean             @default(false)
-  priority   String?             @default("MEDIUM")
-  actionUrl  String?
-  actionText String?
   createdAt  DateTime            @default(now())
   updatedAt  DateTime            @updatedAt
+  actionText String?
+  actionUrl  String?
+  isRead     Boolean             @default(false)
+  priority   String?             @default("MEDIUM")
   user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
@@ -385,12 +412,11 @@ model Notification {
   @@map("notifications")
 }
 
-// Modelo para tokens de dispositivos móviles (push notifications)
 model DeviceToken {
   id        String   @id @default(cuid())
   userId    String
   token     String   @unique
-  platform  String // 'ios', 'android', 'web'
+  platform  String
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -400,7 +426,6 @@ model DeviceToken {
   @@map("device_tokens")
 }
 
-// Modelo para preferencias de notificación por usuario
 model UserNotificationPreference {
   id                   String   @id @default(cuid())
   userId               String   @unique
@@ -472,15 +497,14 @@ enum SupplyStatus {
   RESERVADO
 }
 
-// Enums para el sistema de notificaciones
 enum NotificationType {
-  APPOINTMENT
   APPOINTMENT_REMINDER
-  APPOINTMENT_CANCELLATION
   PAYMENT_CONFIRMATION
-  PAYMENT_REMINDER
   SYSTEM_ALERT
+  APPOINTMENT_CANCELLATION
   NEW_MESSAGE
+  APPOINTMENT
+  PAYMENT_REMINDER
   LAB_RESULT_READY
   PRESCRIPTION_READY
   AFFILIATION_EXPIRING

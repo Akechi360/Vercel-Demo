@@ -145,6 +145,10 @@ export interface LabResult {
   date: string;
   estado?: string;        // PENDIENTE, COMPLETADO, CANCELADO
   doctor?: string;        // Nombre del doctor que solicitó el estudio
+  archivoContenido?: string;
+  archivoNombre?: string;
+  archivoTipo?: string;
+  archivoTamaño?: number;
 }
 
 export interface Report {
@@ -156,6 +160,11 @@ export interface Report {
   notes: string;
   fileUrl: string;
   attachments: string[];
+  // Campos para manejo de archivos base64
+  archivoNombre?: string;
+  archivoTipo?: string;
+  archivoContenido?: string;
+  archivoTamaño?: number;
 }
 
 export interface Consultation {

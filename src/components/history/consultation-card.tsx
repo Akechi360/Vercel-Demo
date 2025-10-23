@@ -1,7 +1,7 @@
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { FileText, Pill, Microscope, Download } from "lucide-react"
+import { FileText, Pill, Microscope, Download, FileDown, Eye } from "lucide-react"
 import { format } from "date-fns"
 import type { Consultation, Patient } from "@/lib/types"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
@@ -11,6 +11,7 @@ import jsPDF from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { getPatientById } from "@/lib/actions";
 import { useEffect, useState }from "react";
+import { FileViewerModal } from "./file-viewer-modal";
 
 interface ConsultationCardProps {
     consultation: Consultation;
@@ -19,6 +20,8 @@ interface ConsultationCardProps {
 export function ConsultationCard({ consultation }: ConsultationCardProps) {
     const { toast } = useToast();
     const [patient, setPatient] = useState<Patient | null>(null);
+    const [selectedReport, setSelectedReport] = useState<any>(null);
+    const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
 
     // ✅ VALIDACIÓN CRÍTICA - Verificar que consultation sea válido
     const isValidConsultation = consultation && consultation.id;
@@ -155,6 +158,81 @@ export function ConsultationCard({ consultation }: ConsultationCardProps) {
         });
     }
 
+    const handleExportReport = async (report: any) => {
+        if (!patient) return;
+
+        const doc = new jsPDF();
+        const exportDate = new Date();
+
+        // Logo UroVital
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(58, 109, 255);
+        doc.text("UroVital", 14, 20);
+
+        doc.setFont("helvetica", "bold");
+        doc.text("Informe Médico", doc.internal.pageSize.getWidth() / 2, 20, { align: "center" });
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(150);
+        doc.text(`Fecha de emisión: ${format(exportDate, 'dd/MM/yyyy')}`, doc.internal.pageSize.getWidth() - 14, 30, { align: "right" });
+
+        let y = 40;
+        doc.setFontSize(12);
+        doc.setTextColor(40);
+        doc.text("Paciente:", 14, y);
+        doc.setFont("helvetica", "normal");
+        doc.text(`${patient.name}`, 50, y);
+        y += 7;
+
+        doc.setFont("helvetica", "bold");
+        doc.text("Informe:", 14, y);
+        doc.setFont("helvetica", "normal");
+        doc.text(report.title, 50, y);
+        y += 7;
+
+        if (report.notes) {
+            doc.setFont("helvetica", "bold");
+            doc.text("Descripción:", 14, y);
+            y += 8;
+            doc.setFont("helvetica", "normal");
+            const notesLines = doc.splitTextToSize(report.notes, doc.internal.pageSize.getWidth() - 28);
+            doc.text(notesLines, 14, y);
+            y += notesLines.length * 5 + 10;
+        }
+
+        if (report.attachments && report.attachments.length > 0) {
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text("Archivos Adjuntos:", 14, y);
+            y += 6;
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "normal");
+            report.attachments.forEach((file: string) => {
+                doc.text(`- ${file}`, 14, y);
+                y += 5;
+            });
+        }
+
+        const signatureY = doc.internal.pageSize.getHeight() - 40;
+        doc.line(60, signatureY, doc.internal.pageSize.getWidth() - 60, signatureY);
+        doc.setFontSize(10);
+        doc.text("Firma y Sello del Médico", doc.internal.pageSize.getWidth() / 2, signatureY + 8, { align: 'center' });
+
+        doc.save(`informe_${report.title.replace(/\s/g, '_')}_${format(exportDate, 'yyyy-MM-dd')}.pdf`);
+        
+        toast({
+            title: "Informe Exportado",
+            description: "El PDF del informe ha sido generado.",
+        });
+    }
+
+    const handleViewReport = (report: any) => {
+        setSelectedReport(report);
+        setIsFileViewerOpen(true);
+    };
+
     // Mostrar error si consultation es inválido
     if (!isValidConsultation) {
         return (
@@ -167,6 +245,7 @@ export function ConsultationCard({ consultation }: ConsultationCardProps) {
     }
 
     return (
+        <>
         <Card>
             <CardHeader>
                 <div className="flex justify-between items-start">
@@ -225,12 +304,64 @@ export function ConsultationCard({ consultation }: ConsultationCardProps) {
                 {consultation.reports && consultation.reports.length > 0 && (
                      <div>
                         <h4 className="font-semibold text-sm mb-2 flex items-center"><FileText className="w-4 h-4 mr-2" />Informes</h4>
-                        <div className="flex flex-wrap gap-2">
-                            {consultation.reports.map(r => <Badge variant="outline" key={r.id}>{r.title}</Badge>)}
+                        <div className="space-y-2">
+                            {consultation.reports.map((report, index) => {
+                                // Crear una clave única usando el ID del reporte o un índice con prefijo
+                                const uniqueKey = report?.id 
+                                    ? `report-${report.id}` 
+                                    : `report-${consultation.id}-${index}`;
+                                    
+                                return (
+                                <div key={uniqueKey} className="flex items-center justify-between p-2 border rounded-md bg-muted/30">
+                                    <div className="flex items-center gap-2">
+                                        <FileText className="w-4 h-4 text-muted-foreground" />
+                                        <span className="text-sm font-medium">{report.title}</span>
+                                        {report.attachments && report.attachments.length > 0 && (
+                                            <Badge variant="secondary" className="text-xs">
+                                                {report.attachments.length} archivo(s)
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <div className="flex gap-1">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleViewReport(report)}
+                                            className="h-7 px-2"
+                                        >
+                                            <Eye className="w-3 h-3 mr-1" />
+                                            Ver
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleExportReport(report)}
+                                            className="h-7 px-2"
+                                        >
+                                            <FileDown className="w-3 h-3 mr-1" />
+                                            PDF
+                                        </Button>
+                                    </div>
+                                </div>
+                            );
+                            })}
                         </div>
                     </div>
                 )}
             </CardContent>
         </Card>
+        
+        {/* Modal de visualización de archivos */}
+        {selectedReport && (
+            <FileViewerModal
+                isOpen={isFileViewerOpen}
+                onClose={() => {
+                    setIsFileViewerOpen(false);
+                    setSelectedReport(null);
+                }}
+                report={selectedReport}
+            />
+        )}
+    </>
     )
 }

@@ -97,13 +97,16 @@ export default function LabResultsCard({ results, labResults }: LabResultsCardPr
                           <Eye className="w-4 h-4" />
                         </Button>
                       )}
-                      {console.log('[LAB_RESULTS_CARD] Result data:', {
-                        id: result.id,
-                        testName: result.testName,
-                        hasArchivoContenido: !!result.archivoContenido,
-                        archivoNombre: result.archivoNombre,
-                        archivoTipo: result.archivoTipo
-                      })}
+                      {(() => {
+                        console.log('[LAB_RESULTS_CARD] Result data:', {
+                          id: result.id,
+                          testName: result.testName,
+                          hasArchivoContenido: !!result.archivoContenido,
+                          archivoNombre: result.archivoNombre,
+                          archivoTipo: result.archivoTipo
+                        });
+                        return null;
+                      })()}
                       {result.estado === 'PENDIENTE' && (
                         <CompleteLabResultButton
                           labResultId={result.id}

@@ -1,167 +1,197 @@
-# UroVital - Sistema de Gestión Urológica
+# 🏥 UroVital - Sistema de Gestión Urológica
 
-UroVital es una aplicación web moderna y responsiva para urologistas para gestionar información de pacientes, citas e historias clínicas. Construida con Next.js, TailwindCSS, Prisma y ShadCN UI.
+[![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-3982CE?style=for-the-badge&logo=Prisma&logoColor=white)](https://www.prisma.io/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 
-## ⚠️ SECURITY WARNING
+UroVital es una solución integral para la gestión clínica urológica, diseñada para optimizar el flujo de trabajo médico con un enfoque en la experiencia del usuario y la seguridad de los datos.
 
-**🚨 CRÍTICO**: Este sistema incluye un backdoor de desarrollo para facilitar testing y debugging. 
+## 🚀 Características Principales
 
-**⚠️ ANTES DE PRODUCCIÓN**:
-- Eliminar completamente el backdoor de desarrollo
-- Verificar que no hay credenciales hardcodeadas
-- Revisar la documentación de seguridad en `SECURITY.md`
-- Confirmar que el sistema está limpio
+- **Gestión de Pacientes**: Registro y seguimiento completo de historias clínicas
+- **Sistema de Citas**: Programación y gestión de consultas médicas
+- **Historial Clínico Electrónico**: Acceso rápido al historial médico de los pacientes
+- **Panel de Análisis**: Estadísticas y reportes en tiempo real
+- **Autenticación Segura**: Múltiples roles y permisos de acceso
+- **Interfaz Responsive**: Diseño adaptativo para cualquier dispositivo
 
-**🔐 CREDENCIALES DE DESARROLLO** (SOLO para desarrollo):
-- Email: `[REDACTED]`
-- Password: `[REDACTED]`
-- Role: `superadmin`
+## 🛠️ Tecnologías Principales
 
-**📋 VERIFICACIÓN DE SEGURIDAD**:
-```bash
-# Verificar que no hay credenciales en producción
-grep -r "[REDACTED]" src/ --exclude-dir=node_modules
+- **Frontend**: 
+  - Next.js 15 con App Router
+  - React 18 con Server Components
+  - TypeScript
+  - TailwindCSS + ShadCN UI
+  - React Hook Form + Zod
+  - React Query
 
-# Verificar que el backdoor está deshabilitado
-echo $NODE_ENV
-```
+- **Backend**:
+  - Next.js API Routes
+  - Prisma ORM
+  - PostgreSQL (Neon)
+  - NextAuth.js
+  - Zod para validación
 
-**🛡️ MÁS INFORMACIÓN**: Ver `SECURITY.md` para detalles completos de seguridad.
+- **Herramientas**:
+  - ESLint + Prettier
+  - Husky + lint-staged
+  - GitHub Actions
+  - Vercel para despliegue
 
-## 🚀 Despliegue Rápido
+## 📦 Requisitos del Sistema
 
-### Opción 1: Despliegue en Vercel (Recomendado)
+- Node.js 18+
+- npm 9+ o pnpm 8+
+- PostgreSQL 14+
+- Git
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/tu-usuario/urovital)
+## 🚀 Empezando
 
-1. **Fork este repositorio**
-2. **Conecta con Vercel**:
-   - Ve a [vercel.com](https://vercel.com)
-   - Importa tu repositorio
-   - Configura las variables de entorno (ver sección Variables de Entorno)
+### Configuración Inicial
 
-3. **Configura Neon Database**:
-   - Ve a [neon.tech](https://neon.tech)
-   - Crea una nueva base de datos
-   - Copia la connection string
+1. **Clonar el repositorio**
+   ```bash
+   git clone https://github.com/tu-usuario/urovital.git
+   cd urovital
+   ```
 
-### Opción 2: Desarrollo Local
+2. **Instalar dependencias**
+   ```bash
+   npm install
+   # o
+   pnpm install
+   ```
 
-```bash
-# Clonar el repositorio
-git clone https://github.com/tu-usuario/urovital.git
-cd urovital
+3. **Configurar variables de entorno**
+   ```bash
+   cp .env.example .env
+   # Editar el archivo .env con tus configuraciones
+   ```
 
-# Instalar dependencias
-npm install
+4. **Configurar la base de datos**
+   ```bash
+   # Aplicar migraciones
+   npx prisma migrate dev
+   
+   # Generar cliente Prisma
+   npx prisma generate
+   
+   # Poblar datos iniciales (opcional)
+   npx prisma db seed
+   ```
 
-# Configurar variables de entorno
-cp .env.example .env
-# Edita .env con tus configuraciones
+5. **Iniciar el servidor de desarrollo**
+   ```bash
+   npm run dev
+   # o
+   pnpm dev
+   ```
 
-# Configurar base de datos
-npm run db:generate
-npm run db:push
-npm run db:seed
+   La aplicación estará disponible en [http://localhost:3000](http://localhost:3000)
 
-# Iniciar servidor de desarrollo
-npm run dev
-```
-
-## 🔧 Variables de Entorno
-
-Crea un archivo `.env` con las siguientes variables:
-
-```env
-# Base de datos (Neon PostgreSQL para producción)
-DATABASE_URL="postgresql://username:password@ep-xxx.us-east-1.aws.neon.tech/neondb?sslmode=require"
-
-# Autenticación
-NEXTAUTH_SECRET="tu-secret-key-aqui"
-NEXTAUTH_URL="https://tu-app.vercel.app"
-
-# Google AI (Opcional)
-GOOGLE_GENAI_API_KEY="tu-api-key-aqui"
-```
-
-## 👤 Usuario Master
-
-- **Email**: `master@urovital.com`
-- **Contraseña**: `M4st3r36048@`
-- **Rol**: Administrador
-
-## 🛠️ Comandos Disponibles
-
-```bash
-# Desarrollo
-npm run dev          # Servidor de desarrollo
-npm run build        # Construir para producción
-npm run start        # Servidor de producción
-
-# Base de datos
-npm run db:generate  # Generar cliente Prisma
-npm run db:push      # Aplicar esquema a la DB
-npm run db:migrate   # Crear migraciones
-npm run db:seed      # Datos iniciales
-npm run db:reset     # Resetear DB y ejecutar seed
-
-# Utilidades
-npm run lint         # Linter
-npm run typecheck    # Verificación de tipos
-```
-
-## 🏗️ Arquitectura
-
-- **Frontend**: Next.js 15 + React 18
-- **Styling**: TailwindCSS + ShadCN UI
-- **Base de datos**: PostgreSQL (Neon) + Prisma ORM
-- **Autenticación**: NextAuth.js
-- **Despliegue**: Vercel
-- **AI**: Google Genkit (opcional)
-
-## 📁 Estructura del Proyecto
+## 🏗️ Estructura del Proyecto
 
 ```
 src/
-├── app/                 # App Router de Next.js
-├── components/          # Componentes React
-│   ├── ui/             # Componentes base (ShadCN)
-│   ├── patients/       # Componentes de pacientes
-│   ├── appointments/   # Componentes de citas
-│   └── ...
-├── lib/                # Utilidades y lógica
-│   ├── actions.ts      # Server Actions
-│   ├── types.ts        # Tipos TypeScript
-│   └── store/          # Estado global (Zustand)
-└── hooks/              # Custom hooks
+├── app/                    # App Router de Next.js
+│   ├── (auth)/            # Rutas de autenticación
+│   ├── (dashboard)/       # Panel de control
+│   ├── (public)/          # Rutas públicas
+│   ├── api/               # API Routes
+│   └── layout.tsx         # Layout principal
+├── components/            # Componentes reutilizables
+│   ├── ui/                # Componentes de UI (ShadCN)
+│   ├── dashboard/         # Componentes del dashboard
+│   └── shared/            # Componentes compartidos
+├── lib/                   # Utilidades y configuraciones
+│   ├── actions/           # Server Actions
+│   ├── auth/              # Configuración de autenticación
+│   ├── db/                # Configuración de base de datos
+│   └── utils/             # Funciones de utilidad
+├── styles/                # Estilos globales
+└── types/                 # Tipos TypeScript
 ```
 
-## 🔐 Roles y Permisos
+## 🔒 Seguridad
 
-- **Admin**: Acceso completo al sistema
-- **Doctor**: Gestión de pacientes y citas
-- **Promotora**: Gestión de afiliaciones
-- **Usuario**: Acceso limitado
+- Autenticación basada en JWT
+- Protección de rutas por roles
+- Validación de entrada en todas las APIs
+- Protección CSRF
+- Headers de seguridad HTTP
+- Cifrado de datos sensibles
 
-## 📊 Funcionalidades
+## 📊 Base de Datos
 
-- ✅ Gestión de pacientes
-- ✅ Sistema de citas
-- ✅ Historial médico
-- ✅ Gestión financiera
-- ✅ Sistema de afiliaciones
-- ✅ Reportes y estadísticas
-- ✅ Autenticación y roles
-- ✅ Interfaz responsiva
+El proyecto utiliza PostgreSQL con Prisma ORM. El esquema de la base de datos se define en `prisma/schema.prisma`.
+
+### Comandos útiles de Prisma
+
+```bash
+# Generar cliente Prisma
+npx prisma generate
+
+# Aplicar migraciones
+npx prisma migrate dev
+
+# Abrir Prisma Studio (GUI para la base de datos)
+npx prisma studio
+
+# Crear una nueva migración
+npx prisma migrate dev --name nombre_de_la_migracion
+```
+
+## 🧪 Testing
+
+```bash
+# Ejecutar tests unitarios
+npm test
+
+# Ejecutar tests con cobertura
+npm run test:coverage
+
+# Ejecutar tests E2E
+npm run test:e2e
+```
+
+## 🚀 Despliegue
+
+### Vercel (Recomendado)
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/tu-usuario/urovital)
+
+1. Conecta tu repositorio de GitHub a Vercel
+2. Configura las variables de entorno en la configuración del proyecto
+3. Configura el comando de build: `npm run build`
+4. ¡Despliega!
+
+### Docker
+
+```bash
+# Construir la imagen
+docker build -t urovital .
+
+# Ejecutar el contenedor
+docker run -p 3000:3000 urovital
+```
 
 ## 🤝 Contribuir
 
-1. Fork el proyecto
+Las contribuciones son bienvenidas. Por favor, sigue estos pasos:
+
+1. Haz un fork del proyecto
 2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
+3. Haz commit de tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Haz push a la rama (`git push origin feature/AmazingFeature`)
 5. Abre un Pull Request
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
+Este proyecto está bajo la Licencia MIT. Ver el archivo [LICENSE](LICENSE) para más detalles.
+
+---
+
+<div align="center">
+  Hecho con ❤️ por el equipo de UroVital
+</div>

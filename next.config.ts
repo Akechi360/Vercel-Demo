@@ -1,17 +1,55 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // Optimización para desarrollo
+  // Turbopack configuration (moved from experimental.turbo)
+  turbopack: {
+    // Add any module rules that need special handling
+    rules: {
+      '*.{ts,tsx}': ['@swc/plugin-relay']
+    }
+  },
+  
+  // External packages for server components
+  serverExternalPackages: ['@prisma/client', 'bcryptjs'],
+  
+  // Experimental features configuration
+  experimental: {
+    // Optimize package imports for better performance
+    optimizePackageImports: [
+      '@radix-ui/*',
+      'lucide-react',
+      'date-fns',
+      'react-apexcharts',
+      'recharts',
+      'framer-motion'
+    ],
+    // Enable server actions
+    serverActions: {
+      bodySizeLimit: '2mb'
+    },
+    // Enable optimized CSS
+    optimizeCss: true,
+  },
+  
+  // Production optimizations
+  productionBrowserSourceMaps: false,
+  output: 'standalone',
+  compress: true,
   reactStrictMode: true,
-  // Configuración de TypeScript
+  
+  // TypeScript configuration
   typescript: {
     ignoreBuildErrors: true,
-    // Habilita la compilación incremental
+    // Enable incremental compilation
     tsconfigPath: './tsconfig.json'
   },
+  
+  // ESLint configuration
   eslint: {
     ignoreDuringBuilds: true,
   },
+  
+  // Image optimization configuration
   images: {
     remotePatterns: [
       {
@@ -36,41 +74,22 @@ const nextConfig: NextConfig = {
     formats: ['image/avif', 'image/webp'],
   },
   
-  // ⚡ Optimizaciones de performance
-  experimental: {
-    optimizePackageImports: [
-      '@/components', 
-      '@/lib', 
-      'lucide-react', 
-      'date-fns',
-      '@radix-ui/*',
-      'react-apexcharts',
-      'recharts',
-      'framer-motion'
-    ],
-    // Habilita la compresión en desarrollo
-    gzipSize: true,
-    // Mejora el rendimiento del módulo de nodo
-    esmExternals: 'loose',
-  },
-  
-  // Configuración de Webpack
-  webpack: (config, { dev, isServer }) => {
-    // Solo en desarrollo
+  // Webpack configuration
+  webpack: (config: any, { dev, isServer }: { dev: boolean; isServer: boolean }) => {
+    // Only in development
     if (dev && !isServer) {
-      // Mejora el rendimiento del hot reload
+      // Improve hot reload performance
       config.watchOptions = {
         ...config.watchOptions,
-        poll: 1000, // Verifica cambios cada segundo
-        aggregateTimeout: 200, // Retraso antes de reconstruir
+        poll: 1000, // Check for changes every second
+        aggregateTimeout: 200, // Delay before rebuilding
         ignored: ['**/node_modules', '**/.next']
       };
     }
     return config;
   },
   
-  
-  // Headers de optimización
+  // Optimization headers
   async headers() {
     return [
       {

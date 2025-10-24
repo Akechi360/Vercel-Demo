@@ -20,9 +20,10 @@ interface IndicatorCardProps {
     value: string;
     subtext?: string;
     icon: keyof typeof icons;
+    action?: React.ReactNode;
 }
 
-export function IndicatorCard({ title, value, subtext, icon }: IndicatorCardProps) {
+export function IndicatorCard({ title, value, subtext, icon, action }: IndicatorCardProps) {
     const Icon = icons[icon];
     return (
         <Card className={cn("rounded-2xl shadow-sm transition-all duration-300 ease-in-out bg-card/50 hover:scale-[1.02]", "hover:shadow-[0_0_20px_rgba(46,49,146,0.4)]")}>
@@ -33,6 +34,7 @@ export function IndicatorCard({ title, value, subtext, icon }: IndicatorCardProp
             <CardContent>
                 <div className="text-2xl font-bold">{value}</div>
                 {subtext && <p className="text-xs text-muted-foreground">{subtext}</p>}
+                {action && <div className="mt-3">{action}</div>}
             </CardContent>
         </Card>
     );

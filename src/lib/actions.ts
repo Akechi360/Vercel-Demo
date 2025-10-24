@@ -1559,11 +1559,13 @@ export async function cleanDuplicateAffiliations(): Promise<{ success: boolean; 
       let removedCount = 0;
       
       // For each group with more than 1 affiliation, keep the oldest and remove the rest
-      for (const [key, group] of grouped) {
+      for (const group of Array.from(grouped.values())) {
         if (group.length > 1) {
           
           // Sort by createdAt (oldest first) and keep the first one
-          const sorted = group.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+          const sorted = group.sort((a: any, b: any) => 
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
           const toKeep = sorted[0];
           const toRemove = sorted.slice(1);
           
@@ -2324,12 +2326,76 @@ export async function addPaymentType(data: Omit<PaymentType, 'id'>): Promise<Pay
 // MISSING FUNCTIONS - Added to fix build errors
 export async function getIpssScoresByUserId(userId: string): Promise<IpssScore[]> {
   try {
-    // IPSS scores are not in the current schema, return empty array for now
-    // This would need to be added to the schema if needed
-    return [];
+    const ipssScores = await withDatabase(async (prisma) => {
+      return await prisma.ipssScore.findMany({
+        where: { userId: userId },
+        include: {
+          doctor: { select: { name: true } }
+        },
+        orderBy: { fecha: 'desc' }
+      });
+    });
+
+    return ipssScores.map((score: any) => ({
+      id: score.id,
+      userId: score.userId,
+      date: score.fecha.toISOString(),
+      score: score.puntaje,
+      category: score.categoria as 'Leve' | 'Moderado' | 'Severo',
+      answers: score.respuestas,
+      doctorName: score.doctor?.name
+    }));
   } catch (error) {
     console.error('Error fetching IPSS scores:', error);
-  return [];
+    return [];
+  }
+}
+
+export async function saveIpssScore(data: {
+  userId: string;
+  puntaje: number;
+  categoria: string;
+  respuestas: Record<string, number>;
+  createdBy: string;
+}): Promise<IpssScore> {
+  try {
+    // Validate puntaje is between 0-35
+    if (data.puntaje < 0 || data.puntaje > 35) {
+      throw new Error('Puntaje debe estar entre 0 y 35');
+    }
+    
+    // Validate categoria
+    if (!['Leve', 'Moderado', 'Severo'].includes(data.categoria)) {
+      throw new Error('Categoría debe ser Leve, Moderado o Severo');
+    }
+
+    const ipssScore = await withDatabase(async (prisma) => {
+      return await prisma.ipssScore.create({
+        data: {
+          userId: data.userId,
+          puntaje: data.puntaje,
+          categoria: data.categoria,
+          respuestas: data.respuestas,
+          createdBy: data.createdBy
+        },
+        include: {
+          doctor: { select: { name: true } }
+        }
+      });
+    });
+
+    return {
+      id: ipssScore.id,
+      userId: ipssScore.userId,
+      date: ipssScore.fecha.toISOString(),
+      score: ipssScore.puntaje,
+      category: ipssScore.categoria as 'Leve' | 'Moderado' | 'Severo',
+      answers: ipssScore.respuestas,
+      doctorName: ipssScore.doctor?.name
+    };
+  } catch (error) {
+    console.error('Error saving IPSS score:', error);
+    throw error;
   }
 }
 

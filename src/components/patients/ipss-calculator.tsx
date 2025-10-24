@@ -36,9 +36,10 @@ const scoreOptions = [
 interface IpssCalculatorProps {
   userId: string;
   historicalScores: IpssScore[];
+  onComplete?: (answers: Record<string, number>, totalScore: number, category: string) => void;
 }
 
-export function IpssCalculator({ userId, historicalScores }: IpssCalculatorProps) {
+export function IpssCalculator({ userId, historicalScores, onComplete }: IpssCalculatorProps) {
   const [scores, setScores] = useState<Record<string, number | null>>({});
   const [showResult, setShowResult] = useState(false);
   const [localHistory, setLocalHistory] = useState(historicalScores);
@@ -84,10 +85,17 @@ export function IpssCalculator({ userId, historicalScores }: IpssCalculatorProps
     };
 
     setLocalHistory(prev => [newScore, ...prev]);
-    toast({
-        title: 'Puntaje IPSS Guardado',
-        description: `Se guardó un puntaje de ${totalScore} (${scoreCategory.name}) para este paciente.`,
-    });
+    
+    // Call onComplete callback if provided
+    if (onComplete) {
+      onComplete(scores as Record<string, number>, totalScore || 0, scoreCategory.name);
+    } else {
+      toast({
+          title: 'Puntaje IPSS Guardado',
+          description: `Se guardó un puntaje de ${totalScore} (${scoreCategory.name}) para este paciente.`,
+      });
+    }
+    
     // Reset form
     setScores({});
     setShowResult(false);

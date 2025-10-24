@@ -6,6 +6,10 @@ import { IndicatorCard, UpcomingAppointmentsCard } from "./patient-summary-cards
 import { Stethoscope } from "lucide-react";
 import { getCompanyById } from "@/lib/actions";
 import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Calculator } from "lucide-react";
+import { useAuth } from "@/components/layout/auth-provider";
+import Link from "next/link";
 
 interface PatientSummaryClientProps {
     patient: Patient;
@@ -24,6 +28,7 @@ export default function PatientSummaryClient({
 }: PatientSummaryClientProps) {
 
     const [companyName, setCompanyName] = useState<string | undefined>(undefined);
+    const { currentUser, can } = useAuth();
 
     useEffect(() => {
         if (patient.companyId) {
@@ -65,6 +70,16 @@ export default function PatientSummaryClient({
                     value={latestIpss ? latestIpss.score.toString() : 'N/A'}
                     subtext={latestIpss ? `(${latestIpss.category})` : "Sin registro"}
                     icon="Calculator"
+                    action={
+                        (can('patients:write') || currentUser?.userId === patient.id) && (
+                            <Link href={`/patients/${patient.id}/ipss`}>
+                                <Button size="sm" variant="outline" className="gap-2">
+                                    <Calculator className="h-4 w-4" />
+                                    Nuevo Test IPSS
+                                </Button>
+                            </Link>
+                        )
+                    }
                 />
             </div>
 

@@ -200,6 +200,8 @@ export interface IpssScore {
   date: string;
   score: number;
   category: 'Leve' | 'Moderado' | 'Severo';
+  answers?: Record<string, number>;
+  doctorName?: string;
 }
 
 export interface Company {

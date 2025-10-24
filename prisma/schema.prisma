@@ -43,6 +43,8 @@ model User {
   patientReceipts            Receipt[]                   @relation("PatientReceipts")
   secretariaInfo             SecretariaInfo?
   notificationPreference     UserNotificationPreference?
+  ipssScores                 IpssScore[]                 @relation("PatientIpssScores")
+  ipssCreated                IpssScore[]                 @relation("DoctorIpssScores")
 
   @@map("users")
 }
@@ -218,6 +220,24 @@ model LabResult {
   @@index([doctorUserId])
   @@index([estado])
   @@map("lab_results")
+}
+
+model IpssScore {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("PatientIpssScores", fields: [userId], references: [userId], onDelete: Cascade)
+  fecha     DateTime @default(now())
+  puntaje   Int      // Total score 0-35
+  categoria String   // "Leve" | "Moderado" | "Severo"
+  respuestas Json    // {q1: number, q2: number, ... q7: number}
+  createdBy String?
+  doctor    User?    @relation("DoctorIpssScores", fields: [createdBy], references: [userId])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([fecha])
+  @@map("ipss_scores")
 }
 
 model Prescription {

@@ -1,9 +1,13 @@
-import type {NextConfig} from 'next';
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Optimización para desarrollo
+  reactStrictMode: true,
+  // Configuración de TypeScript
   typescript: {
     ignoreBuildErrors: true,
+    // Habilita la compilación incremental
+    tsconfigPath: './tsconfig.json'
   },
   eslint: {
     ignoreDuringBuilds: true,
@@ -34,8 +38,37 @@ const nextConfig: NextConfig = {
   
   // ⚡ Optimizaciones de performance
   experimental: {
-    optimizePackageImports: ['@/components', '@/lib', 'lucide-react', 'date-fns'],
+    optimizePackageImports: [
+      '@/components', 
+      '@/lib', 
+      'lucide-react', 
+      'date-fns',
+      '@radix-ui/*',
+      'react-apexcharts',
+      'recharts',
+      'framer-motion'
+    ],
+    // Habilita la compresión en desarrollo
+    gzipSize: true,
+    // Mejora el rendimiento del módulo de nodo
+    esmExternals: 'loose',
   },
+  
+  // Configuración de Webpack
+  webpack: (config, { dev, isServer }) => {
+    // Solo en desarrollo
+    if (dev && !isServer) {
+      // Mejora el rendimiento del hot reload
+      config.watchOptions = {
+        ...config.watchOptions,
+        poll: 1000, // Verifica cambios cada segundo
+        aggregateTimeout: 200, // Retraso antes de reconstruir
+        ignored: ['**/node_modules', '**/.next']
+      };
+    }
+    return config;
+  },
+  
   
   // Headers de optimización
   async headers() {

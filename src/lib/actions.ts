@@ -14,10 +14,7 @@ import { UserRole } from './types';
 import { validateUserRole, DatabaseErrorHandler, withTransaction, validateDate } from './utils';
 import { UserContext } from './types';
 import { notifyNewAppointment } from './notification-service';
-<<<<<<< HEAD
-=======
 import { cookies, headers } from 'next/headers';
->>>>>>> 6ab26e7 (main)
 
 // Función para obtener el cliente de Prisma de manera segura
 const getPrisma = () => {
@@ -72,8 +69,6 @@ export async function testDatabaseConnection(): Promise<boolean> {
   }
 }
 
-<<<<<<< HEAD
-=======
 async function getCurrentUserRoleFromRequest(prisma: PrismaClient): Promise<string | null> {
   try {
     // Método 1: Header X-User-ID (desarrollo)
@@ -166,28 +161,8 @@ export async function updateReport(reportId: string, currentUserId: string, data
 }
 
 // REPORT DELETE with role validation
-export async function deleteReport(reportId: string) {
-  return withDatabase(async (prisma) => {
-    try {
-      // Mantener compatibilidad retro, esta firma será actualizada abajo
-      const normalizedRole = null;
-      if (!normalizedRole || !['DOCTOR', 'ADMIN', 'ADMINISTRATOR'].includes(normalizedRole)) {
-        throw new Error('No tienes permisos para eliminar informes');
-      }
-      
-      console.log('🗑️ Deleting report:', reportId);
-      await prisma.report.delete({ where: { id: reportId } });
-      console.log('✅ Report deleted successfully');
-      return { success: true };
-    } catch (error) {
-      console.error('❌ Error deleting report:', error);
-      throw new Error('Error al eliminar el informe');
-    }
-  }, []);
-}
-
-// Nueva firma que recibe currentUserId explícitamente
-export async function deleteReportWithUser(reportId: string, currentUserId: string) {
+// Delete report recibiendo currentUserId explícitamente
+export async function deleteReport(reportId: string, currentUserId: string) {
   return withDatabase(async (prisma) => {
     try {
       const user = await prisma.user.findUnique({ where: { id: currentUserId }, select: { role: true } });
@@ -203,7 +178,6 @@ export async function deleteReportWithUser(reportId: string, currentUserId: stri
   }, []);
 }
 
->>>>>>> 6ab26e7 (main)
 // PATIENT ACTIONS
 export async function getPatients(): Promise<Patient[]> {
   try {
@@ -414,11 +388,8 @@ export async function updatePatient(userId: string, patientData: {
   age: number;
   gender: 'Masculino' | 'Femenino' | 'Otro';
   bloodType: string;
-<<<<<<< HEAD
-=======
   cedula: string;
   direccion: string;
->>>>>>> 6ab26e7 (main)
   phone: string;
   email: string;
   companyId?: string;
@@ -482,42 +453,14 @@ export async function updatePatient(userId: string, patientData: {
         existingUser.patientInfo = newPatientInfo;
       }
 
-<<<<<<< HEAD
-      // Parse name to get first and last name
-      const [nombre, apellido] = patientData.name.split(' ', 2);
-      
-      // Calculate birth date from age
-      const fechaNacimiento = new Date(Date.now() - patientData.age * 365.25 * 24 * 60 * 60 * 1000);
-      
-      // Update user record
-=======
       // Calculate birth date from age (if needed)
       // const fechaNacimiento = new Date(Date.now() - patientData.age * 365.25 * 24 * 60 * 60 * 1000);
       
       // Update user record (name, email, phone)
->>>>>>> 6ab26e7 (main)
       const updatedUser = await prisma.user.update({
         where: { userId: userId },
         data: {
           name: patientData.name.trim(),
-<<<<<<< HEAD
-          email: patientData.email.trim(),
-          phone: patientData.phone.trim(),
-        }
-      });
-
-      // Update patient info record
-      const updatedPatientInfo = await prisma.patientInfo.update({
-        where: { userId: existingUser.userId },
-        data: {
-          fechaNacimiento,
-          telefono: patientData.phone.trim(),
-          direccion: '', // Default empty address
-          bloodType: patientData.bloodType,
-          gender: patientData.gender,
-        }
-      });
-=======
           email: patientData.email,
           phone: patientData.phone
           // updatedAt is managed automatically by Prisma for User model
@@ -564,7 +507,6 @@ export async function updatePatient(userId: string, patientData: {
           }
         });
       }
->>>>>>> 6ab26e7 (main)
 
       // Handle company affiliation changes
       if (patientData.companyId) {
@@ -629,20 +571,6 @@ export async function updatePatient(userId: string, patientData: {
 
     console.log('✅ Patient updated successfully - FINAL RESULT:', JSON.stringify(updatedPatient, null, 2));
     return updatedPatient;
-<<<<<<< HEAD
-  } catch (error: any) {
-    console.error('[UPDATE_PATIENT] ❌ Error capturado:', {
-      message: error?.message,
-      code: error?.code,
-      meta: error?.meta,
-      stack: error?.stack,
-      fullError: error
-    });
-    // Manejo centralizado de errores - DatabaseErrorHandler
-    DatabaseErrorHandler.handle(error, 'actualizar paciente');
-    // Esta línea nunca se alcanzará porque handle() lanza un error
-    throw error;
-=======
   } catch (error: unknown) {
     console.error('[UPDATE_PATIENT] ❌ Error capturado:', {
       message: error instanceof Error ? error.message : 'Error desconocido',
@@ -658,7 +586,6 @@ export async function updatePatient(userId: string, patientData: {
       // Si el error no es una instancia de Error, lanzamos un error genérico
       throw new Error('Ocurrió un error inesperado al actualizar el paciente');
     }
->>>>>>> 6ab26e7 (main)
   }
 }
 
@@ -915,53 +842,6 @@ export async function getDoctorsWithUsers(): Promise<Doctor[]> {
   }
 }
 
-<<<<<<< HEAD
-export async function getDoctors(): Promise<Doctor[]> {
-  try {
-    if (!isDatabaseAvailable()) {
-      return [];
-    }
-    const prisma = getPrisma();
-    
-    // Obtener usuarios con rol 'Doctor' y su información específica
-    const doctors = await prisma.user.findMany({
-      where: { 
-        role: UserRole.DOCTOR // Validación de roles estandarizada
-      },
-      include: {
-        doctorInfo: true
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-    
-    return doctors.map(user => {
-      const doctorInfo = user.doctorInfo;
-      if (!doctorInfo) {
-        // Si no tiene doctorInfo, crear datos por defecto
-        return {
-          id: user.userId, // Usar userId como ID
-          nombre: user.name,
-          especialidad: 'Médico General',
-          area: 'Medicina General',
-          contacto: user.phone || user.email || '',
-          avatarUrl: user.avatarUrl || undefined,
-        };
-      }
-      
-      return {
-        id: user.userId, // Usar userId como ID
-        nombre: user.name,
-        especialidad: doctorInfo.especialidad,
-        area: doctorInfo.area || 'Medicina General',
-        contacto: doctorInfo.contacto || user.phone || user.email || '',
-        avatarUrl: user.avatarUrl || undefined,
-      };
-    });
-  } catch (error) {
-    console.error('Error fetching doctors:', error);
-    return [];
-  }
-=======
 export async function getDoctors() {
   return withDatabase(async (prisma) => {
     try {
@@ -1004,7 +884,6 @@ export async function getDoctors() {
       return []; // Return empty array instead of throwing
     }
   }, []);
->>>>>>> 6ab26e7 (main)
 }
 
 // COMPANY ACTIONS
@@ -1599,7 +1478,6 @@ export async function createReport(reportData: {
       throw new Error('Error al guardar el informe');
     }
   });
->>>>>>> 6ab26e7 (main)
 }
 
 // SUPPLY ACTIONS

@@ -45,10 +45,7 @@ model User {
   notificationPreference     UserNotificationPreference?
   ipssScores                 IpssScore[]                 @relation("PatientIpssScores")
   ipssCreated                IpssScore[]                 @relation("DoctorIpssScores")
-<<<<<<< HEAD
-=======
   patientReports             Report[]                    @relation("PatientReports")
->>>>>>> 6ab26e7 (main)
 
   @@map("users")
 }
@@ -227,18 +224,18 @@ model LabResult {
 }
 
 model IpssScore {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation("PatientIpssScores", fields: [userId], references: [userId], onDelete: Cascade)
-  fecha     DateTime @default(now())
-  puntaje   Int      // Total score 0-35
-  categoria String   // "Leve" | "Moderado" | "Severo"
-  respuestas Json    // {q1: number, q2: number, ... q7: number}
-  createdBy String?
-  doctor    User?    @relation("DoctorIpssScores", fields: [createdBy], references: [userId])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation("PatientIpssScores", fields: [userId], references: [userId], onDelete: Cascade)
+  fecha      DateTime @default(now())
+  puntaje    Int // Total score 0-35
+  categoria  String // "Leve" | "Moderado" | "Severo"
+  respuestas Json // {q1: number, q2: number, ... q7: number}
+  createdBy  String?
+  doctor     User?    @relation("DoctorIpssScores", fields: [createdBy], references: [userId])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
   @@index([userId])
   @@index([fecha])
   @@map("ipss_scores")
@@ -338,17 +335,6 @@ model Supply {
 }
 
 model Report {
-<<<<<<< HEAD
-  id          String   @id @default(cuid())
-  titulo      String
-  descripcion String?
-  tipo        String
-  contenido   Json
-  fecha       DateTime
-  autor       String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-=======
   // Basic fields
   id          String   @id @default(cuid())
   titulo      String
@@ -358,23 +344,23 @@ model Report {
   fecha       DateTime @default(now())
   notas       String?  @db.Text
   autor       String
-  
-  // Patient association
-  patientUserId String
-  patient       User     @relation("PatientReports", fields: [patientUserId], references: [userId])
-  
+
+  // Associations
+  patientUserId  String
+  patient        User    @relation("PatientReports", fields: [patientUserId], references: [userId])
+  consultationId String?
+
   // File attachment fields
   archivoNombre    String?
   archivoTipo      String?
   archivoContenido String? @db.Text
-  archivoTamaño    Int?
+  archivoTamaño   Int?
   archivoUrl       String?
-  
+
   // Metadata
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  createdBy   String?
->>>>>>> 6ab26e7 (main)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
 
   @@map("reports")
 }

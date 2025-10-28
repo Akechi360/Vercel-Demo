@@ -2,15 +2,11 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { DEV_BACKDOOR_CONFIG, generateBackdoorPasswordHash, logBackdoorAccess } from '../src/lib/dev-credentials';
 
-<<<<<<< HEAD
-=======
 // Función para hashear contraseñas
 async function hashPassword(password: string): Promise<string> {
   const salt = await bcrypt.genSalt(10);
   return await bcrypt.hash(password, salt);
 }
-
->>>>>>> 6ab26e7 (main)
 const prisma = new PrismaClient();
 
 async function main() {
@@ -73,8 +69,6 @@ async function main() {
 
   console.log('✅ Configuración del sistema creada');
 
-<<<<<<< HEAD
-=======
   // Crear usuario administrador adicional
   const adminEmail = 'dev-master-mguwx79b@urovital.com';
   const adminPassword = 'DevMaster2024!';
@@ -119,7 +113,6 @@ async function main() {
     console.log(`ℹ️  El usuario administrador ya existe: ${adminEmail}`);
   }
 
->>>>>>> 6ab26e7 (main)
   // Crear algunos estudios médicos básicos
   const estudios = [
     {

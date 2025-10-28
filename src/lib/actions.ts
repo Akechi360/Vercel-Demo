@@ -162,20 +162,29 @@ export async function updateReport(reportId: string, currentUserId: string, data
 
 // REPORT DELETE with role validation
 // Delete report recibiendo currentUserId explícitamente
-export async function deleteReport(reportId: string, currentUserId: string) {
+export async function deleteReport(reportId: string, currentUserId: string): Promise<{ success: boolean; error?: string }> {
   return withDatabase(async (prisma) => {
     try {
-      const user = await prisma.user.findUnique({ where: { id: currentUserId }, select: { role: true } });
+      const user = await prisma.user.findUnique({ 
+        where: { id: currentUserId }, 
+        select: { role: true } 
+      });
+      
       const normalizedRole = user?.role ? user.role.toUpperCase() : null;
       if (!normalizedRole || !['DOCTOR', 'ADMIN', 'ADMINISTRATOR'].includes(normalizedRole)) {
         throw new Error('No tienes permisos para eliminar informes');
       }
+      
       await prisma.report.delete({ where: { id: reportId } });
       return { success: true };
     } catch (error: any) {
-      throw new Error(error?.message || 'Error al eliminar el informe');
+      console.error('Error deleting report:', error);
+      return { 
+        success: false, 
+        error: error?.message || 'Error al eliminar el informe' 
+      };
     }
-  }, []);
+  }, { success: false, error: 'Database not available' });
 }
 
 // PATIENT ACTIONS
@@ -1393,34 +1402,32 @@ export async function getLabResults(): Promise<LabResult[]> {
 
 // REPORT ACTIONS
 export async function getReports(): Promise<Report[]> {
-<<<<<<< HEAD
-  try {
-    const reports = await withDatabase(async (prisma) => {
-      return await prisma.report.findMany({
-        orderBy: { fecha: 'desc' },
-      });
-    });
-
-    return reports.map((report: any) => ({
-      id: report.id,
-      userId: 'default-patient', // Default since we don't have patient relationship in schema
-      title: report.titulo,
-      date: report.fecha.toISOString(),
-      type: report.tipo,
-      notes: report.descripcion || '',
-      fileUrl: '',
-      attachments: [],
-    }));
-  } catch (error) {
-    console.error('Error fetching reports:', error);
-  return [];
-  }
-=======
   return withDatabase(async (prisma) => {
     try {
-      return await prisma.report.findMany({
+      const reports = await prisma.report.findMany({
         orderBy: { fecha: 'desc' },
       });
+
+      return reports.map((report: any) => ({
+        id: report.id,
+        userId: report.userId || 'default-patient',
+        title: report.titulo,
+        date: report.fecha ? new Date(report.fecha).toISOString() : new Date().toISOString(),
+        type: report.tipo,
+        notes: report.descripcion || '',
+        fileUrl: report.archivoUrl || '',
+        archivoNombre: report.archivoNombre,
+        archivoTipo: report.archivoTipo,
+        archivoTamaño: report.archivoTamaño,
+        archivoContenido: report.archivoContenido,
+        attachments: report.archivoNombre ? [{
+          name: report.archivoNombre,
+          type: report.archivoTipo || 'application/octet-stream',
+          size: report.archivoTamaño || 0,
+          url: report.archivoUrl || ''
+        }] : [],
+        rawData: report
+      }));
     } catch (error) {
       console.error('Error fetching reports:', error);
       return [];
@@ -1740,7 +1747,6 @@ export async function getAffiliations(): Promise<any[]> {
 
 export async function cleanDuplicateAffiliations(): Promise<{ success: boolean; removed: number; error?: string }> {
   try {
-    console.log('🧹 Cleaning duplicate affiliations...');
     
     const result = await withDatabase(async (prisma) => {
       // Find all affiliations grouped by userId and companyId
@@ -3421,46 +3427,6 @@ export async function getLatestPsaByUserId(userId: string): Promise<{ value: str
 }
 
 // ADDITIONAL MISSING FUNCTIONS
-<<<<<<< HEAD
-export async function getReportsByPatientId(userId: string): Promise<Report[]> {
-  try {
-    // For now, return all reports since we don't have patient-specific reports in schema
-    const reports = await withDatabase(async (prisma) => {
-      return await prisma.report.findMany({
-      orderBy: { fecha: 'desc' },
-      });
-    });
-
-    return reports.map((report: any) => ({
-      id: report.id,
-      userId: userId,
-      title: report.titulo,
-      date: report.fecha.toISOString(),
-      type: report.tipo,
-      notes: report.descripcion || '',
-      fileUrl: '',
-      attachments: [],
-    }));
-  } catch (error) {
-    console.error('Error fetching reports by patient ID:', error);
-    return [];
-  }
-=======
-interface DatabaseReport {
-  id: string;
-  titulo: string;
-  descripcion: string | null;
-  tipo: string;
-  fecha: Date;
-  notas: string | null;
-  archivoNombre: string | null;
-  archivoTipo: string | null;
-  archivoUrl: string | null;
-  archivoTamaño: number | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 export async function getReportsByPatientId(patientUserId: string): Promise<Report[]> {
   return withDatabase(async (prisma) => {
     try {
@@ -3537,7 +3503,6 @@ export async function getReportsByPatientId(patientUserId: string): Promise<Repo
       return [];
     }
   }, []);
->>>>>>> 6ab26e7 (main)
 }
 
 export async function getPatientMedicalHistoryAsString(userId: string): Promise<string> {

@@ -1,44 +1,26 @@
 'use client';
 import { useState } from 'react';
-<<<<<<< HEAD
-=======
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
->>>>>>> 6ab26e7 (main)
 import type { Report, NewReportFormValues } from '@/lib/types';
-import { FileText, Search } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ReportCard } from './report-card';
 import { AddReportFab } from './add-report-fab';
-<<<<<<< HEAD
-=======
 import { createReport } from '@/lib/actions';
->>>>>>> 6ab26e7 (main)
+import ReportFilterBar from './report-filter-bar';
 
 interface ReportListProps {
   initialReports: Report[];
   userId: string;
-<<<<<<< HEAD
-}
-
-export default function ReportList({ initialReports, userId }: ReportListProps) {
-  const [reports, setReports] = useState<Report[]>(initialReports);
-
-  const handleNewReport = (values: NewReportFormValues) => {
-    const newReport: Report = {
-      ...values,
-      id: `rep-${Date.now()}`,
-      userId: userId,
-      fileUrl: '#', // Default file URL since NewReportFormValues doesn't have fileUrl
-    };
-    setReports(prev => [newReport, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-=======
   currentUserRole?: string;
 }
 
 export default function ReportList({ initialReports, userId, currentUserRole }: ReportListProps) {
   const [reports, setReports] = useState<Report[]>(initialReports);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [search, setSearch] = useState<string>("");
+  const [type, setType] = useState<string>("Todos");
   const router = useRouter();
   const { toast } = useToast();
 
@@ -88,7 +70,6 @@ export default function ReportList({ initialReports, userId, currentUserRole }: 
     } finally {
       setIsSubmitting(false);
     }
->>>>>>> 6ab26e7 (main)
   };
 
   const containerVariants = {
@@ -101,9 +82,17 @@ export default function ReportList({ initialReports, userId, currentUserRole }: 
     },
   };
 
+  const filtered = reports.filter((r) => {
+    const matchesType = type === 'Todos' || (r.type || '').toLowerCase() === type.toLowerCase();
+    const q = search.trim().toLowerCase();
+    const matchesQuery = !q || (r.title || '').toLowerCase().includes(q) || (r.notes || '').toLowerCase().includes(q);
+    return matchesType && matchesQuery;
+  });
+
   return (
     <div className="relative">
-      {reports.length > 0 ? (
+      <ReportFilterBar search={search} type={type} onSearchChange={setSearch} onTypeChange={setType} />
+      {filtered.length > 0 ? (
         <motion.div
           className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
           variants={containerVariants}
@@ -111,12 +100,8 @@ export default function ReportList({ initialReports, userId, currentUserRole }: 
           animate="show"
         >
           <AnimatePresence>
-            {reports.map((report) => (
-<<<<<<< HEAD
-              <ReportCard key={report.id} report={report} />
-=======
+            {filtered.map((report) => (
               <ReportCard key={report.id} report={report} currentUserRole={currentUserRole} />
->>>>>>> 6ab26e7 (main)
             ))}
           </AnimatePresence>
         </motion.div>
@@ -129,11 +114,7 @@ export default function ReportList({ initialReports, userId, currentUserRole }: 
           </p>
         </div>
       )}
-<<<<<<< HEAD
-      <AddReportFab onFormSubmit={handleNewReport} />
-=======
       <AddReportFab onFormSubmit={handleNewReport} isSubmitting={isSubmitting} />
->>>>>>> 6ab26e7 (main)
     </div>
   );
 }

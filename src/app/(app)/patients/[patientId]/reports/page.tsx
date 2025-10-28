@@ -51,9 +51,5 @@ export default function PatientReportsPage({ params }: { params: Promise<{ patie
         return <div>Error al cargar informes.</div>;
     }
 
-<<<<<<< HEAD
-    return <ReportList initialReports={reports} userId={patientId} />;
-=======
     return <ReportList initialReports={reports} userId={patientId} currentUserRole={currentUser?.role} />;
->>>>>>> 6ab26e7 (main)
 }

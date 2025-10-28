@@ -28,16 +28,19 @@ export function QuickActions({ patient, upcomingAppointments, latestConsultation
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
     const handleAddHistory = async (values: ConsultationFormValues) => {
+        // Ensure date is properly formatted as ISO string
+        const formattedDate = values.date instanceof Date ? values.date.toISOString() : 
+                           typeof values.date === 'string' ? values.date : 
+                           new Date().toISOString();
+                           
+        const submissionValues = {
+            ...values,
+            date: formattedDate,
+            userId: patient.id,
+        };
         try {
             await addConsultation({
-                userId: patient.id,
-                date: values.date,
-                doctor: values.doctor,
-                type: values.type,
-                notes: values.notes,
-                prescriptions: values.prescriptions,
-                reports: values.reports,
-                labResults: values.labResults,
+                ...submissionValues,
             });
             
             toast({

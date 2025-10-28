@@ -1,34 +1,20 @@
 
 'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { FileText, Calendar, Eye, Download, Trash2, Edit } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { toast } from '@/hooks/use-toast';
+import { deleteReport } from '@/lib/actions';
+import { cn } from '@/lib/utils';
 import type { Report } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-<<<<<<< HEAD
-import { FileText, Calendar, Eye } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { ReportDetailModal } from './report-detail-modal';
-import { cn } from '@/lib/utils';
-
-interface ReportCardProps {
-  report: Report;
-}
-
-export function ReportCard({ report }: ReportCardProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-=======
-import { FileText, Calendar, Eye, Download, Trash2, Edit } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ReportDetailModal } from './report-detail-modal';
 import { EditReportModal } from './edit-report-modal';
 import { FileViewerModal } from '@/components/history/file-viewer-modal';
-import { cn } from '@/lib/utils';
-import { toast } from '@/hooks/use-toast';
-import { deleteReportWithUser } from '@/lib/actions';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Button as UIButton } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
 
 interface ReportCardProps {
   report: Report;
@@ -82,7 +68,6 @@ export function ReportCard({ report, currentUserRole }: ReportCardProps) {
       });
     }
   };
->>>>>>> 6ab26e7 (main)
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
@@ -90,8 +75,6 @@ export function ReportCard({ report, currentUserRole }: ReportCardProps) {
     exit: { y: -20, opacity: 0 },
   };
 
-<<<<<<< HEAD
-=======
   const canModify = !!currentUserRole && ['DOCTOR', 'ADMIN', 'ADMINISTRATOR'].includes(currentUserRole.toUpperCase());
 
   const handleDelete = async () => {
@@ -100,7 +83,7 @@ export function ReportCard({ report, currentUserRole }: ReportCardProps) {
       const currentUserRaw = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
       const currentUser = currentUserRaw ? JSON.parse(currentUserRaw) : {};
       const currentUserId = currentUser?.id;
-      await deleteReportWithUser(report.id, currentUserId);
+      await deleteReport(report.id, currentUserId);
       toast({
         title: 'Informe eliminado',
         description: 'El informe ha sido eliminado correctamente.',
@@ -117,61 +100,37 @@ export function ReportCard({ report, currentUserRole }: ReportCardProps) {
       setIsDeleting(false);
     }
   };
-
->>>>>>> 6ab26e7 (main)
   return (
     <>
       <motion.div variants={itemVariants}>
         <Card className={cn(
           "flex h-full flex-col overflow-hidden rounded-2xl shadow-sm transition-all duration-300 ease-in-out hover:scale-[1.02]",
           "hover:shadow-[0_0_20px_rgba(46,49,146,0.4)]"
-          )}>
+        )}>
           <CardHeader>
             <div className="flex items-start justify-between">
-<<<<<<< HEAD
-              <CardTitle className="line-clamp-2">{report.title}</CardTitle>
-              <Badge variant="outline">{report.type}</Badge>
-            </div>
-            <CardDescription className="flex items-center gap-2 pt-1">
-              <Calendar className="h-4 w-4" />
-              {new Date(report.date).toLocaleDateString()}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex-grow">
-            <p className="line-clamp-3 text-sm text-muted-foreground">{report.notes}</p>
-          </CardContent>
-          <CardFooter className="bg-muted/30 p-4">
-            <Button variant="ghost" className="w-full" onClick={() => setIsModalOpen(true)}>
-              <Eye className="mr-2 h-4 w-4" />
-              Ver Detalles
-            </Button>
-          </CardFooter>
-        </Card>
-      </motion.div>
-      <ReportDetailModal isOpen={isModalOpen} setIsOpen={setIsModalOpen} report={report} />
-=======
               <CardTitle className="line-clamp-2">{report.title || 'Sin título'}</CardTitle>
               <div className="flex items-center gap-2">
                 <Badge variant="outline">{report.type || 'Sin tipo'}</Badge>
                 {canModify && (
                   <div className="flex items-center gap-1">
-                    <UIButton
+                    <Button
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
                       onClick={() => setEditModalOpen(true)}
                     >
                       <Edit className="h-4 w-4" />
-                    </UIButton>
+                    </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <UIButton
+                        <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
-                        </UIButton>
+                        </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
@@ -251,7 +210,9 @@ export function ReportCard({ report, currentUserRole }: ReportCardProps) {
           />
         </Card>
       </motion.div>
+      
       <ReportDetailModal isOpen={isModalOpen} setIsOpen={setIsModalOpen} report={report} />
+      
       <EditReportModal
         report={report}
         isOpen={editModalOpen}
@@ -264,7 +225,6 @@ export function ReportCard({ report, currentUserRole }: ReportCardProps) {
           });
         }}
       />
->>>>>>> 6ab26e7 (main)
     </>
   );
 }

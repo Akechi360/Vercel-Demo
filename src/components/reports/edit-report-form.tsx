@@ -200,8 +200,14 @@ export function EditReportForm({ initialData, onSubmit, isSubmitting = false }: 
                   <FormLabel>Adjuntos {initialData.archivoNombre ? `(Actual: ${initialData.archivoNombre})` : ''}</FormLabel>
                   <FormControl>
                     <FileInput
-                      value={field.value || []}
-                      onValueChange={field.onChange}
+                      value={field.value ? field.value.map((file: any) => 
+                        file instanceof File ? file : new File([], file.name || 'file', { type: file.type || 'application/octet-stream' })
+                      ) : []}
+                      onValueChange={(files) => {
+                        // Convert FileList to array of Files
+                        const fileArray = Array.from(files || []);
+                        field.onChange(fileArray);
+                      }}
                       multiple
                       accept="image/*,.pdf"
                     />

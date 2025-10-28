@@ -14,27 +14,16 @@ import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area"
-<<<<<<< HEAD
-import type { Report } from "@/lib/types";
-=======
 import { Report, ReportAttachment } from "@/lib/types";
->>>>>>> 6ab26e7 (main)
 import { FileInput } from "../ui/file-input";
 
 const reportTypes = ["Ecografía", "Tomografía", "Resonancia Magnética", "Biopsia", "Análisis de Sangre", "Uroflujometría", "Otro"];
 
 const formSchema = z.object({
-<<<<<<< HEAD
   title: z.string().min(5, "El título debe tener al menos 5 caracteres."),
   date: z.date({ required_error: "Se requiere una fecha." }),
   type: z.string({ required_error: "Selecciona un tipo de informe."}),
   notes: z.string().min(10, "Las notas deben tener al menos 10 caracteres."),
-  attachments: z.array(z.instanceof(File)).optional(),
-=======
-  title: z.string().min(1, "El título es requerido"),
-  date: z.date(),
-  type: z.string().min(1, "El tipo es requerido"),
-  notes: z.string().optional(),
   attachments: z.array(z.union([
     z.instanceof(File),
     z.object({
@@ -44,51 +33,28 @@ const formSchema = z.object({
       url: z.string()
     })
   ])).optional(),
->>>>>>> 6ab26e7 (main)
 })
 
 export type NewReportFormValues = Omit<Report, 'id' | 'userId' | 'fileUrl'>;
 
 interface NewReportFormProps {
-<<<<<<< HEAD
-    onFormSubmit: (values: NewReportFormValues) => void;
-}
-
-export function NewReportForm({ onFormSubmit }: NewReportFormProps) {
-=======
   onFormSubmit: (values: NewReportFormValues) => Promise<void> | void;
   isSubmitting?: boolean;
 }
 
 export function NewReportForm({ onFormSubmit, isSubmitting = false }: NewReportFormProps) {
->>>>>>> 6ab26e7 (main)
   const { toast } = useToast()
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-        title: "",
-        date: new Date(),
-        type: undefined,
-        notes: "",
-        attachments: [],
+      title: "",
+      date: new Date(),
+      type: undefined,
+      notes: "",
+      attachments: [],
     },
   })
 
-<<<<<<< HEAD
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    const formattedValues: NewReportFormValues = {
-        ...values,
-        date: values.date.toISOString(),
-        attachments: values.attachments?.map(f => f.name) || [],
-    }
-    onFormSubmit(formattedValues);
-    toast({
-      title: "Informe Añadido",
-      description: "El nuevo informe ha sido guardado.",
-    })
-    form.reset();
-  }
-=======
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       // Process files to ensure they're in the correct format
@@ -126,7 +92,7 @@ export function NewReportForm({ onFormSubmit, isSubmitting = false }: NewReportF
         attachments: attachments,
       };
       
-      onFormSubmit(formattedValues);
+      await onFormSubmit(formattedValues);
       toast({
         title: "Informe Añadido",
         description: "El nuevo informe ha sido guardado.",
@@ -141,7 +107,6 @@ export function NewReportForm({ onFormSubmit, isSubmitting = false }: NewReportF
       });
     }
   };
->>>>>>> 6ab26e7 (main)
 
   return (
     <Form {...form}>
@@ -242,8 +207,14 @@ export function NewReportForm({ onFormSubmit, isSubmitting = false }: NewReportF
                   <FormLabel>Adjuntos</FormLabel>
                   <FormControl>
                     <FileInput
-                        value={field.value || []}
-                        onValueChange={field.onChange}
+                        value={field.value ? field.value.map((file: any) => 
+                          file instanceof File ? file : new File([], file.name || 'file', { type: file.type || 'application/octet-stream' })
+                        ) : []}
+                        onValueChange={(files) => {
+                          // Convert FileList to array of Files
+                          const fileArray = Array.from(files || []);
+                          field.onChange(fileArray);
+                        }}
                         multiple
                         accept="image/*,.pdf"
                     />
@@ -252,18 +223,6 @@ export function NewReportForm({ onFormSubmit, isSubmitting = false }: NewReportF
                 </FormItem>
               )}
             />
-<<<<<<< HEAD
-
-
-          </div>
-        </ScrollArea>
-        <div className="pt-6 flex justify-end">
-            <Button type="submit">Guardar Informe</Button>
-        </div>
-      </form>
-    </Form>
-  )
-=======
           </div>
         </ScrollArea>
         <div className="pt-6 flex justify-end">
@@ -288,5 +247,4 @@ export function NewReportForm({ onFormSubmit, isSubmitting = false }: NewReportF
       </form>
     </Form>
   );
->>>>>>> 6ab26e7 (main)
 }

@@ -1,7 +1,8 @@
-import type { Patient, Consultation } from "@/lib/types"
+import type { Patient, Consultation, Report as ReportType } from "@/lib/types"
 import { Stethoscope } from "lucide-react"
 import { ConsultationCard } from "./consultation-card"
 import { AddHistoryFab } from "../patients/add-history-fab";
+import { ConsultationFormValues } from "../patients/consultation-form";
 
 interface MedicalHistoryTimelineProps {
     userId: string;
@@ -59,7 +60,53 @@ export function MedicalHistoryTimeline({ userId, history, onNewConsultation, chi
                     </div>
                 )}
             </div>
-            <AddHistoryFab userId={userId} onFormSubmit={onNewConsultation} />
+            <AddHistoryFab userId={userId} onFormSubmit={async (values: ConsultationFormValues) => {
+                try {
+                    // Convert form values to match the expected consultation type
+                    const consultation: Omit<Consultation, 'id' | 'userId'> = {
+                        date: values.date instanceof Date ? values.date.toISOString() : values.date,
+                        doctor: values.doctor || '',
+                        type: values.type || 'Seguimiento',
+                        notes: values.notes || '',
+                        // Map prescriptions to ensure they have all required fields
+                        prescriptions: (values.prescriptions || []).map(p => ({
+                            id: p.id || `temp-${Math.random().toString(36).substr(2, 9)}`,
+                            medication: p.medication,
+                            dosage: p.dosage,
+                            duration: p.duration
+                        })),
+                        // Map reports to ensure they have all required fields
+                        reports: (values.reports || []).map(r => ({
+                            // Create a new report with all required fields
+                            id: `temp-${Math.random().toString(36).substr(2, 9)}`,
+                            userId: userId,
+                            title: r.title || 'Informe sin título',
+                            date: r.date || new Date().toISOString(),
+                            type: 'Informe médico',
+                            notes: '', // Default empty notes since it's required
+                            fileUrl: r.fileUrl || '',
+                            attachments: r.attachments || []
+                        } as ReportType)),
+                        // Map lab results to ensure they have all required fields
+                        labResults: (values.labResults || []).map(lr => ({
+                            id: lr.id || `temp-${Math.random().toString(36).substr(2, 9)}`,
+                            userId: userId,
+                            testName: lr.testName,
+                            value: lr.value,
+                            referenceRange: lr.referenceRange || '',
+                            date: lr.date || new Date().toISOString(),
+                            estado: 'Pendiente',
+                            doctor: values.doctor || ''
+                        }))
+                    };
+                    
+                    await onNewConsultation(consultation);
+                    return true;
+                } catch (error) {
+                    console.error('Error submitting consultation:', error);
+                    return false;
+                }
+            }} />
         </div>
     )
 }

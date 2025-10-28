@@ -25,10 +25,21 @@ export function AddHistoryFab({ userId, onFormSubmit }: { userId: string; onForm
 
     const handleFormSubmit = async (values: ConsultationFormValues) => {
         try {
+            // Ensure date is properly formatted as ISO string
+            const formattedDate = values.date instanceof Date ? values.date.toISOString() : 
+                               typeof values.date === 'string' ? values.date : 
+                               new Date().toISOString();
+            
+            const submissionValues = {
+                ...values,
+                date: formattedDate,
+                userId: userId,
+            };
+            
             console.log('🔄 AddHistoryFab - handleFormSubmit called with:', {
                 userId: userId,
                 currentUser: currentUser?.name,
-                values: values
+                values: submissionValues
             });
 
             // Validar que el usuario esté autenticado
@@ -51,12 +62,9 @@ export function AddHistoryFab({ userId, onFormSubmit }: { userId: string; onForm
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
             };
 
+            // Use the submissionValues we prepared earlier which has the properly formatted date
             await addConsultation({
-                userId: userId,
-                date: values.date,
-                doctor: values.doctor,
-                type: values.type,
-                notes: values.notes,
+                ...submissionValues,
                 prescriptions: values.prescriptions,
                 reports: values.reports,
                 labResults: values.labResults,

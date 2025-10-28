@@ -70,12 +70,26 @@ export function CreateReceiptModal({
         // Crear nuevo comprobante
         const { createReceipt } = await import('@/lib/actions');
         
+        // Obtener el usuario actual del localStorage
+        let createdBy = 'system'; // Valor por defecto seguro
+        try {
+          const currentUser = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+          if (currentUser) {
+            const userData = JSON.parse(currentUser);
+            if (userData?.id) {
+              createdBy = userData.id;
+            }
+          }
+        } catch (error) {
+          console.error('Error getting current user:', error);
+        }
+        
         const receiptData = {
           userId: data.userId,
           amount: data.amount,
           concept: `Consulta médica - ${new Date(data.date).toLocaleDateString()}`,
           method: data.method,
-          createdBy: 'sistema' // TODO: Obtener del usuario actual
+          createdBy: createdBy
         };
 
         await createReceipt(receiptData);

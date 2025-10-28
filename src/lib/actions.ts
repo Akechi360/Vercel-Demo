@@ -3694,14 +3694,15 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
 }
 
 // RECEIPT FUNCTIONS
-export async function createReceipt(receiptData: {
-  userId: string;
+export async function createReceipt(data: {
+  userId: string;  // This is the patient's userId
   amount: number;
-  concept: string;
+  concept?: string;
   method: string;
-}, userContext?: UserContext): Promise<any> {
+  createdBy?: string;  // The ID of the user creating the receipt
+}): Promise<any> {
   try {
-    console.log('createReceipt called with data:', JSON.stringify(receiptData, null, 2));
+    console.log('createReceipt called with data:', JSON.stringify(data, null, 2));
     
     if (!isDatabaseAvailable()) {
       throw new Error('Database not available');
@@ -3709,10 +3710,31 @@ export async function createReceipt(receiptData: {
 
     // Create receipt using withTransaction - atomicidad asegurada
     const receipt = await withTransaction(async (prisma) => {
-      // Use real user context instead of hardcoded admin
-      const currentTime = userContext?.currentTime || new Date();
-      const createdBy = userContext?.userId || 'system';
-      const creatorName = userContext?.name || 'Sistema';
+      const currentTime = new Date();
+      
+      // Use provided createdBy or default to null if not provided
+      let createdBy = data.createdBy || null;
+      let creatorName = 'Sistema';  // Default creator name if not available
+      
+      // If createdBy is provided, verify the user exists
+      if (createdBy) {
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: createdBy },
+            select: { id: true, name: true }
+          });
+          
+          if (!user) {
+            console.warn(`User with ID ${createdBy} not found, setting createdBy to null`);
+            createdBy = null;
+          } else {
+            creatorName = user.name;
+          }
+        } catch (error) {
+          console.error('Error verifying user:', error);
+          createdBy = null;  // Fallback to null if there's an error
+        }
+      }
       
       // Check if receipt model is available
       if (!prisma.receipt) {
@@ -3746,27 +3768,68 @@ export async function createReceipt(receiptData: {
       const receiptNumber = `REC-${year}${month}${day}-${String(todayReceipts + 1).padStart(3, '0')}`;
       console.log('Generated receipt number:', receiptNumber);
 
+      // Verificar que el paciente existe
+      const patientExists = await prisma.user.findUnique({
+        where: { id: data.userId },
+        select: { id: true }
+      });
+
+      if (!patientExists) {
+        throw new Error(`No se encontró el paciente con ID: ${data.userId}`);
+      }
+
+      // Verificar si el usuario creador existe si se proporcionó un createdBy
+      if (createdBy) {
+        const creatorExists = await prisma.user.findUnique({
+          where: { id: createdBy },
+          select: { id: true }
+        });
+
+        if (!creatorExists) {
+          console.warn(`Usuario creador con ID ${createdBy} no encontrado, creando sin creador`);
+          createdBy = null;
+        }
+      }
+
+      // Crear el objeto de datos del recibo
+      const receiptData: any = {
+        number: receiptNumber,
+        patientUserId: data.userId,
+        amount: new Decimal(data.amount),
+        concept: data.concept || `Consulta médica - ${currentTime.toLocaleDateString()}`,
+        method: data.method
+      };
+
+      // Solo incluir createdBy si tenemos un valor válido
+      if (createdBy) {
+        receiptData.createdBy = createdBy;
+      }
+      
+      console.log('Preparando datos del recibo:', JSON.stringify(receiptData, null, 2));
+
+      console.log('Creating receipt with data:', JSON.stringify(receiptData, null, 2));
+      
       const receipt = await prisma.receipt.create({
-        data: {
-          number: receiptNumber,
-          patientUserId: receiptData.userId, // Use userId
-          amount: new Decimal(receiptData.amount),
-          concept: receiptData.concept,
-          method: receiptData.method,
-          createdBy: createdBy, // Use real user context
-        },
+        data: receiptData,
       });
 
       console.log('Receipt created successfully:', receipt);
 
-      // Create audit log with real user context
-      await prisma.auditLog.create({
-        data: {
-          userId: createdBy,
-          action: 'Comprobante creado',
-          details: `Comprobante ${receiptNumber} generado por ${creatorName} para paciente ${receiptData.userId}`
+      // Create audit log if we have a user context
+      if (createdBy) {
+        try {
+          await prisma.auditLog.create({
+            data: {
+              userId: createdBy,
+              action: 'Comprobante creado',
+              details: `Comprobante ${receiptNumber} generado por ${creatorName} para paciente ${data.userId}`
+            }
+          });
+        } catch (auditError) {
+          console.error('Error creating audit log:', auditError);
+          // Don't fail the operation if audit logging fails
         }
-      });
+      }
 
       return receipt;
     });
@@ -3774,7 +3837,7 @@ export async function createReceipt(receiptData: {
     return {
       id: receipt.id,
       number: receipt.number,
-      userId: receipt.patientUserId, // Use patientUserId instead of patientId
+      userId: receipt.patientUserId, // Map back to userId in the response
       amount: Number(receipt.amount), // Convert Decimal to number
       concept: receipt.concept,
       method: receipt.method,

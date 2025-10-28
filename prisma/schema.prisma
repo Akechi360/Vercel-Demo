@@ -406,9 +406,9 @@ model Receipt {
   concept       String
   method        String
   createdAt     DateTime @default(now())
-  createdBy     String
+  createdBy     String?
   patientUserId String
-  creator       User     @relation("CreatedReceipts", fields: [createdBy], references: [userId], onDelete: Cascade)
+  creator       User?    @relation("CreatedReceipts", fields: [createdBy], references: [userId], onDelete: SetNull)
   patient       User     @relation("PatientReceipts", fields: [patientUserId], references: [userId], onDelete: Cascade)
 
   @@map("receipts")

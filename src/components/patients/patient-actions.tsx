@@ -36,6 +36,11 @@ const editPatientSchema = z.object({
   age: z.coerce.number().min(1, 'La edad debe ser mayor a 0').max(120, 'La edad es inválida'),
   gender: z.enum(['Masculino', 'Femenino', 'Otro'], { required_error: 'Seleccione un género' }),
   bloodType: z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'], { required_error: 'Seleccione un tipo de sangre' }),
+<<<<<<< HEAD
+=======
+  cedula: z.string().min(1, 'La cédula es requerida').regex(/^[VvEeJj]\d{6,9}$/, 'Formato de cédula inválido (V12345678, E12345678, J12345678)'),
+  direccion: z.string().min(5, 'La dirección debe tener al menos 5 caracteres'),
+>>>>>>> 6ab26e7 (main)
   phone: z.string().optional(),
   email: z.string().email('Dirección de correo inválida').optional().or(z.literal('')),
   companyId: z.string().optional(),
@@ -62,6 +67,11 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
       age: patient.age,
       gender: patient.gender,
       bloodType: patient.bloodType as 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-',
+<<<<<<< HEAD
+=======
+      cedula: patient.cedula || '',
+      direccion: patient.direccion || '',
+>>>>>>> 6ab26e7 (main)
       phone: patient.contact.phone,
       email: patient.contact.email,
       companyId: patient.companyId || '',
@@ -124,6 +134,11 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
         age: values.age,
         gender: values.gender,
         bloodType: values.bloodType,
+<<<<<<< HEAD
+=======
+        cedula: values.cedula,
+        direccion: values.direccion,
+>>>>>>> 6ab26e7 (main)
         phone: values.phone || '',
         email: values.email || '',
         companyId: values.companyId === 'none' ? undefined : values.companyId,
@@ -249,6 +264,34 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
+<<<<<<< HEAD
+=======
+                <Label htmlFor="cedula">Cédula</Label>
+                <Input
+                  id="cedula"
+                  {...form.register('cedula')}
+                  placeholder="Ej: V12345678"
+                />
+                {form.formState.errors.cedula && (
+                  <p className="text-sm text-red-500">{form.formState.errors.cedula.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="direccion">Dirección</Label>
+                <Input
+                  id="direccion"
+                  {...form.register('direccion')}
+                  placeholder="Ej: Av. Principal, Edif. Ejemplo, Piso 2"
+                />
+                {form.formState.errors.direccion && (
+                  <p className="text-sm text-red-500">{form.formState.errors.direccion.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+>>>>>>> 6ab26e7 (main)
                 <Label htmlFor="phone">Teléfono</Label>
                 <Input
                   id="phone"

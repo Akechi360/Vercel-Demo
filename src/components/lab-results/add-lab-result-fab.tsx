@@ -1,9 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+<<<<<<< HEAD
 import { Plus, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+=======
+import { FlaskConical } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+>>>>>>> 6ab26e7 (main)
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -121,6 +127,7 @@ export default function AddLabResultFab({ patientUserId, patientName, onSuccess 
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button 
+<<<<<<< HEAD
           className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
           size="icon"
         >
@@ -134,6 +141,20 @@ export default function AddLabResultFab({ patientUserId, patientName, onSuccess 
             Agregar Resultado de Laboratorio
           </DialogTitle>
           <p className="text-sm text-muted-foreground">Paciente: {patientName}</p>
+=======
+          className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-lg bg-gradient-to-r from-primary to-blue-400 hover:from-primary/90 hover:to-blue-400/90 transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-[0_0_20px_rgba(58,109,255,0.4),0_0_40px_rgba(186,85,211,0.3),0_0_60px_rgba(255,105,180,0.2)] animate-pulse-slow"
+        >
+          <FlaskConical className="h-8 w-8" />
+          <span className="sr-only">Agregar Resultado de Laboratorio</span>
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Agregar Resultado de Laboratorio</DialogTitle>
+          <DialogDescription>
+            Complete los detalles del resultado de laboratorio.
+          </DialogDescription>
+>>>>>>> 6ab26e7 (main)
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">

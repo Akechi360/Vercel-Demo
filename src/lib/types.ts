@@ -118,6 +118,10 @@ export interface Patient {
   avatarUrl?: string;
   companyId?: string;
   companyName?: string;
+<<<<<<< HEAD
+=======
+  direccion?: string;
+>>>>>>> 6ab26e7 (main)
 }
 
 export interface Appointment {
@@ -151,6 +155,16 @@ export interface LabResult {
   archivoTamaño?: number;
 }
 
+<<<<<<< HEAD
+=======
+export interface ReportAttachment {
+  name: string;
+  type: string;
+  size: number;
+  url: string;
+}
+
+>>>>>>> 6ab26e7 (main)
 export interface Report {
   id: string;
   userId: string;
@@ -159,12 +173,22 @@ export interface Report {
   type: string;
   notes: string;
   fileUrl: string;
+<<<<<<< HEAD
   attachments: string[];
   // Campos para manejo de archivos base64
+=======
+  attachments: ReportAttachment[];
+  // Para compatibilidad con versiones anteriores
+>>>>>>> 6ab26e7 (main)
   archivoNombre?: string;
   archivoTipo?: string;
   archivoContenido?: string;
   archivoTamaño?: number;
+<<<<<<< HEAD
+=======
+  // Para datos sin procesar
+  rawData?: any;
+>>>>>>> 6ab26e7 (main)
 }
 
 export interface Consultation {

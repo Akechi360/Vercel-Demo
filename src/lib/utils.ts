@@ -79,6 +79,7 @@ export class DatabaseErrorHandler {
    * @param context - Context where the error occurred (e.g., 'crear cita', 'actualizar paciente')
    * @throws Error with user-friendly message
    */
+<<<<<<< HEAD
   static handle(error: any, context: string): never {
     // Prisma error codes
     if (error.code === 'P2002') {
@@ -141,6 +142,82 @@ export class DatabaseErrorHandler {
     
     // Fallback for unknown errors
     throw new Error(`Error al ${context}: ${error.message || 'Error desconocido'}`);
+=======
+  static handle(error: unknown, context: string): never {
+    // Si el error es una instancia de Error, lo manejamos
+    if (error instanceof Error) {
+      const errorMessage = error.message || 'Error desconocido';
+      
+      // Prisma error codes
+      if ('code' in error) {
+        const errorCode = (error as any).code;
+        
+        if (errorCode === 'P2002') {
+          throw new Error('Ya existe un registro con estos datos. Verifique la información e intente nuevamente.');
+        }
+        
+        if (errorCode === 'P2003') {
+          throw new Error('Error de referencia: El registro relacionado no existe. Verifique que todos los datos sean válidos.');
+        }
+        
+        if (errorCode === 'P2025') {
+          throw new Error('El registro que intenta modificar no existe.');
+        }
+        
+        if (errorCode === 'P2014') {
+          throw new Error('Error de relación: No se puede realizar esta operación debido a restricciones de datos.');
+        }
+      }
+      
+      // Connection errors
+      if (errorMessage.includes('connect') || errorMessage.includes('connection')) {
+        throw new Error('Error de conexión a la base de datos. Verifique la configuración e intente nuevamente.');
+      }
+      
+      // Foreign key constraint errors
+      if (errorMessage.includes('Foreign key constraint') || errorMessage.includes('clave foránea')) {
+        throw new Error('Error de referencia: Los datos relacionados no existen. Verifique la información.');
+      }
+      
+      // Unique constraint errors
+      if (errorMessage.includes('Unique constraint failed') || errorMessage.includes('restricción única')) {
+        throw new Error('Ya existe un registro con estos datos. Verifique la información e intente nuevamente.');
+      }
+      
+      // Validation errors
+      if (errorMessage.includes('required') || errorMessage.includes('obligatorio')) {
+        throw new Error('Faltan campos requeridos. Complete toda la información necesaria.');
+      }
+      
+      // Permission errors
+      if (errorMessage.includes('permission') || errorMessage.includes('permiso')) {
+        throw new Error('No tiene permisos para realizar esta acción.');
+      }
+      
+      // Timeout errors
+      if (errorMessage.includes('timeout') || errorMessage.includes('tiempo de espera')) {
+        throw new Error('La operación tardó demasiado tiempo. Intente nuevamente.');
+      }
+      
+      // Generic database errors
+      if (errorMessage.includes('database') || errorMessage.includes('base de datos')) {
+        throw new Error('Error en la base de datos. Intente nuevamente más tarde.');
+      }
+      
+      // Re-throw known custom errors
+      if (errorMessage.includes('no encontrado') || 
+          errorMessage.includes('no es un') || 
+          errorMessage.includes('Ya existe')) {
+        throw error;
+      }
+      
+      // Fallback for unknown errors
+      throw new Error(`Error al ${context}: ${errorMessage}`);
+    }
+    
+    // Si el error no es una instancia de Error, lanzamos un error genérico
+    throw new Error(`Error inesperado al ${context}`);
+>>>>>>> 6ab26e7 (main)
   }
 }
 

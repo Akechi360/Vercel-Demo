@@ -1,14 +1,24 @@
 'use client';
 import { useState } from 'react';
+<<<<<<< HEAD
+=======
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+>>>>>>> 6ab26e7 (main)
 import type { Report, NewReportFormValues } from '@/lib/types';
 import { FileText, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ReportCard } from './report-card';
 import { AddReportFab } from './add-report-fab';
+<<<<<<< HEAD
+=======
+import { createReport } from '@/lib/actions';
+>>>>>>> 6ab26e7 (main)
 
 interface ReportListProps {
   initialReports: Report[];
   userId: string;
+<<<<<<< HEAD
 }
 
 export default function ReportList({ initialReports, userId }: ReportListProps) {
@@ -22,6 +32,63 @@ export default function ReportList({ initialReports, userId }: ReportListProps) 
       fileUrl: '#', // Default file URL since NewReportFormValues doesn't have fileUrl
     };
     setReports(prev => [newReport, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+=======
+  currentUserRole?: string;
+}
+
+export default function ReportList({ initialReports, userId, currentUserRole }: ReportListProps) {
+  const [reports, setReports] = useState<Report[]>(initialReports);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const handleNewReport = async (values: NewReportFormValues) => {
+    try {
+      setIsSubmitting(true);
+      
+      // Get the first attachment if it exists
+      const attachment = values.attachments?.[0];
+      
+      // Create the report in the database
+      const newReport = await createReport({
+        titulo: values.title,
+        fecha: values.date,
+        tipo: values.type,
+        notas: values.notes || '',
+        descripcion: values.notes || '',
+        autor: 'Sistema',
+        patientUserId: userId,
+        archivoNombre: attachment?.name,
+        archivoTipo: attachment?.type,
+        archivoTamaño: attachment?.size,
+        archivoContenido: attachment?.url?.split(',')[1],
+        createdBy: userId,
+      });
+
+      // Update local state with the new report
+      setReports(prev => [newReport, ...prev]);
+      
+      // Show success message
+      toast({
+        title: 'Éxito',
+        description: 'El informe se ha guardado correctamente.',
+        variant: 'default',
+      });
+      
+      // Refresh the page to show the new report
+      router.refresh();
+      
+    } catch (error) {
+      console.error('Error saving report:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo guardar el informe. Intente nuevamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+>>>>>>> 6ab26e7 (main)
   };
 
   const containerVariants = {
@@ -45,7 +112,11 @@ export default function ReportList({ initialReports, userId }: ReportListProps) 
         >
           <AnimatePresence>
             {reports.map((report) => (
+<<<<<<< HEAD
               <ReportCard key={report.id} report={report} />
+=======
+              <ReportCard key={report.id} report={report} currentUserRole={currentUserRole} />
+>>>>>>> 6ab26e7 (main)
             ))}
           </AnimatePresence>
         </motion.div>
@@ -58,7 +129,11 @@ export default function ReportList({ initialReports, userId }: ReportListProps) 
           </p>
         </div>
       )}
+<<<<<<< HEAD
       <AddReportFab onFormSubmit={handleNewReport} />
+=======
+      <AddReportFab onFormSubmit={handleNewReport} isSubmitting={isSubmitting} />
+>>>>>>> 6ab26e7 (main)
     </div>
   );
 }

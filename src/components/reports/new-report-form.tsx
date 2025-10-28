@@ -14,26 +14,54 @@ import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area"
+<<<<<<< HEAD
 import type { Report } from "@/lib/types";
+=======
+import { Report, ReportAttachment } from "@/lib/types";
+>>>>>>> 6ab26e7 (main)
 import { FileInput } from "../ui/file-input";
 
 const reportTypes = ["Ecografía", "Tomografía", "Resonancia Magnética", "Biopsia", "Análisis de Sangre", "Uroflujometría", "Otro"];
 
 const formSchema = z.object({
+<<<<<<< HEAD
   title: z.string().min(5, "El título debe tener al menos 5 caracteres."),
   date: z.date({ required_error: "Se requiere una fecha." }),
   type: z.string({ required_error: "Selecciona un tipo de informe."}),
   notes: z.string().min(10, "Las notas deben tener al menos 10 caracteres."),
   attachments: z.array(z.instanceof(File)).optional(),
+=======
+  title: z.string().min(1, "El título es requerido"),
+  date: z.date(),
+  type: z.string().min(1, "El tipo es requerido"),
+  notes: z.string().optional(),
+  attachments: z.array(z.union([
+    z.instanceof(File),
+    z.object({
+      name: z.string(),
+      type: z.string(),
+      size: z.number(),
+      url: z.string()
+    })
+  ])).optional(),
+>>>>>>> 6ab26e7 (main)
 })
 
 export type NewReportFormValues = Omit<Report, 'id' | 'userId' | 'fileUrl'>;
 
 interface NewReportFormProps {
+<<<<<<< HEAD
     onFormSubmit: (values: NewReportFormValues) => void;
 }
 
 export function NewReportForm({ onFormSubmit }: NewReportFormProps) {
+=======
+  onFormSubmit: (values: NewReportFormValues) => Promise<void> | void;
+  isSubmitting?: boolean;
+}
+
+export function NewReportForm({ onFormSubmit, isSubmitting = false }: NewReportFormProps) {
+>>>>>>> 6ab26e7 (main)
   const { toast } = useToast()
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -46,6 +74,7 @@ export function NewReportForm({ onFormSubmit }: NewReportFormProps) {
     },
   })
 
+<<<<<<< HEAD
   function onSubmit(values: z.infer<typeof formSchema>) {
     const formattedValues: NewReportFormValues = {
         ...values,
@@ -59,6 +88,60 @@ export function NewReportForm({ onFormSubmit }: NewReportFormProps) {
     })
     form.reset();
   }
+=======
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      // Process files to ensure they're in the correct format
+      const processAttachments = async (files: (File | ReportAttachment)[] = []): Promise<ReportAttachment[]> => {
+        const processed = [];
+        for (const file of files) {
+          if (file instanceof File) {
+            const arrayBuffer = await file.arrayBuffer();
+            const base64 = Buffer.from(arrayBuffer).toString('base64');
+            processed.push({
+              name: file.name,
+              type: file.type,
+              size: file.size,
+              url: `data:${file.type};base64,${base64}`
+            });
+          } else if (file) {
+            // Ensure it matches ReportAttachment type
+            processed.push({
+              name: file.name || 'file',
+              type: file.type || 'application/octet-stream',
+              size: file.size || 0,
+              url: file.url || '#'
+            });
+          }
+        }
+        return processed;
+      };
+
+      const attachments = await processAttachments(values.attachments || []);
+      
+      const formattedValues: NewReportFormValues = {
+        ...values,
+        date: values.date.toISOString(),
+        notes: values.notes || '',
+        attachments: attachments,
+      };
+      
+      onFormSubmit(formattedValues);
+      toast({
+        title: "Informe Añadido",
+        description: "El nuevo informe ha sido guardado.",
+      });
+      form.reset();
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      toast({
+        title: 'Error',
+        description: 'Ocurrió un error al guardar el informe.',
+        variant: 'destructive',
+      });
+    }
+  };
+>>>>>>> 6ab26e7 (main)
 
   return (
     <Form {...form}>
@@ -169,6 +252,7 @@ export function NewReportForm({ onFormSubmit }: NewReportFormProps) {
                 </FormItem>
               )}
             />
+<<<<<<< HEAD
 
 
           </div>
@@ -179,4 +263,30 @@ export function NewReportForm({ onFormSubmit }: NewReportFormProps) {
       </form>
     </Form>
   )
+=======
+          </div>
+        </ScrollArea>
+        <div className="pt-6 flex justify-end">
+          <Button 
+            type="submit" 
+            className="w-full"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Guardando...
+              </>
+            ) : (
+              'Guardar Informe'
+            )}
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
+>>>>>>> 6ab26e7 (main)
 }

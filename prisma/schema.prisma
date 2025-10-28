@@ -45,6 +45,10 @@ model User {
   notificationPreference     UserNotificationPreference?
   ipssScores                 IpssScore[]                 @relation("PatientIpssScores")
   ipssCreated                IpssScore[]                 @relation("DoctorIpssScores")
+<<<<<<< HEAD
+=======
+  patientReports             Report[]                    @relation("PatientReports")
+>>>>>>> 6ab26e7 (main)
 
   @@map("users")
 }
@@ -334,6 +338,7 @@ model Supply {
 }
 
 model Report {
+<<<<<<< HEAD
   id          String   @id @default(cuid())
   titulo      String
   descripcion String?
@@ -343,6 +348,33 @@ model Report {
   autor       String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+=======
+  // Basic fields
+  id          String   @id @default(cuid())
+  titulo      String
+  descripcion String?  @db.Text
+  tipo        String
+  contenido   Json
+  fecha       DateTime @default(now())
+  notas       String?  @db.Text
+  autor       String
+  
+  // Patient association
+  patientUserId String
+  patient       User     @relation("PatientReports", fields: [patientUserId], references: [userId])
+  
+  // File attachment fields
+  archivoNombre    String?
+  archivoTipo      String?
+  archivoContenido String? @db.Text
+  archivoTamaño    Int?
+  archivoUrl       String?
+  
+  // Metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?
+>>>>>>> 6ab26e7 (main)
 
   @@map("reports")
 }

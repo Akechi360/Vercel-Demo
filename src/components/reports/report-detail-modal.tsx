@@ -1,4 +1,8 @@
 'use client';
+<<<<<<< HEAD
+=======
+import { useState, useEffect } from 'react';
+>>>>>>> 6ab26e7 (main)
 import {
   Dialog,
   DialogContent,
@@ -9,7 +13,11 @@ import {
 import { Button } from '@/components/ui/button';
 import type { Company, Patient, Report } from '@/lib/types';
 import { Badge } from '../ui/badge';
+<<<<<<< HEAD
 import { FileDown, Paperclip, Calendar, FileText } from 'lucide-react';
+=======
+import { FileDown, Paperclip, Calendar, FileText, Eye, Download } from 'lucide-react';
+>>>>>>> 6ab26e7 (main)
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from "jspdf";
 import autoTable from 'jspdf-autotable';
@@ -23,8 +31,83 @@ interface ReportDetailModalProps {
   report: Report;
 }
 
+<<<<<<< HEAD
 export function ReportDetailModal({ isOpen, setIsOpen, report }: ReportDetailModalProps) {
   const { toast } = useToast();
+=======
+// Helper function to convert base64 to Blob
+const base64ToBlob = (base64: string, type: string = 'application/pdf'): Blob => {
+  try {
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type });
+  } catch (error) {
+    console.error('Error converting base64 to Blob:', error);
+    return new Blob([], { type });
+  }
+};
+
+export function ReportDetailModal({ isOpen, setIsOpen, report }: ReportDetailModalProps) {
+  const { toast } = useToast();
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+
+  // Create object URL for PDF preview
+  useEffect(() => {
+    if (report.archivoContenido) {
+      const blob = base64ToBlob(
+        report.archivoContenido, 
+        report.archivoTipo || 'application/pdf'
+      );
+      const url = URL.createObjectURL(blob);
+      setPdfUrl(url);
+      
+      // Cleanup object URL on unmount
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    }
+  }, [report.archivoContenido, report.archivoTipo]);
+
+  const handleDownloadFile = () => {
+    if (!report.archivoContenido) return;
+    
+    try {
+      const blob = base64ToBlob(
+        report.archivoContenido, 
+        report.archivoTipo || 'application/pdf'
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = report.archivoNombre || 'informe.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: 'Descarga iniciada',
+        description: 'El archivo se está descargando.',
+      });
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo descargar el archivo. Intente nuevamente.',
+      });
+    }
+  };
+
+  const handleViewFullScreen = () => {
+    if (!pdfUrl) return;
+    window.open(pdfUrl, '_blank', 'noopener,noreferrer');
+  };
+>>>>>>> 6ab26e7 (main)
 
   const handleExport = async () => {
     try {
@@ -125,6 +208,7 @@ export function ReportDetailModal({ isOpen, setIsOpen, report }: ReportDetailMod
         doc.text(notesLines, margin, y);
         y += notesLines.length * 5 + 10;
 
+<<<<<<< HEAD
         if (report.attachments && report.attachments.length > 0) {
             doc.setFontSize(12);
             doc.setFont("helvetica", "bold");
@@ -136,6 +220,30 @@ export function ReportDetailModal({ isOpen, setIsOpen, report }: ReportDetailMod
                 doc.text(`- ${file}`, margin, y);
                 y += 5;
             });
+=======
+        // Show file attachment info if available
+        if (report.archivoNombre) {
+            const formatFileSize = (bytes: number): string => {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
+            };
+
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text("Archivo Adjunto:", margin, y);
+            y += 6;
+            
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(11);
+            
+            // File name and size
+            const fileInfo = `- ${report.archivoNombre} (${formatFileSize(report.archivoTamaño || 0)})`;
+            doc.text(fileInfo, margin, y);
+            y += 10;
+>>>>>>> 6ab26e7 (main)
         }
 
         const signatureY = doc.internal.pageSize.getHeight() - 40;
@@ -167,16 +275,28 @@ export function ReportDetailModal({ isOpen, setIsOpen, report }: ReportDetailMod
         <DialogHeader>
           <DialogTitle className="text-2xl">{report.title}</DialogTitle>
           <div className="flex items-center gap-4 pt-1 text-sm text-muted-foreground">
+<<<<<<< HEAD
             <Badge variant="secondary">{report.type}</Badge>
             <div className='flex items-center gap-2'>
                 <Calendar className='h-4 w-4'/>
                 {new Date(report.date).toLocaleDateString()}
+=======
+            <Badge variant="secondary">{report.type || 'Sin tipo'}</Badge>
+            <div className='flex items-center gap-2'>
+                <Calendar className='h-4 w-4'/>
+                {report.date ? new Date(report.date).toLocaleDateString('es-ES', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric'
+                }) : 'Fecha no disponible'}
+>>>>>>> 6ab26e7 (main)
             </div>
           </div>
         </DialogHeader>
         <div className="py-4 space-y-6 max-h-[60vh] overflow-y-auto pr-4">
             <div className='space-y-2'>
                 <h3 className='font-semibold'>Notas del Informe</h3>
+<<<<<<< HEAD
                 <p className="text-muted-foreground text-sm">{report.notes}</p>
             </div>
             {report.attachments && report.attachments.length > 0 && (
@@ -187,6 +307,85 @@ export function ReportDetailModal({ isOpen, setIsOpen, report }: ReportDetailMod
                             <div key={index} className="flex items-center gap-2 text-sm p-2 bg-muted/50 rounded-md">
                                 <FileText className='h-4 w-4 text-muted-foreground' />
                                 <span className='truncate'>{att}</span>
+=======
+                <p className="text-muted-foreground">
+                  {report.notes || 'No hay notas disponibles'}
+                </p>
+                <p className="text-muted-foreground text-sm">{report.notes}</p>
+            </div>
+            
+            {/* PDF Preview Section */}
+            {report.archivoContenido && (
+              <div className="mt-6 space-y-4">
+                <h3 className="font-semibold">Archivo Adjunto</h3>
+                <div className="border rounded-lg p-4 bg-muted/10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-primary" />
+                      <span className="font-medium">{report.archivoNombre || 'Documento'}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {report.archivoTipo || 'application/pdf'}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleViewFullScreen}
+                        className="gap-2"
+                      >
+                        <Eye className="h-4 w-4" />
+                        Ver completo
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleDownloadFile}
+                        className="gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        Descargar
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* PDF Preview */}
+                  <div className="border rounded overflow-hidden">
+                    <iframe
+                      src={pdfUrl || ''}
+                      className="w-full h-[400px]"
+                      title="Vista previa del documento"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Additional Attachments */}
+            {report.attachments && report.attachments.length > 0 && (
+                <div className='space-y-2'>
+                    <h3 className='font-semibold flex items-center gap-2'><Paperclip className='h-4 w-4'/> Adjuntos Adicionales</h3>
+                    <div className="flex flex-col gap-2">
+                        {report.attachments.map((attachment, index) => (
+                            <div key={index} className="flex flex-col gap-1 text-sm p-3 bg-muted/50 rounded-md">
+                                <div className="flex items-center gap-2">
+                                    <FileText className='h-4 w-4 text-muted-foreground flex-shrink-0' />
+                                    <a 
+                                        href={attachment.url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="font-medium hover:underline truncate"
+                                    >
+                                        {attachment.name || 'Archivo sin nombre'}
+                                    </a>
+                                </div>
+                                <div className="text-xs text-muted-foreground flex gap-3 pl-6">
+                                    <span>{attachment.type || 'Tipo de archivo no especificado'}</span>
+                                    {attachment.size && (
+                                        <span>{(attachment.size / 1024).toFixed(2)} KB</span>
+                                    )}
+                                </div>
+>>>>>>> 6ab26e7 (main)
                             </div>
                         ))}
                     </div>

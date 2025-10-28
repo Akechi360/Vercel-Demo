@@ -12,12 +12,31 @@ import {
 import { NewReportForm, NewReportFormValues } from "./new-report-form";
 import { useState } from "react";
   
+<<<<<<< HEAD
 export function AddReportFab({ onFormSubmit }: { onFormSubmit: (values: NewReportFormValues) => void }) {
     const [open, setOpen] = useState(false);
 
     const handleFormSubmit = (values: NewReportFormValues) => {
         onFormSubmit(values);
         setOpen(false);
+=======
+interface AddReportFabProps {
+  onFormSubmit: (values: NewReportFormValues) => Promise<void>;
+  isSubmitting: boolean;
+}
+
+export function AddReportFab({ onFormSubmit, isSubmitting }: AddReportFabProps) {
+    const [open, setOpen] = useState(false);
+
+    const handleFormSubmit = async (values: NewReportFormValues) => {
+        try {
+            await onFormSubmit(values);
+            setOpen(false);
+        } catch (error) {
+            // Error is already handled in the parent component
+            console.error('Error in form submission:', error);
+        }
+>>>>>>> 6ab26e7 (main)
     }
 
     return (
@@ -35,7 +54,11 @@ export function AddReportFab({ onFormSubmit }: { onFormSubmit: (values: NewRepor
                     Rellena los detalles para el nuevo informe médico.
                 </DialogDescription>
                 </DialogHeader>
+<<<<<<< HEAD
                 <NewReportForm onFormSubmit={handleFormSubmit} />
+=======
+                <NewReportForm onFormSubmit={handleFormSubmit} isSubmitting={isSubmitting} />
+>>>>>>> 6ab26e7 (main)
             </DialogContent>
         </Dialog>
     )

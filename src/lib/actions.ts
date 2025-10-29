@@ -394,7 +394,7 @@ export async function addPatient(patientData: {
 
 export async function updatePatient(userId: string, patientData: {
   name: string;
-  age: number;
+  fechaNacimiento: string;
   gender: 'Masculino' | 'Femenino' | 'Otro';
   bloodType: string;
   cedula: string;
@@ -416,8 +416,18 @@ export async function updatePatient(userId: string, patientData: {
       throw new Error('Nombre de paciente requerido');
     }
     
-    if (patientData.age < 0 || patientData.age > 120) {
-      throw new Error('La edad debe estar entre 0 y 120 años');
+    if (!patientData.fechaNacimiento) {
+      throw new Error('La fecha de nacimiento es requerida');
+    }
+
+    const fechaNacimientoDate = new Date(patientData.fechaNacimiento);
+    if (isNaN(fechaNacimientoDate.getTime())) {
+      throw new Error('Fecha de nacimiento inválida');
+    }
+
+    // Validar que la fecha no sea en el futuro
+    if (fechaNacimientoDate > new Date()) {
+      throw new Error('La fecha de nacimiento no puede ser en el futuro');
     }
 
     // Validate gender
@@ -449,10 +459,10 @@ export async function updatePatient(userId: string, patientData: {
         const newPatientInfo = await prisma.patientInfo.create({
           data: {
             userId: existingUser.userId, // Use the userId field of the user
-            cedula: `V-${Date.now().toString().slice(-8)}`, // Generate temporary cedula based on timestamp
-            fechaNacimiento: new Date(2000, 0, 1), // Default birth date
+            cedula: patientData.cedula,
+            fechaNacimiento: fechaNacimientoDate,
             telefono: patientData.phone || null,
-            direccion: null,
+            direccion: patientData.direccion || null,
             bloodType: patientData.bloodType,
             gender: patientData.gender,
           }
@@ -462,9 +472,6 @@ export async function updatePatient(userId: string, patientData: {
         existingUser.patientInfo = newPatientInfo;
       }
 
-      // Calculate birth date from age (if needed)
-      // const fechaNacimiento = new Date(Date.now() - patientData.age * 365.25 * 24 * 60 * 60 * 1000);
-      
       // Update user record (name, email, phone)
       const updatedUser = await prisma.user.update({
         where: { userId: userId },
@@ -485,8 +492,8 @@ export async function updatePatient(userId: string, patientData: {
         direccion: patientData.direccion,
         gender: patientData.gender,
         bloodType: patientData.bloodType,
-        telefono: patientData.phone
-        // fechaNacimiento: fechaNacimiento, // Uncomment and use if you have this field in the form
+        telefono: patientData.phone,
+        fechaNacimiento: fechaNacimientoDate,
         // updatedAt is managed automatically by Prisma for PatientInfo model (via @updatedAt)
       };
 
@@ -508,7 +515,6 @@ export async function updatePatient(userId: string, patientData: {
           data: {
             ...patientInfoData,
             userId: existingUser.userId,
-            fechaNacimiento: new Date() // Default date, should be set from form
           },
           include: {
             user: true
@@ -2817,6 +2823,7 @@ export async function getPatientById(userId: string): Promise<Patient | null> {
       name: user.name,
       cedula: patientInfo.cedula,
       age,
+      fechaNacimiento: patientInfo.fechaNacimiento.toISOString().split('T')[0],
       gender: (patientInfo.gender as 'Masculino' | 'Femenino' | 'Otro') || 'Otro',
       bloodType: (patientInfo.bloodType as 'O+' | 'O-' | 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-') || 'O+',
       status: user.status === 'ACTIVE' ? 'Activo' as const : 'Inactivo' as const,
@@ -2825,6 +2832,7 @@ export async function getPatientById(userId: string): Promise<Patient | null> {
         phone: patientInfo.telefono || user.phone || '',
         email: user.email || '',
       },
+      direccion: patientInfo.direccion || undefined,
       companyId: user.affiliations.length > 0 ? user.affiliations[0].companyId : undefined,
     };
   } catch (error) {
@@ -3695,159 +3703,59 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
 
 // RECEIPT FUNCTIONS
 export async function createReceipt(data: {
-  userId: string;  // This is the patient's userId
+  userId: string;
   amount: number;
   concept?: string;
   method: string;
-  createdBy?: string;  // The ID of the user creating the receipt
-}): Promise<any> {
-  try {
-    console.log('createReceipt called with data:', JSON.stringify(data, null, 2));
-    
-    if (!isDatabaseAvailable()) {
-      throw new Error('Database not available');
-    }
-
-    // Create receipt using withTransaction - atomicidad asegurada
-    const receipt = await withTransaction(async (prisma) => {
-      const currentTime = new Date();
+  createdBy?: string;
+  type: 'Consulta' | 'Afiliación';
+  paymentType: 'Contado' | 'Crédito';
+  doctorId?: string;
+  plan?: string;
+}) {
+  return withDatabase(async (prisma) => {
+    try {
+      // Generate receipt number
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0].replace(/-/g, '');
       
-      // Use provided createdBy or default to null if not provided
-      let createdBy = data.createdBy || null;
-      let creatorName = 'Sistema';  // Default creator name if not available
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       
-      // If createdBy is provided, verify the user exists
-      if (createdBy) {
-        try {
-          const user = await prisma.user.findUnique({
-            where: { id: createdBy },
-            select: { id: true, name: true }
-          });
-          
-          if (!user) {
-            console.warn(`User with ID ${createdBy} not found, setting createdBy to null`);
-            createdBy = null;
-          } else {
-            creatorName = user.name;
+      const count = await prisma.receipt.count({
+        where: {
+          createdAt: {
+            gte: startOfDay
           }
-        } catch (error) {
-          console.error('Error verifying user:', error);
-          createdBy = null;  // Fallback to null if there's an error
         }
-      }
-      
-      // Check if receipt model is available
-      if (!prisma.receipt) {
-        throw new Error('Modelo Receipt no está disponible. Por favor, reinicia la aplicación.');
-      }
-      
-      // Generate receipt number using dynamic time
-      const year = currentTime.getFullYear();
-      const month = String(currentTime.getMonth() + 1).padStart(2, '0');
-      const day = String(currentTime.getDate()).padStart(2, '0');
-      
-      // Get count of receipts for today to generate sequential number
-      const todayStart = new Date(year, currentTime.getMonth(), currentTime.getDate());
-      const todayEnd = new Date(year, currentTime.getMonth(), currentTime.getDate() + 1);
-      
-      let todayReceipts = 0;
-      try {
-        todayReceipts = await prisma.receipt.count({
-          where: {
-            createdAt: {
-              gte: todayStart,
-              lt: todayEnd,
-            },
-          },
-        });
-      } catch (countError) {
-        console.log('Error counting receipts, using 0 as default:', countError);
-        todayReceipts = 0;
-      }
-      
-      const receiptNumber = `REC-${year}${month}${day}-${String(todayReceipts + 1).padStart(3, '0')}`;
-      console.log('Generated receipt number:', receiptNumber);
-
-      // Verificar que el paciente existe
-      const patientExists = await prisma.user.findUnique({
-        where: { id: data.userId },
-        select: { id: true }
       });
-
-      if (!patientExists) {
-        throw new Error(`No se encontró el paciente con ID: ${data.userId}`);
-      }
-
-      // Verificar si el usuario creador existe si se proporcionó un createdBy
-      if (createdBy) {
-        const creatorExists = await prisma.user.findUnique({
-          where: { id: createdBy },
-          select: { id: true }
-        });
-
-        if (!creatorExists) {
-          console.warn(`Usuario creador con ID ${createdBy} no encontrado, creando sin creador`);
-          createdBy = null;
-        }
-      }
-
-      // Crear el objeto de datos del recibo
-      const receiptData: any = {
-        number: receiptNumber,
-        patientUserId: data.userId,
-        amount: new Decimal(data.amount),
-        concept: data.concept || `Consulta médica - ${currentTime.toLocaleDateString()}`,
-        method: data.method
-      };
-
-      // Solo incluir createdBy si tenemos un valor válido
-      if (createdBy) {
-        receiptData.createdBy = createdBy;
-      }
       
-      console.log('Preparando datos del recibo:', JSON.stringify(receiptData, null, 2));
+      const receiptNumber = `REC-${dateStr}-${String(count + 1).padStart(3, '0')}`;
 
-      console.log('Creating receipt with data:', JSON.stringify(receiptData, null, 2));
-      
+      // Create receipt
       const receipt = await prisma.receipt.create({
-        data: receiptData,
+        data: {
+          number: receiptNumber,
+          patientUserId: data.userId,
+          amount: new Decimal(data.amount),
+          concept: data.concept || `Pago recibido - ${now.toLocaleDateString()}`,
+          method: data.method,
+          createdBy: data.createdBy || null,
+          type: data.type,
+          paymentType: data.paymentType,
+          doctorId: data.doctorId || null,
+          plan: data.plan || null
+        }
       });
 
-      console.log('Receipt created successfully:', receipt);
-
-      // Create audit log if we have a user context
-      if (createdBy) {
-        try {
-          await prisma.auditLog.create({
-            data: {
-              userId: createdBy,
-              action: 'Comprobante creado',
-              details: `Comprobante ${receiptNumber} generado por ${creatorName} para paciente ${data.userId}`
-            }
-          });
-        } catch (auditError) {
-          console.error('Error creating audit log:', auditError);
-          // Don't fail the operation if audit logging fails
-        }
-      }
-
-      return receipt;
-    });
-
-    return {
-      id: receipt.id,
-      number: receipt.number,
-      userId: receipt.patientUserId, // Map back to userId in the response
-      amount: Number(receipt.amount), // Convert Decimal to number
-      concept: receipt.concept,
-      method: receipt.method,
-      createdAt: receipt.createdAt,
-      createdBy: receipt.createdBy,
-    };
-  } catch (error) {
-    // Manejo centralizado de errores - DatabaseErrorHandler
-    DatabaseErrorHandler.handle(error, 'crear comprobante');
-  }
+      return {
+        ...receipt,
+        amount: receipt.amount.toNumber()
+      };
+    } catch (error: any) {
+      console.error('❌ Error creating receipt:', error);
+      DatabaseErrorHandler.handle(error, 'crear comprobante');
+    }
+  }, []);
 }
 
 export async function getReceipts(): Promise<any[]> {
@@ -3859,24 +3767,17 @@ export async function getReceipts(): Promise<any[]> {
     const prisma = getPrisma();
     
     const receipts = await prisma.receipt.findMany({
-      include: {
-        patient: true,
-      },
       orderBy: {
         createdAt: 'desc',
       },
     });
 
-    return receipts.map((receipt: any) => ({
-      id: receipt.id,
-      number: receipt.number,
-      patientName: receipt.patient ? receipt.patient.name : 'Paciente no encontrado',
-      patientCedula: 'No especificada', // cedula no está disponible en el modelo User
-      amount: Number(receipt.amount), // Convert Decimal to number
-      concept: receipt.concept,
-      method: receipt.method,
+    return receipts.map(receipt => ({
+      ...receipt,
+      amount: receipt.amount.toNumber(),
       createdAt: receipt.createdAt.toISOString(),
-      createdBy: receipt.createdBy,
+      patientName: 'Paciente', // Placeholder since we're not joining with users
+      patientCedula: 'No especificada'
     }));
   } catch (error) {
     console.error('Error fetching receipts:', error);
@@ -3893,10 +3794,7 @@ export async function getReceiptById(receiptId: string): Promise<any | null> {
     const prisma = getPrisma();
     
     const receipt = await prisma.receipt.findUnique({
-      where: { id: receiptId },
-      include: {
-        patient: true,
-      },
+      where: { id: receiptId }
     });
 
     if (!receipt) {
@@ -3904,15 +3802,11 @@ export async function getReceiptById(receiptId: string): Promise<any | null> {
     }
 
     return {
-      id: receipt.id,
-      number: receipt.number,
-      patientName: receipt.patient ? receipt.patient.name : 'Paciente no encontrado',
-      patientCedula: 'No especificada', // cedula no está disponible en el modelo User
-      amount: Number(receipt.amount), // Convert Decimal to number
-      concept: receipt.concept,
-      method: receipt.method,
+      ...receipt,
+      amount: receipt.amount.toNumber(),
       createdAt: receipt.createdAt.toISOString(),
-      createdBy: receipt.createdBy,
+      patientName: 'Paciente', // Placeholder since we're not joining with users
+      patientCedula: 'No especificada'
     };
   } catch (error) {
     console.error('Error fetching receipt by ID:', error);

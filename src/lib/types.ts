@@ -107,6 +107,7 @@ export interface Patient {
   name: string;
   cedula: string;
   age: number;
+  fechaNacimiento?: string;
   gender: 'Masculino' | 'Femenino' | 'Otro';
   bloodType: string;
   status: 'Activo' | 'Inactivo';

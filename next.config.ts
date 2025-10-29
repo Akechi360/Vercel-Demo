@@ -1,20 +1,13 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // Turbopack configuration (moved from experimental.turbo)
-  turbopack: {
-    // Add any module rules that need special handling
-    rules: {
-      '*.{ts,tsx}': ['@swc/plugin-relay']
-    }
-  },
-  
-  // External packages for server components
-  serverExternalPackages: ['@prisma/client', 'bcryptjs'],
-  
-  // Experimental features configuration
+  // Turbopack configuration
+  turbopack: {},
+  // Usar webpack en lugar de Turbopack
   experimental: {
-    // Optimize package imports for better performance
+    // Forzar el uso de webpack
+    webpackBuildWorker: true,
+    // Optimizar importaciones de paquetes para mejor rendimiento
     optimizePackageImports: [
       '@radix-ui/*',
       'lucide-react',
@@ -23,13 +16,15 @@ const nextConfig: NextConfig = {
       'recharts',
       'framer-motion'
     ],
-    // Enable server actions
+    // Habilitar server actions
     serverActions: {
       bodySizeLimit: '2mb'
     },
-    // Enable optimized CSS
+    // Habilitar CSS optimizado
     optimizeCss: true,
   },
+  // Paquetes externos para componentes del servidor
+  serverExternalPackages: ['@prisma/client', 'bcryptjs'],
   
   // Production optimizations
   productionBrowserSourceMaps: false,
@@ -42,11 +37,6 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
     // Enable incremental compilation
     tsconfigPath: './tsconfig.json'
-  },
-  
-  // ESLint configuration
-  eslint: {
-    ignoreDuringBuilds: true,
   },
   
   // Image optimization configuration

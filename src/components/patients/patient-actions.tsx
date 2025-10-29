@@ -33,7 +33,7 @@ const MySwal = withReactContent(Swal);
 
 const editPatientSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
-  age: z.coerce.number().min(1, 'La edad debe ser mayor a 0').max(120, 'La edad es inválida'),
+  fechaNacimiento: z.string().min(1, 'La fecha de nacimiento es requerida'),
   gender: z.enum(['Masculino', 'Femenino', 'Otro'], { required_error: 'Seleccione un género' }),
   bloodType: z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'], { required_error: 'Seleccione un tipo de sangre' }),
   cedula: z.string().min(1, 'La cédula es requerida').regex(/^[VvEeJj]\d{6,9}$/, 'Formato de cédula inválido (V12345678, E12345678, J12345678)'),
@@ -51,17 +51,49 @@ interface PatientActionsProps {
   onPatientDeleted?: (userId: string) => void;
 }
 
+const calculateAge = (birthDate: string | Date): number => {
+  if (!birthDate) return 0;
+  const today = new Date();
+  const birth = new Date(birthDate);
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+};
+
 export default function PatientActions({ patient, onPatientUpdated, onPatientDeleted }: PatientActionsProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
   const sweetAlertTheme = useSweetAlertTheme();
 
+  // Calcular fechaNacimiento desde la edad actual o usar fechaNacimiento si existe
+  const getDefaultFechaNacimiento = (): string => {
+    if ((patient as any).fechaNacimiento) {
+      const fecha = new Date((patient as any).fechaNacimiento);
+      return fecha.toISOString().split('T')[0];
+    }
+    // Si no hay fechaNacimiento, calcular aproximada desde edad
+    const today = new Date();
+    const ageNum = Number(patient.age);
+    if (!Number.isFinite(ageNum) || ageNum <= 0) return '';
+    const estimatedDate = new Date(
+      today.getFullYear() - ageNum,
+      today.getMonth(),
+      today.getDate()
+    );
+    const time = estimatedDate.getTime();
+    if (Number.isNaN(time)) return '';
+    return estimatedDate.toISOString().split('T')[0];
+  };
+
   const form = useForm<EditPatientFormValues>({
     resolver: zodResolver(editPatientSchema),
     defaultValues: {
       name: patient.name,
-      age: patient.age,
+      fechaNacimiento: getDefaultFechaNacimiento(),
       gender: patient.gender,
       bloodType: patient.bloodType as 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-',
       cedula: patient.cedula || '',
@@ -125,7 +157,7 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
     try {
       const updatedPatient = await updatePatient(patient.id, {
         name: values.name,
-        age: values.age,
+        fechaNacimiento: values.fechaNacimiento,
         gender: values.gender,
         bloodType: values.bloodType,
         cedula: values.cedula,
@@ -200,17 +232,31 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="age">Edad</Label>
+                <Label htmlFor="edad">Edad</Label>
                 <Input
-                  id="age"
+                  id="edad"
                   type="number"
-                  {...form.register('age')}
-                  placeholder="Ej: 35"
+                  value={form.watch('fechaNacimiento') ? calculateAge(form.watch('fechaNacimiento')) : patient.age || 0}
+                  disabled
+                  className="cursor-not-allowed bg-muted"
+                  placeholder="Calculada automáticamente"
                 />
-                {form.formState.errors.age && (
-                  <p className="text-sm text-red-500">{form.formState.errors.age.message}</p>
-                )}
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="fechaNacimiento">Fecha de Nacimiento *</Label>
+              <Input
+                id="fechaNacimiento"
+                type="date"
+                {...form.register('fechaNacimiento')}
+                value={form.watch('fechaNacimiento') || ''}
+                onChange={(e) => form.setValue('fechaNacimiento', e.target.value)}
+                required
+              />
+              {form.formState.errors.fechaNacimiento && (
+                <p className="text-sm text-red-500">{form.formState.errors.fechaNacimiento.message}</p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

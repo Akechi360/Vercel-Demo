@@ -39,6 +39,7 @@ import { AnimatedButton } from '@/components/animations/animated-button';
 import { AnimatedCard } from '@/components/animations/animated-card';
 import { StaggerContainer } from '@/components/animations/stagger-container';
 import { StaggerItem } from '@/components/animations/stagger-item';
+import RotatingText from '@/components/ui/RotatingText';
 import { MagneticButton } from '@/components/animations/magnetic-button';
 
 const fadeIn = (delay: number = 0) => ({
@@ -250,9 +251,22 @@ export default function LandingPage() {
               variants={fadeIn()}
               className="text-4xl lg:text-6xl font-bold tracking-tight font-headline mb-6"
             >
-              Tu salud es nuestra{' '}
-              <span className="text-gradient-animated">
-                prioridad
+              <span className="sr-only">UroVital</span>
+              <span className="inline-flex flex-wrap gap-2 justify-center lg:justify-start items-center">
+                Tu{' '}
+                <RotatingText
+                  texts={["Salud", "Bienestar", "Familia", "Cuidado"]}
+                  mainClassName="px-3 sm:px-4 md:px-5 bg-urovital-blue text-white overflow-hidden py-1 sm:py-2 md:py-3 justify-center rounded-lg"
+                  staggerFrom="last"
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "-120%" }}
+                  staggerDuration={0.025}
+                  splitLevelClassName="overflow-hidden pb-1 sm:pb-2"
+                  transition={{ type: "spring", damping: 30, stiffness: 400 }}
+                  rotationInterval={2500}
+                />
+                {' '}es nuestra prioridad
               </span>
             </motion.h1>
             

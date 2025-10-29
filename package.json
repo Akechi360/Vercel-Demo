@@ -34,6 +34,7 @@
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",
+    "@heroui/react": "2.8.5",
     "@hookform/resolvers": "^4.1.3",
     "@prisma/client": "^6.17.1",
     "@radix-ui/react-accordion": "^1.2.3",
@@ -93,6 +94,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
+    "@swc/plugin-relay": "^9.5.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^30.0.0",
     "@types/node": "^20",

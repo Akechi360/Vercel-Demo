@@ -39,8 +39,6 @@ model User {
   patientPayments            Payment[]                   @relation("PatientPayments")
   prescriptions              Prescription[]
   promotoraInfo              PromotoraInfo?
-  createdReceipts            Receipt[]                   @relation("CreatedReceipts")
-  patientReceipts            Receipt[]                   @relation("PatientReceipts")
   secretariaInfo             SecretariaInfo?
   notificationPreference     UserNotificationPreference?
   ipssScores                 IpssScore[]                 @relation("PatientIpssScores")
@@ -405,12 +403,15 @@ model Receipt {
   amount        Decimal  @db.Decimal(10, 2)
   concept       String
   method        String
+  type          String   // "Consulta" or "Afiliación"
+  paymentType   String   // "Contado" or "Crédito"
+  doctorId      String?  // Optional
+  plan          String?  // Optional
   createdAt     DateTime @default(now())
   createdBy     String?
   patientUserId String
-  creator       User?    @relation("CreatedReceipts", fields: [createdBy], references: [userId], onDelete: SetNull)
-  patient       User     @relation("PatientReceipts", fields: [patientUserId], references: [userId], onDelete: Cascade)
 
+  @@index([patientUserId])
   @@map("receipts")
 }
 

@@ -98,74 +98,70 @@ export default function PatientDetailLayout({
   };
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-4">
       <PatientDetailHeader 
         patient={patient} 
         onPatientUpdated={handlePatientUpdated}
         onPatientDeleted={handlePatientDeleted}
       />
-      <div className="flex justify-between items-center -mb-4">
-        <PatientDetailNav patientId={patient.id} />
-        {isHistoryPage && (
-            <div className="flex items-center gap-2">
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button variant="outline">
-                            <Filter className="mr-2 h-4 w-4" />
-                            Filtros
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80">
-                        <div className="grid gap-4">
-                            <div className="space-y-2">
-                                <h4 className="font-medium leading-none">Filtros</h4>
-                                <p className="text-sm text-muted-foreground">
-                                Ajusta los filtros para el historial médico.
-                                </p>
-                            </div>
-                            <div className="grid gap-2">
-                                <div className="grid grid-cols-3 items-center gap-4">
-                                    <Label htmlFor="status">Tipo</Label>
-                                    <Select>
-                                        <SelectTrigger className="w-full col-span-2">
-                                            <SelectValue placeholder="Filtrar por tipo" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="Todos">Todos</SelectItem>
-                                            <SelectItem value="Inicial">Inicial</SelectItem>
-                                            <SelectItem value="Seguimiento">Seguimiento</SelectItem>
-                                            <SelectItem value="Pre-operatorio">Pre-operatorio</SelectItem>
-                                            <SelectItem value="Post-operatorio">Post-operatorio</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="grid grid-cols-3 items-center gap-4">
-                                     <Label>Fecha</Label>
-                                     <div className='col-span-2'>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button variant="outline" className='w-full justify-start text-left font-normal'>
-                                                    <CalendarIcon className='mr-2 h-4 w-4' />
-                                                    <span>Elige una fecha</span>
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0">
-                                                <Calendar
-                                                mode="single"
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
-                                     </div>
-                                </div>
-                            </div>
-                        </div>
-                    </PopoverContent>
-                </Popover>
-                {patient && <ExportHistoryButton patient={patient} />}
-            </div>
-        )}
-      </div>
-      <div>{children}</div>
+      <PatientDetailNav patientId={patientId} />
+      {isHistoryPage && (
+        <div className="flex items-center gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline">
+                <Filter className="mr-2 h-4 w-4" />
+                Filtros
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium leading-none">Filtros</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Ajusta los filtros para el historial médico.
+                  </p>
+                </div>
+                <div className="grid gap-2">
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label htmlFor="status">Tipo</Label>
+                    <Select>
+                      <SelectTrigger className="w-full col-span-2">
+                        <SelectValue placeholder="Filtrar por tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Todos">Todos</SelectItem>
+                        <SelectItem value="Inicial">Inicial</SelectItem>
+                        <SelectItem value="Seguimiento">Seguimiento</SelectItem>
+                        <SelectItem value="Pre-operatorio">Pre-operatorio</SelectItem>
+                        <SelectItem value="Post-operatorio">Post-operatorio</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label>Fecha</Label>
+                    <div className='col-span-2'>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className='w-full justify-start text-left font-normal'>
+                            <CalendarIcon className='mr-2 h-4 w-4' />
+                            <span>Elige una fecha</span>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar mode="single" />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          {patient && <ExportHistoryButton patient={patient} />}
+        </div>
+      )}
+      {children}
     </div>
   );
 }

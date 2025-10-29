@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -32,12 +32,36 @@ import { format } from 'date-fns';
 
 const formSchema = z.object({
   userId: z.string().min(1, 'Debe seleccionar un paciente.'),
+  type: z.enum(['Consulta', 'Afiliación'], {
+    required_error: 'Debe seleccionar un tipo de comprobante.',
+  }),
   amount: z.string().min(1, 'El monto es requerido.').refine((val) => {
     const num = parseFloat(val);
     return !isNaN(num) && num > 0;
   }, 'El monto debe ser un número válido mayor a 0.'),
   concept: z.string().min(3, 'El concepto debe tener al menos 3 caracteres.'),
   method: z.string().min(1, 'Debe seleccionar un método de pago.'),
+  paymentType: z.enum(['Contado', 'Crédito'], {
+    required_error: 'Debe seleccionar un tipo de pago.',
+  }),
+  doctorId: z.string().optional(),
+  plan: z.string().optional(),
+}).refine((data) => {
+  if (data.type === 'Consulta') {
+    return !!data.doctorId;
+  }
+  return true;
+}, {
+  message: 'Debe seleccionar un doctor para consultas',
+  path: ['doctorId'],
+}).refine((data) => {
+  if (data.type === 'Afiliación') {
+    return !!data.plan;
+  }
+  return true;
+}, {
+  message: 'Debe seleccionar un plan para afiliaciones',
+  path: ['plan'],
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -62,15 +86,25 @@ export function CreateReceiptForm({ patients, onSuccess }: CreateReceiptFormProp
   const { toast } = useToast();
   const { currentUser } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       userId: '',
-      amount: '',
+      type: undefined,
+      amount: '0.00',
       concept: '',
-      method: '',
-    },
+      method: 'efectivo',
+      paymentType: 'Contado',
+      doctorId: '',
+      plan: ''
+    }
+  });
+
+  const receiptType = useWatch({
+    control: form.control,
+    name: 'type',
+    defaultValue: undefined,
   });
 
   const generateReceiptPDF = async (receiptData: any, patient: Patient) => {
@@ -137,34 +171,42 @@ export function CreateReceiptForm({ patients, onSuccess }: CreateReceiptFormProp
     return doc;
   };
 
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit = async (data: FormValues) => {
     try {
       setIsSubmitting(true);
 
-      if (!currentUser) {
-        throw new Error('Usuario no autenticado');
-      }
-
-      // Find selected patient
-      const selectedPatient = patients.find(p => p.id === values.userId);
+      // Find the selected patient
+      const selectedPatient = patients.find(p => p.id === data.userId);
       if (!selectedPatient) {
         throw new Error('Paciente no encontrado');
       }
 
-      // Create receipt in database
-      const receiptData = await createReceipt({
-        userId: values.userId,
-        amount: parseFloat(values.amount),
-        concept: values.concept,
-        method: values.method,
-      });
+      // Create receipt data with all required fields
+      const receiptData = {
+        userId: data.userId,
+        amount: parseFloat(data.amount),
+        concept: data.concept,
+        method: data.method,
+        type: data.type,
+        paymentType: data.paymentType,
+        doctorId: data.doctorId || undefined,
+        plan: data.plan || undefined,
+        createdBy: currentUser?.id
+      };
 
+      // Call the API
+      const result = await createReceipt(receiptData);
+
+      // Generate PDF
+      await generateReceiptPDF(result, selectedPatient);
+
+      // Show success message
       toast({
-        title: "Comprobante creado exitosamente ✅",
-        description: `El comprobante ${receiptData.number} ha sido creado. Puedes generar el PDF desde la lista de comprobantes.`,
+        title: "Comprobante creado",
+        description: "El comprobante se ha generado correctamente.",
       });
 
-      form.reset();
+      // Close the form
       onSuccess();
 
     } catch (error) {
@@ -180,103 +222,214 @@ export function CreateReceiptForm({ patients, onSuccess }: CreateReceiptFormProp
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="userId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Paciente *</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un paciente" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {patients.map((patient) => (
-                    <SelectItem key={patient.id} value={patient.id}>
-                      {patient.name} - {patient.cedula}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+    <div className="p-6 bg-white rounded-lg shadow">
+      <h2 className="text-2xl font-bold mb-6">Nuevo Comprobante</h2>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Tipo de Comprobante */}
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="font-semibold">Tipo de Comprobante</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar tipo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Consulta">Consulta</SelectItem>
+                      <SelectItem value="Afiliación">Afiliación</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="amount"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Monto *</FormLabel>
-              <FormControl>
-                <Input 
-                  type="number" 
-                  step="0.01" 
-                  placeholder="0.00" 
-                  {...field} 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="userId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="font-semibold">Paciente</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar paciente" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {patients.map((patient) => (
+                        <SelectItem key={patient.id} value={patient.id}>
+                          {patient.name} - {patient.cedula}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="concept"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Concepto *</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="Ej: Consulta médica, Examen de laboratorio, etc." 
-                  {...field} 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="font-semibold">Monto</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-gray-500">$</span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="pl-8"
+                        {...field}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="method"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Método de Pago *</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona método de pago" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {paymentMethods.map((method) => (
-                    <SelectItem key={method.value} value={method.value}>
-                      {method.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="paymentType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="font-semibold">Tipo de Pago</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar tipo de pago" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Contado">Contado</SelectItem>
+                      <SelectItem value="Crédito">Crédito</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <div className="flex justify-end gap-3 pt-4">
-          <Button type="button" variant="outline" onClick={onSuccess}>
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Generando...' : 'Crear Comprobante'}
-          </Button>
-        </div>
-      </form>
-    </Form>
+            <FormField
+              control={form.control}
+              name="method"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="font-semibold">Método de Pago</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar método" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {paymentMethods.map((method) => (
+                        <SelectItem key={method.value} value={method.value}>
+                          {method.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {receiptType === 'Consulta' && (
+              <FormField
+                control={form.control}
+                name="doctorId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-semibold">Doctor</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar doctor" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="doc1">Dr. Juan Pérez</SelectItem>
+                        <SelectItem value="doc2">Dra. María García</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {receiptType === 'Afiliación' && (
+              <FormField
+                control={form.control}
+                name="plan"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-semibold">Plan</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar plan" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Tarjeta Saludable">Tarjeta Saludable</SelectItem>
+                        <SelectItem value="Fondo Espíritu Santo">Fondo Espíritu Santo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            <FormField
+              control={form.control}
+              name="concept"
+              render={({ field }) => (
+                <FormItem className="md:col-span-2">
+                  <FormLabel className="font-semibold">Concepto</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Descripción del pago..."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onSuccess}
+              className="min-w-[120px]"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="min-w-[160px] bg-blue-600 hover:bg-blue-700"
+            >
+              {isSubmitting ? 'Generando...' : 'Crear Comprobante'}
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </div>
   );
 }

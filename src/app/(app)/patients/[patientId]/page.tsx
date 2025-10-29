@@ -2,10 +2,11 @@
 import { getConsultationsByUserId, getPatientById } from '@/lib/actions';
 import { MedicalHistoryTimeline } from '@/components/history/medical-history-timeline';
 import type { Consultation, Patient } from '@/lib/types';
-import { useEffect, useState, use } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useAuth } from '@/components/layout/auth-provider';
 import { Card, CardContent } from '@/components/ui/card';
 import { ShieldBan } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 function DeniedAccess() {
     return (
@@ -25,66 +26,72 @@ export default function PatientHistoryPage({ params }: { params: Promise<{ patie
   const [history, setHistory] = useState<Consultation[]>([]);
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
 
-  // ✅ VALIDACIÓN CRÍTICA - Verificar que userId sea válido
+  // Validar que el ID de usuario sea válido
   const isValidUserId = userId && typeof userId === 'string' && userId.trim() !== '';
-  
-  if (!isValidUserId) {
-    console.error('❌ PatientHistoryPage - userId inválido desde params:', { 
-      userId, 
-      type: typeof userId,
-      params: { patientId: userId }
-    });
-  }
-
-  console.log('🔍 PatientHistoryPage - userId extraído de params:', {
-    userId,
-    type: typeof userId,
-    length: userId?.length,
-    params: { patientId: userId }
-  });
-
   const canViewHistory = can('patients:write') || currentUser?.userId === userId;
 
+  // Cargar datos del paciente y su historial
   useEffect(() => {
-    if (!isValidUserId) return;
-    console.log('🔍 PatientHistoryPage - useEffect ejecutado');
-    console.log('🔍 PatientHistoryPage - canViewHistory:', canViewHistory);
-    console.log('🔍 PatientHistoryPage - userId:', userId);
+    if (!isValidUserId || !canViewHistory) return;
+
+    let isMounted = true;
     
-    if (!canViewHistory) {
-        console.log('🔍 PatientHistoryPage - No puede ver historial, estableciendo loading false');
-        setLoading(false);
-        return;
-    }
-    
-    const fetchHistory = async () => {
-      console.log('🔍 PatientHistoryPage - Iniciando fetchHistory');
-      setLoading(true);
-      
+    const loadData = async () => {
       try {
-        console.log('🔍 PatientHistoryPage - Llamando a getConsultationsByUserId y getPatientById');
-        const [medicalHistory, patientData] = await Promise.all([
-          getConsultationsByUserId(userId),
-          getPatientById(userId)
+        const [patientData, medicalHistory] = await Promise.all([
+          getPatientById(userId),
+          getConsultationsByUserId(userId)
         ]);
-        
-        console.log('🔍 PatientHistoryPage - Datos obtenidos:');
-        console.log('🔍 PatientHistoryPage - medicalHistory:', medicalHistory.length, 'consultas');
-        console.log('🔍 PatientHistoryPage - patientData:', !!patientData);
-        
-        setHistory(medicalHistory);
-        setPatient(patientData || null);
-        setLoading(false);
-        console.log('🔍 PatientHistoryPage - fetchHistory completado');
+
+        if (isMounted) {
+          setPatient(patientData);
+          setHistory(medicalHistory);
+          setLoading(false);
+        }
       } catch (error) {
-        console.error('🔍 PatientHistoryPage - Error en fetchHistory:', error);
-        setLoading(false);
+        console.error('Error al cargar los datos del paciente:', error);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
-    
-    fetchHistory();
-  }, [userId, canViewHistory]);
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [userId, isValidUserId, canViewHistory]);
+
+  if (!isValidUserId) {
+    return (
+      <div className="p-4 text-center">
+        <p className="text-destructive">ID de paciente no válido</p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[200px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!canViewHistory) {
+    return <DeniedAccess />;
+  }
+
+  if (!patient) {
+    return (
+      <div className="p-4 text-center">
+        <p>No se encontró el paciente</p>
+      </div>
+    );
+  }
 
   const handleNewConsultation = (newConsultation: Omit<Consultation, 'id' | 'userId'>) => {
     const fullConsultation: Consultation = {
@@ -95,34 +102,17 @@ export default function PatientHistoryPage({ params }: { params: Promise<{ patie
     setHistory(prevHistory => [fullConsultation, ...prevHistory]);
   };
 
-  // Mostrar error si userId es inválido
-  if (!isValidUserId) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <h3 className="text-lg font-semibold text-destructive">Error de Navegación</h3>
-          <p className="text-muted-foreground">ID de paciente inválido o no encontrado.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    // You can replace this with a proper skeleton loader for the timeline
-    return <div>Cargando historial...</div>;
-  }
-
-  if (!canViewHistory) {
-      return <DeniedAccess />;
-  }
-
   return (
-    <div className="flex flex-col gap-6">
-        <MedicalHistoryTimeline 
-            userId={userId}
+    <div className="space-y-6">
+      <Card>
+        <CardContent className="p-6">
+          <MedicalHistoryTimeline 
             history={history} 
+            userId={userId}
             onNewConsultation={handleNewConsultation}
-        />
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -30,7 +30,8 @@ import {
   Globe,
   ChevronRight
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
+import { TextHighlight } from '@/components/ui/text-highlight';
 import { cn } from '@/lib/utils';
 import { ScrollReveal } from '@/components/animations/scroll-reveal';
 import { AnimatedCounter } from '@/components/animations/animated-counter';
@@ -111,7 +112,7 @@ const specialties = [
   {
     icon: HeartPulse,
     title: 'Ginecología',
-    description: 'Cuidado integral de la salud femenina, desde revisiones hasta tratamientos complejos.',
+    description: 'Atención integral de la salud femenina con tratamientos especializados.',
     color: 'bg-urovital-red/10 text-urovital-red'
   },
   {
@@ -734,52 +735,71 @@ export default function LandingPage() {
       </section>
 
       {/* Final CTA Section */}
-      <section className="py-20 md:py-28 bg-gradient-to-r from-urovital-blue to-urovital-blue-light dark:from-[#131c36] dark:to-[#071f3d] text-white relative overflow-hidden">
-        {/* Gradiente sutil de fondo */}
-        <div className="absolute inset-0 -z-10">
-          <div className="gradient-mesh absolute inset-0" />
-        </div>
-        <div className="container mx-auto px-4 text-center relative z-10">
+      <section className="relative py-24 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 overflow-hidden">
+        {/* Subtle pattern overlay */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-urovital-blue/5 via-transparent to-transparent" />
+        
+        <div className="relative z-10 container mx-auto px-4">
           <motion.div 
-            initial="hidden" 
-            whileInView="visible" 
-            viewport={{ once: true, amount: 0.5 }} 
-            variants={fadeIn()}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="max-w-5xl mx-auto text-center space-y-8"
           >
-            <h2 className="text-3xl md:text-5xl font-bold font-headline mb-6">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
               ¿Listo para mejorar tu salud?
             </h2>
-            <p className="max-w-3xl mx-auto text-xl mb-8 opacity-90">
-              Únete a miles de pacientes que ya confían en UroVital para su cuidado médico integral. 
+            
+            <p className="text-xl md:text-2xl text-gray-300 leading-relaxed">
+              Únete a{" "}
+              <TextHighlight className="bg-urovital-blue text-white px-3 py-1 rounded-md">
+                miles de pacientes
+              </TextHighlight>{" "}
+              que ya confían en{" "}
+              <TextHighlight className="bg-urovital-blue text-white px-3 py-1 rounded-md">
+                UroVital
+              </TextHighlight>{" "}
+              para su cuidado médico integral.
+            </p>
+            
+            <p className="text-lg text-gray-400">
               Tu bienestar es nuestra prioridad.
             </p>
-            <div className="flex justify-center">
-              <MagneticButton 
-                className="bg-urovital-blue hover:bg-urovital-blue/90 text-white px-8 py-6 text-lg font-semibold border-2 border-urovital-blue hover:border-urovital-blue/90 shadow-lg hover:shadow-urovital-blue/30 transition-all duration-300 rounded-lg"
-                strength={0.3}
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
+              <Button 
+                size="lg" 
+                className="bg-urovital-blue hover:bg-urovital-blue/90 text-white text-lg px-8 py-6"
                 onClick={() => window.location.href = '/afiliacion'}
               >
                 <span className="flex items-center">
                   Afíliate Ahora
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </span>
-              </MagneticButton>
+              </Button>
             </div>
-            
-            <motion.div 
-              initial={{opacity: 0, scale: 0.5, y: 50}}
-              animate={{opacity: 1, scale: 1, y: 0}}
-              transition={{duration: 0.5, delay: 0.5, ease: "easeOut"}}
-              className="mt-12 mx-auto bg-white/10 backdrop-blur-sm rounded-2xl p-4 flex items-center gap-3 max-w-80 mx-auto"
-            >
-              <div className="p-3 bg-white/20 rounded-xl">
-                <ShieldCheck className="w-6 h-6 text-white"/>
-              </div>
-              <div className="text-center">
-                <p className="font-semibold text-lg">Cuidado de Confianza</p>
-                <p className="text-sm opacity-80">Especialistas Certificados</p>
-              </div>
-            </motion.div>
+          </motion.div>
+
+          {/* Trust Badge */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="max-w-md mx-auto mt-16"
+          >
+            <Card className="border-urovital-blue/30 bg-slate-800/50 backdrop-blur-sm shadow-xl">
+              <CardContent className="flex items-center gap-4 p-6">
+                <div className="bg-urovital-blue/20 p-4 rounded-full">
+                  <ShieldCheck className="w-8 h-8 text-urovital-blue" />
+                </div>
+                <div className="text-left">
+                  <p className="font-bold text-white text-lg">Cuidado de Confianza</p>
+                  <p className="text-sm text-gray-400">Especialistas Certificados</p>
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
         </div>
       </section>

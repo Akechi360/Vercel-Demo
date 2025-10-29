@@ -384,7 +384,7 @@ export default function LandingPage() {
               const Icon = benefit.icon;
               return (
                 <StaggerItem key={index}>
-                  <TiltedCard showTooltip tooltipText={benefit.title} className="group">
+                  <TiltedCard className="group">
                     <AnimatedCard className="h-full text-center p-8 hover:shadow-2xl hover:shadow-urovital-blue/20 transition-all duration-300 border-0 bg-gradient-to-br from-white to-urovital-blue-light/5 dark:from-card dark:to-urovital-blue/5 group-hover:scale-105 rounded-xl">
                       <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6 ${benefit.color} group-hover:scale-110 transition-transform duration-300`}>
                         <Icon className="w-8 h-8" />
@@ -502,7 +502,7 @@ export default function LandingPage() {
               const Icon = specialty.icon;
               return (
                 <StaggerItem key={index}>
-                  <TiltedCard showTooltip tooltipText={specialty.title} className="group">
+                  <TiltedCard className="group">
                     <AnimatedCard className="h-full text-center p-8 hover:shadow-2xl hover:shadow-urovital-blue/20 transition-all duration-300 border-0 bg-gradient-to-br from-white to-urovital-blue-light/5 dark:from-card dark:to-urovital-blue/5 group-hover:scale-105 rounded-xl">
                       <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6 ${specialty.color} group-hover:scale-110 transition-transform duration-300`}>
                         <Icon className="w-8 h-8" />
@@ -562,7 +562,7 @@ export default function LandingPage() {
                 )}
                 
                 {/* Card con altura fija idéntica */}
-                <TiltedCard showTooltip tooltipText={plan.name} className="group">
+                <TiltedCard className="group">
                 <AnimatedCard className={cn(
                   "flex flex-col h-[520px] rounded-2xl shadow-lg hover:shadow-2xl hover:shadow-urovital-blue/20 transition-all duration-300 card-gradient group border-2",
                   plan.popular 
@@ -708,7 +708,7 @@ export default function LandingPage() {
           <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto" staggerDelay={0.15}>
             {allies.map((ally, index) => (
               <StaggerItem key={index}>
-                <TiltedCard showTooltip tooltipText={ally.name} className="group">
+                <TiltedCard className="group">
                   <div className="bg-white dark:bg-card rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-105 flex flex-col items-center text-center h-full">
                     <div className="mb-6">
                       <Image

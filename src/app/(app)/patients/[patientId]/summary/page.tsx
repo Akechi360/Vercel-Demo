@@ -1,5 +1,6 @@
 'use client';
 import { getPatientById, getAppointments, getConsultationsByUserId, getIpssScoresByUserId, getLatestPsaByUserId } from '@/lib/actions';
+import { HeartbeatLoader } from '@/components/ui/heartbeat-loader';
 import { use, useEffect, useState } from 'react';
 import PatientSummaryClient from '@/components/patients/patient-summary-client';
 import type { Patient, Appointment, Consultation, IpssScore } from '@/lib/types';
@@ -65,7 +66,7 @@ export default function PatientSummaryPage({ params }: { params: Promise<{ patie
     }, [patientId, canView]);
 
     if (loading) {
-        return <div>Cargando resumen...</div>;
+        return <HeartbeatLoader text="Cargando resumen..." size="md" />;
     }
 
     if (!canView) {

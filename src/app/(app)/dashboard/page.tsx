@@ -12,7 +12,7 @@ import { useEffect, useState, useRef } from 'react';
 import type { Patient, Appointment, IpssScore } from '@/lib/types';
 import { isToday, isYesterday, subMonths } from 'date-fns';
 import { RoleBasedContent } from '@/components/shared/role-based-content';
-import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton';
+import { HeartbeatLoader } from '@/components/ui/heartbeat-loader';
 import { FadeInSection } from '@/components/animations/fade-in-section';
 import { motion } from 'framer-motion';
 
@@ -118,7 +118,7 @@ export default function DashboardPage() {
     }, [currentUser?.userId, currentUser?.role]); // ✅ Solo dependencias estables
 
     if (!stats) {
-        return <DashboardSkeleton />
+        return <HeartbeatLoader text="Cargando estadísticas..." size="md" />;
     }
 
     const patientStatCards = [

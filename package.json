@@ -85,6 +85,7 @@
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.54.2",
+    "react-loading-indicators": "^1.0.1",
     "recharts": "^2.15.1",
     "sweetalert2": "^11.12.3",
     "sweetalert2-react-content": "^5.0.7",

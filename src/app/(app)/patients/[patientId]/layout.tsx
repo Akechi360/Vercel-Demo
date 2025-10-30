@@ -1,5 +1,6 @@
 'use client';
 import { getCompanyById, getPatientById } from '@/lib/actions';
+import { HeartbeatLoader } from '@/components/ui/heartbeat-loader';
 import { usePathname } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
 import PatientDetailHeader from '@/components/patients/patient-detail-header';
@@ -84,8 +85,7 @@ export default function PatientDetailLayout({
   }
 
   if (!patient) {
-    // You can show a loading skeleton here
-    return <div>Cargando...</div>;
+    return <HeartbeatLoader text="Cargando información del paciente..." size="md" />;
   }
 
   const handlePatientUpdated = (updatedPatient: PatientWithCompany) => {

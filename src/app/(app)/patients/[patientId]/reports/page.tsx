@@ -6,6 +6,7 @@ import { useAuth } from "@/components/layout/auth-provider";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShieldBan } from "lucide-react";
 import type { Report } from "@/lib/types";
+import { HeartbeatLoader } from "@/components/ui/heartbeat-loader";
 
 function DeniedAccess() {
     return (
@@ -39,7 +40,7 @@ export default function PatientReportsPage({ params }: { params: Promise<{ patie
     }, [patientId, canView]);
 
     if (loading) {
-        return <div>Cargando informes...</div>;
+        return <HeartbeatLoader text="Cargando informes..." size="md" />;
     }
     
     if (!canView) {

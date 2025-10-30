@@ -1,20 +1,7 @@
-import { Loader2 } from 'lucide-react';
+// Este archivo se mantiene para compatibilidad con importaciones existentes
+// La implementación se ha movido a heartbeat-loader.tsx
 
-interface LoadingSpinnerProps {
-  size?: 'sm' | 'md' | 'lg';
-  className?: string;
-}
+export { LoadingSpinner, InlineLoader } from './heartbeat-loader';
 
-export function LoadingSpinner({ size = 'md', className = '' }: LoadingSpinnerProps) {
-  const sizeClasses = {
-    sm: 'h-4 w-4',
-    md: 'h-6 w-6',
-    lg: 'h-8 w-8',
-  };
-
-  return (
-    <div className={`flex items-center justify-center ${className}`}>
-      <Loader2 className={`animate-spin ${sizeClasses[size]}`} />
-    </div>
-  );
-}
+// Nota: Este archivo se mantiene para compatibilidad con importaciones existentes.
+// Las nuevas implementaciones deben importar directamente desde './heartbeat-loader'

@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { motion, useInView } from 'framer-motion';
 import { TextHighlight } from '@/components/ui/text-highlight';
+import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
 import { cn } from '@/lib/utils';
 import { ScrollReveal } from '@/components/animations/scroll-reveal';
 import { AnimatedCounter } from '@/components/animations/animated-counter';
@@ -734,8 +735,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Final CTA Section */}
-      <section className="relative py-24 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 overflow-hidden">
+      {/* CTA Section - with light/dark mode */}
+      <section className="relative py-24 bg-gradient-to-b from-white via-gray-50 to-white dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 overflow-hidden">
         {/* Subtle pattern overlay */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-urovital-blue/5 via-transparent to-transparent" />
         
@@ -747,23 +748,33 @@ export default function LandingPage() {
             transition={{ duration: 0.6 }}
             className="max-w-5xl mx-auto text-center space-y-8"
           >
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white leading-tight">
               ¿Listo para mejorar tu salud?
             </h2>
             
-            <p className="text-xl md:text-2xl text-gray-300 leading-relaxed">
-              Únete a{" "}
-              <TextHighlight className="bg-urovital-blue text-white px-3 py-1 rounded-md">
-                miles de pacientes
-              </TextHighlight>{" "}
-              que ya confían en{" "}
-              <TextHighlight className="bg-urovital-blue text-white px-3 py-1 rounded-md">
-                UroVital
-              </TextHighlight>{" "}
-              para su cuidado médico integral.
-            </p>
+            <div className="text-xl md:text-2xl text-gray-700 dark:text-gray-300 leading-relaxed">
+              <span>Únete a </span>
+              <TextHighlight>
+                <TextGenerateEffect 
+                  words="miles de pacientes" 
+                  duration={0.5} 
+                  filter={true}
+                  className="inline-block"
+                />
+              </TextHighlight>
+              <span> que ya confían en </span>
+              <TextHighlight>
+                <TextGenerateEffect 
+                  words="UroVital" 
+                  duration={0.5}
+                  filter={true}
+                  className="inline-block"
+                />
+              </TextHighlight>
+              <span> para su cuidado médico integral.</span>
+            </div>
             
-            <p className="text-lg text-gray-400">
+            <p className="text-lg text-gray-600 dark:text-gray-400">
               Tu bienestar es nuestra prioridad.
             </p>
             
@@ -789,14 +800,18 @@ export default function LandingPage() {
             transition={{ duration: 0.5, delay: 0.4 }}
             className="max-w-md mx-auto mt-16"
           >
-            <Card className="border-urovital-blue/30 bg-slate-800/50 backdrop-blur-sm shadow-xl">
+            <Card className="border-gray-200 dark:border-urovital-blue/30 bg-white dark:bg-slate-800/50 backdrop-blur-sm shadow-xl">
               <CardContent className="flex items-center gap-4 p-6">
-                <div className="bg-urovital-blue/20 p-4 rounded-full">
+                <div className="bg-urovital-blue/10 dark:bg-urovital-blue/20 p-4 rounded-full">
                   <ShieldCheck className="w-8 h-8 text-urovital-blue" />
                 </div>
                 <div className="text-left">
-                  <p className="font-bold text-white text-lg">Cuidado de Confianza</p>
-                  <p className="text-sm text-gray-400">Especialistas Certificados</p>
+                  <p className="font-bold text-gray-900 dark:text-white text-lg">
+                    Cuidado de Confianza
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Especialistas Certificados
+                  </p>
                 </div>
               </CardContent>
             </Card>

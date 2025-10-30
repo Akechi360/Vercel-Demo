@@ -4,38 +4,10 @@ import { PatientListWrapper } from '@/components/patients/patient-list-wrapper';
 import { PageHeader } from '@/components/shared/page-header';
 import { useEffect, useState } from 'react';
 import type { Company, Patient } from '@/lib/types';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/components/layout/auth-provider';
 import { redirect } from 'next/navigation';
+import { HeartbeatLoader } from '@/components/ui/heartbeat-loader';
 
-function PatientPageSkeleton() {
-    return (
-        <div className="flex flex-col gap-8">
-            <PageHeader title="Pacientes" />
-            <div className="space-y-6">
-                <div className="flex flex-col gap-4">
-                    <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
-                        <div className="flex-1 w-full flex gap-4">
-                            <Skeleton className="h-10 w-full sm:max-w-xs" />
-                            <Skeleton className="h-10 w-24" />
-                            <Skeleton className="h-10 w-10" />
-                        </div>
-                        <Skeleton className="h-10 w-full sm:w-auto px-6" />
-                    </div>
-                </div>
-                <div className="rounded-lg border bg-card">
-                    <div className="p-4">
-                        <Skeleton className="h-8 w-full" />
-                        <Skeleton className="h-8 w-full mt-2" />
-                        <Skeleton className="h-8 w-full mt-2" />
-                        <Skeleton className="h-8 w-full mt-2" />
-                        <Skeleton className="h-8 w-full mt-2" />
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
 
 
 export default function PatientsPage() {
@@ -60,7 +32,7 @@ export default function PatientsPage() {
   }
 
   if (loading || !initialPatients || !initialCompanies) {
-    return <PatientPageSkeleton />;
+    return <HeartbeatLoader text="Cargando pacientes..." size="md" />;
   }
 
   return (

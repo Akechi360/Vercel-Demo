@@ -10,31 +10,31 @@ export const TextHighlight = ({
   className?: string;
 }) => {
   return (
-    <motion.span
-      initial={{
-        backgroundSize: "0% 100%",
-      }}
-      whileInView={{
-        backgroundSize: "100% 100%",
-      }}
-      viewport={{ once: true }}
-      transition={{
-        duration: 1.2,
-        ease: "easeInOut",
-        delay: 0.3,
-      }}
-      style={{
-        backgroundImage: 'linear-gradient(to right, #0080FF, #0080FF)',
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'left center',
-        display: 'inline',
-      }}
-      className={cn(
-        "relative inline-block px-3 py-1 rounded-md text-white",
-        className
-      )}
-    >
-      {children}
-    </motion.span>
+    <span className="relative inline-block">
+      <motion.span
+        initial={{
+          width: "0%",
+        }}
+        whileInView={{
+          width: "100%",
+        }}
+        viewport={{ once: true }}
+        transition={{
+          duration: 1.2,
+          ease: "easeInOut",
+          delay: 0.3,
+        }}
+        className={cn(
+          "absolute inset-0 z-0 bg-urovital-blue rounded-md",
+          className
+        )}
+        style={{
+          transformOrigin: 'left center',
+        }}
+      />
+      <span className="relative z-10 px-3 py-1 text-white">
+        {children}
+      </span>
+    </span>
   );
 };

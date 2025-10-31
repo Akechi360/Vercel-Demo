@@ -1,6 +1,7 @@
 import { useAuth } from '@/components/layout/auth-provider';
-import { useUsers } from '@/lib/store/global-store';
+import { useUsers, useGlobalStore } from '@/lib/store/global-store';
 import { useEffect, useState } from 'react';
+import { getCurrentUserFresh } from '@/lib/actions';
 
 interface UserStatus {
   id: string;
@@ -20,6 +21,7 @@ export function useUnifiedUserStatus(userId?: string): UseUnifiedUserStatusRetur
   const { currentUser, isAuthenticated, loading: authLoading } = useAuth();
   const { users, loading: usersLoading, error: usersError, refresh } = useUsers();
   const [localError, setLocalError] = useState<string | null>(null);
+  const [isFetchingUser, setIsFetchingUser] = useState(false);
   
   // Use provided userId or fallback to currentUser.id
   const targetUserId = userId || currentUser?.id;
@@ -49,15 +51,40 @@ export function useUnifiedUserStatus(userId?: string): UseUnifiedUserStatusRetur
     userId: user.userId || null,
   } : null;
   
+  // Fetch user directly if not found in store
+  useEffect(() => {
+    const fetchUserDirectly = async () => {
+      if (shouldFetch && !user && !usersLoading && !isFetchingUser) {
+        try {
+          setIsFetchingUser(true);
+          const freshUser = await getCurrentUserFresh(targetUserId!);
+          if (freshUser) {
+            // Update the store with the fresh user data
+            const { setUsers } = useGlobalStore.getState();
+            setUsers([...users, freshUser]);
+          }
+        } catch (error) {
+          console.error('Error fetching user directly:', error);
+          setLocalError('Failed to fetch user data');
+        } finally {
+          setIsFetchingUser(false);
+        }
+      }
+    };
+    
+    fetchUserDirectly();
+  }, [shouldFetch, user, users, usersLoading, targetUserId, isFetchingUser]);
+  
   // Auto-refresh if user not found and we should fetch
   useEffect(() => {
-    if (shouldFetch && !user && !usersLoading) {
+    if (shouldFetch && !user && !usersLoading && !isFetchingUser) {
       console.log('🔄 User not found in store, refreshing users list...');
       refresh().catch(err => {
         console.error('❌ Failed to refresh users list:', err);
+        setLocalError('Failed to refresh users list');
       });
     }
-  }, [shouldFetch, user, usersLoading, refresh]);
+  }, [shouldFetch, user, usersLoading, refresh, isFetchingUser]);
   
   // Handle errors
   useEffect(() => {
@@ -71,7 +98,7 @@ export function useUnifiedUserStatus(userId?: string): UseUnifiedUserStatusRetur
     }
   }, [usersError]);
   
-  const isLoading = authLoading || usersLoading;
+  const isLoading = authLoading || usersLoading || isFetchingUser;
   const error = localError || usersError;
   
   // Log when we can't find the user but have users loaded

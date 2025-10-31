@@ -14,7 +14,7 @@ interface PatientAccessGateProps {
 
 export function PatientAccessGate({ children }: PatientAccessGateProps) {
   const { currentUser, isAuthenticated, loading: authLoading } = useAuth();
-  const { userStatus, isLoading: statusLoading } = useUnifiedUserStatus(currentUser?.id);
+  const { userStatus, isLoading: statusLoading, error } = useUnifiedUserStatus(currentUser?.id);
   const router = useRouter();
 
   // Listen for user data updates from admin changes
@@ -45,12 +45,13 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
       authLoading,
       currentUser: currentUser ? { id: currentUser.id, role: currentUser.role } : null,
       userStatus,
-      statusLoading
+      statusLoading,
+      error
     });
   }
 
-  // Show loading state only when authentication is in progress
-  if (authLoading) {
+  // Show loading state when authentication is in progress or when we're still loading user status
+  if (authLoading || (isAuthenticated && statusLoading && !userStatus)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -66,51 +67,34 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
     return <>{children}</>;
   }
 
-  // If we have user status, check restrictions
-  if (userStatus) {
-    const isRestricted = userStatus.role === 'patient' && userStatus.status === 'INACTIVE';
-    
-    if (isRestricted) {
-      return <RestrictedNotice />;
-    }
-    
-    return <>{children}</>;
+  // If we have an error but user data is available, log it but continue
+  if (error && process.env.NODE_ENV === 'development') {
+    console.warn('Error in user status check:', error);
   }
 
-  // If we don't have user status but user is authenticated
-  if (process.env.NODE_ENV === 'development') {
-    console.warn('⚠️ Could not verify user status, checking local user data', {
-      currentUser: currentUser ? { 
-        id: currentUser.id, 
-        role: currentUser.role,
-        status: currentUser.status 
-      } : null,
-      userStatus,
-      isAuthenticated,
-      authLoading
-    });
-  }
+  // Use userStatus if available, otherwise fall back to currentUser
+  const effectiveStatus = userStatus || {
+    id: currentUser.id,
+    role: currentUser.role,
+    status: currentUser.status || 'ACTIVE',
+    userId: currentUser.id
+  };
 
-  // If we have currentUser data but no userStatus, use currentUser data for access control
-  if (currentUser) {
-    const isRestricted = currentUser.role === 'patient' && currentUser.status === 'INACTIVE';
-    
-    if (isRestricted) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔒 Restricting access based on local user data');
-      }
-      return <RestrictedNotice />;
-    }
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('✅ Allowing access based on local user data');
-    }
-    return <>{children}</>;
+  // Check restrictions
+  const isRestricted = effectiveStatus.role === 'patient' && effectiveStatus.status === 'INACTIVE';
+  
+  if (isRestricted) {
+    return <RestrictedNotice />;
   }
   
-  // If we can't verify access but user is authenticated, allow access with warning
+  // If we get here, access is allowed
   if (process.env.NODE_ENV === 'development') {
-    console.warn('⚠️ Could not verify access, defaulting to allow');
+    console.log('✅ Allowing access for user:', {
+      id: effectiveStatus.id,
+      role: effectiveStatus.role,
+      status: effectiveStatus.status
+    });
   }
+  
   return <>{children}</>;
 }

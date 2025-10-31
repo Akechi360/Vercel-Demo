@@ -563,12 +563,21 @@ export async function updatePatient(userId: string, patientData: {
         include: { company: true }
       });
 
+      // Calculate age from fechaNacimiento
+      const birthDate = new Date(updatedPatientInfo.fechaNacimiento);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+
       // Return patient in the expected format
       return {
         id: updatedUser.userId,
         name: updatedUser.name,
         cedula: updatedPatientInfo.cedula,
-        age: patientData.age,
+        age,
         gender: patientData.gender,
         bloodType: patientData.bloodType,
         status: 'Activo' as const,
@@ -3758,6 +3767,30 @@ export async function createReceipt(data: {
   }, []);
 }
 
+interface ReceiptResult {
+  id: string;
+  number: string;
+  amount: number | string;
+  concept: string | null;
+  method: string;
+  type: string;
+  paymentType: string;
+  status: string;
+  patientId: string | null;
+  doctorId: string | null;
+  createdById: string | null;
+  plan: string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  patientName: string | null;
+  patientCedula: string | null;
+  patientEmail: string | null;
+  createdByName: string | null;
+  createdByEmail: string | null;
+  doctorName: string | null;
+  doctorEmail: string | null;
+}
+
 export async function getReceipts(): Promise<any[]> {
   try {
     if (!isDatabaseAvailable()) {
@@ -3766,19 +3799,57 @@ export async function getReceipts(): Promise<any[]> {
 
     const prisma = getPrisma();
     
-    const receipts = await prisma.receipt.findMany({
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    // Using raw query to get all necessary data in one go
+    const receipts = await prisma.$queryRaw<ReceiptResult[]>`
+      SELECT 
+        r.*,
+        u.name as "patientName",
+        pi.cedula as "patientCedula",
+        u.email as "patientEmail",
+        cu.name as "createdByName",
+        cu.email as "createdByEmail",
+        du.name as "doctorName",
+        du.email as "doctorEmail"
+      FROM "Receipt" r
+      LEFT JOIN "User" u ON r."patientId" = u.id
+      LEFT JOIN "patient_info" pi ON u.id = pi."userId"
+      LEFT JOIN "User" cu ON r."createdById" = cu.id
+      LEFT JOIN "doctor_info" d ON r."doctorId" = d.id
+      LEFT JOIN "User" du ON d."userId" = du.id
+      ORDER BY r."createdAt" DESC
+    `;
 
-    return receipts.map(receipt => ({
-      ...receipt,
-      amount: receipt.amount.toNumber(),
-      createdAt: receipt.createdAt.toISOString(),
-      patientName: 'Paciente', // Placeholder since we're not joining with users
-      patientCedula: 'No especificada'
-    }));
+    return receipts.map(receipt => {
+      // Get patient data with fallbacks
+      const patientName = receipt.patientName || 'Paciente no especificado';
+      const patientCedula = receipt.patientCedula || 'No especificada';
+      
+      // Get doctor data with fallbacks
+      const doctorName = receipt.doctorName ? `Dr. ${receipt.doctorName}` : 'Dr. No especificado';
+      
+      // Get creator data with fallbacks
+      const createdByName = receipt.createdByName || 'Sistema UroVital';
+      
+      // Ensure amount is a number
+      const amount = typeof receipt.amount === 'string' 
+        ? parseFloat(receipt.amount) 
+        : Number(receipt.amount);
+      
+      // Ensure createdAt is a string
+      const createdAt = receipt.createdAt instanceof Date 
+        ? receipt.createdAt.toISOString() 
+        : new Date(receipt.createdAt || new Date()).toISOString();
+      
+      return {
+        ...receipt,
+        amount,
+        createdAt,
+        patientName,
+        patientCedula,
+        doctorName,
+        createdBy: { name: createdByName }
+      };
+    });
   } catch (error) {
     console.error('Error fetching receipts:', error);
     return [];

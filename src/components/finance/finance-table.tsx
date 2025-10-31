@@ -394,9 +394,14 @@ export function FinanceTable({
       doc.text("Datos del Paciente:", margin, y);
       y += 8;
       doc.setFont("helvetica", "normal");
-      doc.text(`Nombre: ${receipt.patientName}`, margin, y);
+      
+      // Get patient data with fallbacks
+      const patientName = receipt.user?.name || receipt.patientName || 'No especificado';
+      const patientCedula = receipt.user?.cedula || receipt.patientCedula || 'No especificada';
+      
+      doc.text(`Nombre: ${patientName}`, margin, y);
       y += 6;
-      doc.text(`Cédula: ${receipt.patientCedula}`, margin, y);
+      doc.text(`Cédula: ${patientCedula}`, margin, y);
       y += 10;
 
       // Payment details
@@ -404,24 +409,32 @@ export function FinanceTable({
       doc.text("Detalles del Pago:", margin, y);
       y += 8;
       doc.setFont("helvetica", "normal");
-      doc.text(`Concepto: ${receipt.concept}`, margin, y);
+      doc.text(`Concepto: ${receipt.concept || 'No especificado'}`, margin, y);
       y += 6;
-      doc.text(`Monto: $${Number(receipt.amount).toFixed(2)}`, margin, y);
+      doc.text(`Monto: $${Number(receipt.amount || 0).toFixed(2)}`, margin, y);
       y += 6;
-      doc.text(`Método de pago: ${receipt.method}`, margin, y);
+      doc.text(`Método de pago: ${receipt.method || 'No especificado'}`, margin, y);
       y += 6;
       doc.text(`Estado: ${receipt.status || 'Pagado'}`, margin, y);
       y += 6;
-      doc.text(`Emitido por: ${receipt.createdBy}`, margin, y);
+      
+      // Get doctor/creator name with fallback
+      const createdByName = receipt.createdBy?.name || 'Sistema UroVital';
+      doc.text(`Emitido por: ${createdByName}`, margin, y);
       y += 10;
 
       // Footer
       doc.setFontSize(8);
       doc.setTextColor(100);
-      doc.text("Emitido automáticamente por UroVital © 2025", doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: "center" });
+      
+      // Get current user name or use system as fallback
+      const currentUser = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : null;
+      const emittedBy = currentUser?.name ? `Emitido por: ${currentUser.name} - UroVital 2025` : 'Emitido por: Sistema UroVital - 2025';
+      
+      doc.text(emittedBy, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: "center" });
 
       // Download PDF
-      const fileName = `Comprobante_${receipt.number}.pdf`;
+      const fileName = `Comprobante_${receipt.number || 'sin_numero'}.pdf`;
       doc.save(fileName);
 
     } catch (error) {

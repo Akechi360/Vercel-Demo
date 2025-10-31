@@ -13,19 +13,18 @@ interface PatientAccessGateProps {
 }
 
 export function PatientAccessGate({ children }: PatientAccessGateProps) {
-  const { currentUser, isAuthenticated, loading } = useAuth();
-  const { userStatus, isLoading, error, refresh } = useUnifiedUserStatus(currentUser?.id);
+  const { currentUser, isAuthenticated, loading: authLoading } = useAuth();
+  const { userStatus, isLoading: statusLoading } = useUnifiedUserStatus(currentUser?.id);
   const router = useRouter();
 
-  // Listen for user data updates from admin changes and trigger SWR revalidation
+  // Listen for user data updates from admin changes
   useEffect(() => {
     const handleUserDataUpdate = async (event: unknown) => {
       const customEvent = event as CustomEvent;
-      console.log('🔄 User data updated, triggering SWR revalidation...', customEvent.detail);
+      console.log('🔄 User data updated, triggering update...', customEvent.detail);
       
       const updatedUser = customEvent.detail;
       
-      // If this is the current user, trigger global store update
       if (updatedUser && updatedUser.id === currentUser?.id) {
         console.log('🔄 Current user updated, updating global store...');
         globalEventBus.emitUserUpdate(updatedUser);
@@ -37,27 +36,21 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
     return () => {
       window.removeEventListener('userDataUpdated', handleUserDataUpdate as EventListener);
     };
-  }, [currentUser]); // Removed refresh to prevent infinite loop
+  }, [currentUser]);
 
-  // Check if user should be restricted based on fresh server data
-  // ONLY restrict patients with INACTIVE status, never restrict ACTIVE patients
-  const isRestricted = userStatus && 
-    userStatus.role === 'patient' && 
-    userStatus.status === 'INACTIVE';
+  // Debug logging
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 PatientAccessGate status:', {
+      isAuthenticated,
+      authLoading,
+      currentUser: currentUser ? { id: currentUser.id, role: currentUser.role } : null,
+      userStatus,
+      statusLoading
+    });
+  }
 
-  // Debug logging to ensure correct restriction logic
-  console.log('🔍 PatientAccessGate restriction check:', {
-    userStatus,
-    role: userStatus?.role,
-    status: userStatus?.status,
-    userId: userStatus?.userId,
-    isRestricted,
-    isAdmin: userStatus?.role === 'ADMIN' || userStatus?.role === 'admin' || userStatus?.role === 'master',
-    restrictionLogic: userStatus?.role === 'patient' && userStatus?.status === 'INACTIVE',
-  });
-
-  // Show loading state while authenticating or fetching user status
-  if (loading || (isLoading && !userStatus)) {
+  // Show loading state only when authentication is in progress
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -68,33 +61,56 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
     );
   }
 
-  // If user is not authenticated, show children (let AuthProvider handle redirect)
+  // If not authenticated, let AuthProvider handle the redirect
   if (!isAuthenticated || !currentUser) {
     return <>{children}</>;
   }
 
-  // If there's an error fetching user status, use localStorage fallback
-  if (error) {
-    console.error('❌ Error fetching user status:', error);
-    console.log('🔄 Using localStorage fallback for user:', currentUser);
+  // If we have user status, check restrictions
+  if (userStatus) {
+    const isRestricted = userStatus.role === 'patient' && userStatus.status === 'INACTIVE';
     
-    // Fallback to localStorage data if API fails
-    const shouldRestrict = currentUser.role === 'patient' && 
-      currentUser.status === 'INACTIVE';
-    
-    if (shouldRestrict) {
+    if (isRestricted) {
       return <RestrictedNotice />;
     }
     
-    // If no restriction needed, show children
     return <>{children}</>;
   }
 
-  // If user is restricted, show restricted notice
-  if (isRestricted) {
-    return <RestrictedNotice />;
+  // If we don't have user status but user is authenticated
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('⚠️ Could not verify user status, checking local user data', {
+      currentUser: currentUser ? { 
+        id: currentUser.id, 
+        role: currentUser.role,
+        status: currentUser.status 
+      } : null,
+      userStatus,
+      isAuthenticated,
+      authLoading
+    });
   }
 
-  // User has access, show content
+  // If we have currentUser data but no userStatus, use currentUser data for access control
+  if (currentUser) {
+    const isRestricted = currentUser.role === 'patient' && currentUser.status === 'INACTIVE';
+    
+    if (isRestricted) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔒 Restricting access based on local user data');
+      }
+      return <RestrictedNotice />;
+    }
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ Allowing access based on local user data');
+    }
+    return <>{children}</>;
+  }
+  
+  // If we can't verify access but user is authenticated, allow access with warning
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('⚠️ Could not verify access, defaulting to allow');
+  }
   return <>{children}</>;
 }

@@ -44,6 +44,9 @@ model User {
   ipssScores                 IpssScore[]                 @relation("PatientIpssScores")
   ipssCreated                IpssScore[]                 @relation("DoctorIpssScores")
   patientReports             Report[]                    @relation("PatientReports")
+  patientReceipts            Receipt[]                   @relation("PatientReceipts")
+  doctorReceipts             Receipt[]                   @relation("DoctorReceipts")
+  createdReceipts            Receipt[]                   @relation("CreatedReceipts")
 
   @@map("users")
 }
@@ -401,17 +404,23 @@ model Receipt {
   id            String   @id @default(cuid())
   number        String   @unique
   amount        Decimal  @db.Decimal(10, 2)
-  concept       String
+  concept       String?
   method        String
-  type          String   // "Consulta" or "Afiliación"
-  paymentType   String   // "Contado" or "Crédito"
-  doctorId      String?  // Optional
-  plan          String?  // Optional
+  type          String   // 'Consulta' | 'Afiliación'
+  paymentType   String   // 'Contado' | 'Crédito'
+  status        String   @default("PAGADO")
+  patientId     String?
+  doctorId      String?
+  createdById   String?
+  plan          String?
   createdAt     DateTime @default(now())
-  createdBy     String?
-  patientUserId String
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  patient       User?    @relation("PatientReceipts", fields: [patientId], references: [userId])
+  doctor        User?    @relation("DoctorReceipts", fields: [doctorId], references: [userId])
+  createdBy     User?    @relation("CreatedReceipts", fields: [createdById], references: [userId])
 
-  @@index([patientUserId])
   @@map("receipts")
 }
 

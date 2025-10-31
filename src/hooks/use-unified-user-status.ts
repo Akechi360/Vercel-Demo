@@ -25,14 +25,18 @@ export function useUnifiedUserStatus(userId?: string): UseUnifiedUserStatusRetur
   const targetUserId = userId || currentUser?.id;
   const shouldFetch = isAuthenticated && targetUserId && !authLoading;
   
-  console.log('🔍 useUnifiedUserStatus called with:', {
-    providedUserId: userId,
-    currentUserId: currentUser?.id,
-    targetUserId,
-    isAuthenticated,
-    authLoading,
-    shouldFetch,
-  });
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 useUnifiedUserStatus:', {
+      providedUserId: userId,
+      currentUserId: currentUser?.id,
+      targetUserId,
+      isAuthenticated,
+      authLoading,
+      shouldFetch,
+      usersCount: users?.length || 0,
+      usersLoading
+    });
+  }
   
   // Find user in global store
   const user = users.find(u => u.id === targetUserId);
@@ -48,15 +52,20 @@ export function useUnifiedUserStatus(userId?: string): UseUnifiedUserStatusRetur
   // Auto-refresh if user not found and we should fetch
   useEffect(() => {
     if (shouldFetch && !user && !usersLoading) {
-      console.log('🔄 User not found in store, refreshing...');
-      refresh();
+      console.log('🔄 User not found in store, refreshing users list...');
+      refresh().catch(err => {
+        console.error('❌ Failed to refresh users list:', err);
+      });
     }
-  }, [shouldFetch, user, usersLoading]); // Removed refresh to prevent infinite loop
+  }, [shouldFetch, user, usersLoading, refresh]);
   
   // Handle errors
   useEffect(() => {
     if (usersError) {
-      setLocalError(usersError);
+      console.error('❌ Error in useUnifiedUserStatus:', usersError);
+      // Safely convert any error type to string
+      const errorMessage = usersError ? String(usersError) : 'Unknown error';
+      setLocalError(errorMessage);
     } else {
       setLocalError(null);
     }
@@ -64,6 +73,17 @@ export function useUnifiedUserStatus(userId?: string): UseUnifiedUserStatusRetur
   
   const isLoading = authLoading || usersLoading;
   const error = localError || usersError;
+  
+  // Log when we can't find the user but have users loaded
+  useEffect(() => {
+    if (!isLoading && !user && users.length > 0 && targetUserId) {
+      console.warn('⚠️ User not found in store:', {
+        targetUserId,
+        availableUserIds: users.map(u => u.id).slice(0, 10), // Show first 10 user IDs for debugging
+        totalUsers: users.length
+      });
+    }
+  }, [user, users, isLoading, targetUserId]);
   
   return {
     userStatus,

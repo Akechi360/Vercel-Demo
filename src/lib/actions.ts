@@ -869,14 +869,30 @@ export async function getDoctorsWithUsers(): Promise<Doctor[]> {
 export async function getDoctors() {
   return withDatabase(async (prisma) => {
     try {
-      console.log('🔍 Fetching doctors...');
+      console.log('🔍 Fetching doctors with doctorInfo...');
       
+      // Primero obtenemos los IDs de usuarios que tienen doctorInfo
+      const doctorsWithInfo = await prisma.doctorInfo.findMany({
+        select: {
+          userId: true
+        }
+      });
+      
+      const doctorUserIds = doctorsWithInfo.map((doc: { userId: string }) => doc.userId);
+      
+      if (doctorUserIds.length === 0) {
+        console.log('ℹ️ No se encontraron doctores con información en doctor_info');
+        return [];
+      }
+      
+      // Luego obtenemos los usuarios que tienen doctorInfo
       const doctors = await prisma.user.findMany({
         where: { 
-          role: 'Doctor',
+          userId: { in: doctorUserIds },
           status: 'ACTIVE'
         },
         select: {
+          id: true,
           userId: true,
           name: true,
           email: true,
@@ -886,11 +902,14 @@ export async function getDoctors() {
           avatarUrl: true,
           doctorInfo: {
             select: {
+              id: true,
               especialidad: true,
               area: true,
               cedula: true,
               telefono: true,
-              direccion: true
+              direccion: true,
+              email: true,
+              contacto: true
             }
           }
         },
@@ -899,13 +918,13 @@ export async function getDoctors() {
         }
       });
       
-      console.log(`✅ Found ${doctors.length} doctors`);
+      console.log(`✅ Found ${doctors.length} doctors with complete info`);
       return doctors;
       
     } catch (error) {
       console.error('❌ Error fetching doctors:', error);
       console.error('Full error details:', JSON.stringify(error, null, 2));
-      return []; // Return empty array instead of throwing
+      return [];
     }
   }, []);
 }
@@ -2063,6 +2082,35 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
         console.error('⚠️ Error creando PatientInfo (no crítico):', patientInfoError);
         // No fallar el registro si PatientInfo falla - se puede crear después
       }
+    } 
+    // ✨ Si es doctor, crear DoctorInfo automáticamente
+    else if (data.role.toLowerCase() === 'doctor') {
+      try {
+        console.log('🔄 Creando registro de doctor para el usuario:', newUser.userId);
+        
+        const doctorCedula = `MD-${Date.now().toString().slice(-6)}`;
+        const doctorData = {
+          userId: newUser.userId,
+          cedula: doctorCedula,
+          especialidad: 'Urología', // Especialidad por defecto
+          telefono: data.phone || newUser.phone || '',
+          direccion: '',
+          area: 'Urología General', // Área por defecto
+          contacto: data.name || newUser.name || '',
+          email: data.email || newUser.email || ''
+        };
+        
+        console.log('📝 Datos del doctor a crear:', JSON.stringify(doctorData, null, 2));
+        
+        const doctorInfo = await prisma.doctorInfo.create({
+          data: doctorData
+        });
+        
+        console.log('✅ Registro de doctor creado exitosamente:', doctorInfo);
+      } catch (doctorInfoError) {
+        console.error('⚠️ Error creando DoctorInfo (no crítico):', doctorInfoError);
+        // No fallar el registro si DoctorInfo falla - se puede crear después
+      }
     }
 
     // Create audit log for user creation
@@ -2182,36 +2230,56 @@ export async function getCurrentUserIdFromRequest(): Promise<string | null> {
 
 // Helper function to create doctor record when user role changes to "Doctor"
 export async function ensureDoctorRecord(userId: string, userData: Partial<User>): Promise<string | null> {
+  console.log(`🔍 Verificando/creando registro de doctor para usuario: ${userId}`);
+  
   try {
-    
     const doctorId = await withDatabase(async (prisma) => {
-      // Check if doctor record already exists
+      // Verificar si el usuario existe y obtener sus datos
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true, email: true, phone: true }
+      });
+
+      if (!user) {
+        console.error('❌ Usuario no encontrado al crear registro de doctor');
+        return null;
+      }
+
+      // Verificar si ya existe un registro de doctor
       const existingDoctor = await prisma.doctorInfo.findUnique({
         where: { userId: userId }
       });
       
       if (existingDoctor) {
+        console.log('✅ Registro de doctor ya existe:', existingDoctor.id);
         return existingDoctor.id;
       }
       
-      // Create new doctor record
+      // Crear nuevo registro de doctor
       const newDoctor = await prisma.doctorInfo.create({
         data: {
           userId: userId,
-          especialidad: 'Urología', // Default specialty
-          cedula: `V-${Date.now()}`, // Generate unique cedula
-          telefono: userData.phone || '',
+          especialidad: 'Urología', // Especialidad por defecto
+          cedula: `MD-${Date.now().toString().slice(-6)}`, // Ejemplo: MD-123456
+          telefono: userData.phone || user.phone || '',
           direccion: '',
           area: 'Urología General',
-          contacto: userData.name || 'Dr. Usuario'
+          contacto: userData.name || user.name || 'Dr. Usuario',
+          email: userData.email || user.email || ''
         }
       });
+      
+      console.log('✅ Nuevo registro de doctor creado:', newDoctor);
       return newDoctor.id;
     });
     
     return doctorId;
   } catch (error) {
-    console.error('❌ Error ensuring doctor record:', error);
+    console.error('❌ Error en ensureDoctorRecord:', {
+      userId,
+      error: error instanceof Error ? error.message : 'Error desconocido',
+      stack: error instanceof Error ? error.stack : undefined
+    });
     return null;
   }
 }
@@ -2373,57 +2441,70 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
     });
     
     // Update user using withTransaction - atomicidad asegurada
-    const updatedUser = await withTransaction(async (prisma) => {
-      const result = await prisma.user.update({
+    const result = await withTransaction(async (prisma) => {
+      // First update the user
+      const updatedUser = await prisma.user.update({
         where: { id: userId },
         data,
       });
-      return result;
-    });
-    
-    // Handle role changes
-    if (data.role && currentUser && data.role !== currentUser.role) {
-      
-      // Handle changes TO specific roles - Validación de roles estandarizada
-      if (data.role === UserRole.DOCTOR) {
-        // Create doctor record if changing TO doctor
-        const doctorId = await ensureDoctorRecord(userId, {
-          name: data.name || currentUser.name,
-          email: data.email || currentUser.email,
-          phone: data.phone || currentUser.phone
-        });
+
+      // Manejar cambios de rol
+      if (data.role && currentUser && data.role !== currentUser.role) {
+        console.log(`🔄 Cambio de rol detectado: ${currentUser.role} -> ${data.role}`);
+        const newRole = data.role.toLowerCase();
+        const oldRole = currentUser.role?.toLowerCase();
         
-        if (doctorId) {
+        // Manejar cambios DESDE roles específicos
+        if (oldRole === 'doctor' && newRole !== 'doctor') {
+          await removeDoctorRecord(userId);
+        } else if (oldRole === 'promotora' && newRole !== 'promotora') {
+          await removePromotoraRecord(userId);
+        } else if ((oldRole === 'secretaria' || oldRole === 'user') && 
+                  (newRole !== 'secretaria' && newRole !== 'user')) {
+          await removeSecretariaRecord(userId);
+        } else if (oldRole === 'patient' && newRole !== 'patient') {
+          try {
+            await prisma.patientInfo.deleteMany({
+              where: { userId: updatedUser.userId }
+            });
+          } catch (error) {
+            console.error('⚠️ Error eliminando PatientInfo:', error);
+          }
         }
-      } else if (data.role === UserRole.PROMOTORA) {
-        // Create promotora record if changing TO promotora
-        const promotoraId = await ensurePromotoraRecord(userId, {
-          name: data.name || currentUser.name,
-          email: data.email || currentUser.email,
-          phone: data.phone || currentUser.phone
-        });
         
-        if (promotoraId) {
-        }
-      } else if (data.role === UserRole.SECRETARIA) {
-        // Create secretaria record if changing TO secretaria
-        const secretariaId = await ensureSecretariaRecord(userId, {
-          name: data.name || currentUser.name,
-          email: data.email || currentUser.email,
-          phone: data.phone || currentUser.phone
-        });
-        
-        if (secretariaId) {
-        }
-      } else if (data.role === 'patient' || data.role === 'PATIENT') {
-        // ✨ Create patient record if changing TO patient
-        try {
-          await withDatabase(async (prisma) => {
-            // Check if PatientInfo already exists
-            const existingPatientInfo = await prisma.patientInfo.findUnique({
+        // Manejar cambios A roles específicos
+        if (newRole === 'doctor') {
+          try {
+            const existingDoctor = await prisma.doctorInfo.findUnique({
               where: { userId: updatedUser.userId }
             });
             
+            if (!existingDoctor) {
+              await prisma.doctorInfo.create({
+                data: {
+                  userId: updatedUser.userId,
+                  cedula: `MD-${Date.now().toString().slice(-6)}`,
+                  especialidad: 'Urología',
+                  telefono: data.phone || currentUser.phone || '',
+                  direccion: '',
+                  area: 'Urología General',
+                  contacto: data.name || currentUser.name || '',
+                  email: data.email || currentUser.email || ''
+                }
+              });
+              console.log('✅ Registro de doctor creado exitosamente');
+            }
+          } catch (error) {
+            console.error('❌ Error al crear registro de doctor:', error);
+          }
+        } 
+        // Manejar cambios a paciente
+        else if (newRole === 'patient') {
+          try {
+            const existingPatientInfo = await prisma.patientInfo.findUnique({
+              where: { userId: updatedUser.userId }
+            });
+
             if (!existingPatientInfo) {
               const timestamp = Date.now().toString().slice(-8);
               const cedula = `V-${timestamp}-${updatedUser.userId.slice(-4)}`;
@@ -2439,42 +2520,19 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
                   gender: 'Otro'
                 }
               });
-            } else {
+              console.log('✅ Registro de paciente creado exitosamente');
             }
-          });
-        } catch (error) {
-          console.error('⚠️ Error creating PatientInfo:', error);
+          } catch (error) {
+            console.error('⚠️ Error creando registro de paciente:', error);
+          }
         }
       }
-      
-      // Handle changes FROM specific roles - Validación de roles estandarizada
-      if (currentUser.role === UserRole.DOCTOR && data.role !== UserRole.DOCTOR) {
-        // Remove doctor record if changing FROM doctor
-        await removeDoctorRecord(userId);
-      } else if (currentUser.role === UserRole.PROMOTORA && data.role !== UserRole.PROMOTORA) {
-        // Remove promotora record if changing FROM promotora
-        await removePromotoraRecord(userId);
-      } else if (currentUser.role === UserRole.SECRETARIA && data.role !== UserRole.SECRETARIA) {
-        // Remove secretaria record if changing FROM secretaria
-        await removeSecretariaRecord(userId);
-      } else if ((currentUser.role === 'patient' || currentUser.role === 'PATIENT') && 
-                 (data.role !== 'patient' && data.role !== 'PATIENT')) {
-        // ✨ Remove patient record if changing FROM patient
-        try {
-          await withDatabase(async (prisma) => {
-            await prisma.patientInfo.deleteMany({
-              where: { userId: updatedUser.userId }
-            });
-          });
-        } catch (error) {
-          console.error('⚠️ Error removing PatientInfo:', error);
-        }
-      }
-    }
 
-    // If status or role was changed, revalidate relevant routes
+      return updatedUser;
+    });
+
+    // Si se cambió el estado o el rol, revalidar rutas relevantes
     if (data.status || data.role) {
-      // Revalidate patient-related pages to update access gates and dropdowns
       try {
         const { revalidatePath } = await import('next/cache');
         revalidatePath('/(app)/patients');
@@ -2483,20 +2541,19 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
         revalidatePath('/(app)/settings/users');
         revalidatePath('/(app)/afiliaciones');
       } catch (revalidateError) {
-        console.warn('⚠️ Could not revalidate paths:', revalidateError);
+        console.warn('⚠️ No se pudieron revalidar las rutas:', revalidateError);
       }
     }
 
-    // Return updated user data for client-side synchronization
+    // Retornar los datos actualizados del usuario
     return {
-      ...updatedUser,
-      // Ensure the response includes all necessary fields for client sync
-      id: updatedUser.id,
-      name: updatedUser.name,
-      email: updatedUser.email,
-      role: updatedUser.role,
-      status: updatedUser.status,
-      userId: updatedUser.userId,
+      ...result,
+      id: result.id,
+      name: result.name,
+      email: result.email,
+      role: result.role,
+      status: result.status,
+      userId: result.userId,
     };
   } catch (error) {
     console.error('Error updating user:', error);
@@ -3712,59 +3769,137 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
 
 // RECEIPT FUNCTIONS
 export async function createReceipt(data: {
-  userId: string;
-  amount: number;
-  concept?: string;
-  method: string;
-  createdBy?: string;
+  userId: string;           // userId del paciente
+  amount: number;           // Monto del pago
+  method: string;           // Método de pago
   type: 'Consulta' | 'Afiliación';
   paymentType: 'Contado' | 'Crédito';
-  doctorId?: string;
-  plan?: string;
+  createdBy?: string;       // userId del usuario que crea el recibo
+  doctorId?: string;        // userId del doctor (solo para consultas)
+  plan?: string;            // Plan (solo para afiliaciones)
+  notes?: string;           // Notas adicionales
 }) {
   return withDatabase(async (prisma) => {
-    try {
-      // Generate receipt number
-      const now = new Date();
-      const dateStr = now.toISOString().split('T')[0].replace(/-/g, '');
-      
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      
-      const count = await prisma.receipt.count({
-        where: {
-          createdAt: {
-            gte: startOfDay
+    // Iniciar transacción con tipo explícito
+    return await prisma.$transaction(async (tx: typeof prisma) => {
+      try {
+        // 1. Validar que el paciente existe y traer sus datos
+        const patient = await tx.user.findUnique({
+          where: { userId: data.userId },
+          include: {
+            patientInfo: true,
+            affiliations: { 
+              include: { 
+                company: true 
+              } 
+            }
+          }
+        });
+
+        if (!patient) {
+          throw new Error('Paciente no encontrado');
+        }
+
+        // 2. Validar datos según el tipo de recibo
+        if (data.type === 'Consulta' && !data.doctorId) {
+          throw new Error('Se requiere un doctor para recibo de consulta');
+        }
+
+        let doctor = null;
+        if (data.doctorId) {
+          doctor = await tx.user.findUnique({
+            where: { userId: data.doctorId },
+            include: { doctorInfo: true }
+          });
+          
+          if (!doctor) {
+            throw new Error('Doctor no encontrado');
           }
         }
-      });
-      
-      const receiptNumber = `REC-${dateStr}-${String(count + 1).padStart(3, '0')}`;
 
-      // Create receipt
-      const receipt = await prisma.receipt.create({
-        data: {
-          number: receiptNumber,
-          patientUserId: data.userId,
-          amount: new Decimal(data.amount),
-          concept: data.concept || `Pago recibido - ${now.toLocaleDateString()}`,
-          method: data.method,
-          createdBy: data.createdBy || null,
-          type: data.type,
-          paymentType: data.paymentType,
-          doctorId: data.doctorId || null,
-          plan: data.plan || null
+        // 3. Generar número de recibo
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0].replace(/-/g, '');
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        const count = await tx.receipt.count({
+          where: { createdAt: { gte: startOfDay } }
+        });
+        
+        const receiptNumber = `REC-${dateStr}-${String(count + 1).padStart(3, '0')}`;
+
+        // 4. Generar concepto dinámico
+        let concept = '';
+        if (data.type === 'Consulta' && doctor) {
+          const doctorName = doctor.name || 'Médico';
+          const specialty = doctor.doctorInfo?.especialidad || 'No especificada';
+          concept = `Consulta médica - Dr. ${doctorName} (${specialty}) - ${now.toLocaleDateString()}`;
+        } else {
+          const companyName = patient.affiliations?.[0]?.company?.nombre || 'Particular';
+          concept = `Afiliación - ${companyName} - ${now.toLocaleDateString()}`;
         }
-      });
 
-      return {
-        ...receipt,
-        amount: receipt.amount.toNumber()
-      };
-    } catch (error: any) {
-      console.error('❌ Error creating receipt:', error);
-      DatabaseErrorHandler.handle(error, 'crear comprobante');
-    }
-  }, []);
+        // 5. Crear el recibo
+        const receipt = await tx.receipt.create({
+          data: {
+            number: receiptNumber,
+            amount: new Decimal(data.amount),
+            concept: concept,
+            method: data.method,
+            type: data.type,
+            paymentType: data.paymentType,
+            notes: data.notes || null,
+            plan: data.plan || null,
+            
+            // Relaciones
+            patient: { connect: { userId: data.userId } },
+            ...(data.doctorId && { 
+              doctor: { connect: { userId: data.doctorId } } 
+            }),
+            ...(data.createdBy && { 
+              createdBy: { connect: { userId: data.createdBy } } 
+            })
+          },
+          include: {
+            patient: {
+              include: {
+                patientInfo: true,
+                affiliations: {
+                  include: { company: true }
+                }
+              }
+            },
+            doctor: {
+              include: { doctorInfo: true }
+            },
+            createdBy: true
+          }
+        });
+
+        // 6. Crear registro de auditoría
+        await createAuditLog(
+          data.createdBy || 'system', 
+          `Recibo creado #${receiptNumber}`, 
+          `Monto: ${data.amount} - Tipo: ${data.type}`
+        );
+
+        return {
+          ...receipt,
+          amount: receipt.amount.toNumber(),
+          // Asegurar que los datos relacionados estén disponibles
+          patientName: patient.name,
+          patientCedula: patient.patientInfo?.cedula || 'No especificada',
+          doctorName: doctor?.name || 'No asignado',
+          createdByName: receipt.createdBy?.name || 'Sistema'
+        };
+
+      } catch (error: any) {
+        console.error('❌ Error al crear recibo:', error);
+        // El error se propagará y hará rollback de la transacción
+        throw new Error(`Error al crear recibo: ${error.message}`);
+      }
+    });
+  }, null);
 }
 
 interface ReceiptResult {

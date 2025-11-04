@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -16,7 +17,7 @@ model User {
   lastLogin                  DateTime?
   phone                      String?
   status                     String                      @default("ACTIVE")
-  role                       String
+  role                       UserRole
   avatarUrl                  String?                     @default("/images/avatars/default-doctor.png")
   userId                     String                      @unique
   affiliations               Affiliation[]
@@ -31,6 +32,8 @@ model User {
   patientConsultations       Consultation[]              @relation("PatientConsultations")
   deviceTokens               DeviceToken[]
   doctorInfo                 DoctorInfo?
+  ipssCreated                IpssScore[]                 @relation("DoctorIpssScores")
+  ipssScores                 IpssScore[]                 @relation("PatientIpssScores")
   doctorLabResults           LabResult[]                 @relation("DoctorLabResults")
   patientLabResults          LabResult[]                 @relation("PatientLabResults")
   notifications              Notification[]
@@ -39,14 +42,12 @@ model User {
   patientPayments            Payment[]                   @relation("PatientPayments")
   prescriptions              Prescription[]
   promotoraInfo              PromotoraInfo?
+  createdReceipts            Receipt[]                   @relation("CreatedReceipts")
+  doctorReceipts             Receipt[]                   @relation("DoctorReceipts")
+  patientReceipts            Receipt[]                   @relation("PatientReceipts")
+  patientReports             Report[]                    @relation("PatientReports")
   secretariaInfo             SecretariaInfo?
   notificationPreference     UserNotificationPreference?
-  ipssScores                 IpssScore[]                 @relation("PatientIpssScores")
-  ipssCreated                IpssScore[]                 @relation("DoctorIpssScores")
-  patientReports             Report[]                    @relation("PatientReports")
-  patientReceipts            Receipt[]                   @relation("PatientReceipts")
-  doctorReceipts             Receipt[]                   @relation("DoctorReceipts")
-  createdReceipts            Receipt[]                   @relation("CreatedReceipts")
 
   @@map("users")
 }
@@ -76,9 +77,9 @@ model DoctorInfo {
   direccion    String?
   area         String?
   contacto     String?
-  email        String?  @map("email")  // Campo email agregado
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  email        String?  @map("email")
   user         User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@map("doctor_info")
@@ -208,13 +209,13 @@ model LabResult {
   consultationId   String?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
-  patientUserId    String
-  doctorUserId     String?
-  estado           String        @default("PENDIENTE")
   archivoContenido String?
   archivoNombre    String?
   archivoTamaño   Int?
   archivoTipo      String?
+  doctorUserId     String?
+  estado           String        @default("PENDIENTE")
+  patientUserId    String
   consultation     Consultation? @relation(fields: [consultationId], references: [id])
   doctor           User?         @relation("DoctorLabResults", fields: [doctorUserId], references: [userId])
   patient          User          @relation("PatientLabResults", fields: [patientUserId], references: [userId], onDelete: Cascade)
@@ -228,15 +229,15 @@ model LabResult {
 model IpssScore {
   id         String   @id @default(cuid())
   userId     String
-  user       User     @relation("PatientIpssScores", fields: [userId], references: [userId], onDelete: Cascade)
   fecha      DateTime @default(now())
-  puntaje    Int // Total score 0-35
-  categoria  String // "Leve" | "Moderado" | "Severo"
-  respuestas Json // {q1: number, q2: number, ... q7: number}
+  puntaje    Int
+  categoria  String
+  respuestas Json
   createdBy  String?
-  doctor     User?    @relation("DoctorIpssScores", fields: [createdBy], references: [userId])
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  doctor     User?    @relation("DoctorIpssScores", fields: [createdBy], references: [userId])
+  user       User     @relation("PatientIpssScores", fields: [userId], references: [userId], onDelete: Cascade)
 
   @@index([userId])
   @@index([fecha])
@@ -337,32 +338,25 @@ model Supply {
 }
 
 model Report {
-  // Basic fields
-  id          String   @id @default(cuid())
-  titulo      String
-  descripcion String?  @db.Text
-  tipo        String
-  contenido   Json
-  fecha       DateTime @default(now())
-  notas       String?  @db.Text
-  autor       String
-
-  // Associations
-  patientUserId  String
-  patient        User    @relation("PatientReports", fields: [patientUserId], references: [userId])
-  consultationId String?
-
-  // File attachment fields
+  id               String   @id @default(cuid())
+  titulo           String
+  descripcion      String?
+  tipo             String
+  contenido        Json
+  fecha            DateTime @default(now())
+  autor            String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  archivoContenido String?
   archivoNombre    String?
-  archivoTipo      String?
-  archivoContenido String? @db.Text
   archivoTamaño   Int?
+  archivoTipo      String?
   archivoUrl       String?
-
-  // Metadata
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  createdBy String?
+  consultationId   String?
+  createdBy        String?
+  notas            String?
+  patientUserId    String
+  patient          User     @relation("PatientReports", fields: [patientUserId], references: [userId])
 
   @@map("reports")
 }
@@ -402,25 +396,23 @@ model SystemConfig {
 }
 
 model Receipt {
-  id            String   @id @default(cuid())
-  number        String   @unique
-  amount        Decimal  @db.Decimal(10, 2)
-  concept       String?
-  method        String
-  type          String   // 'Consulta' | 'Afiliación'
-  paymentType   String   // 'Contado' | 'Crédito'
-  status        String   @default("PAGADO")
-  patientId     String?
-  doctorId      String?
-  createdById   String?
-  plan          String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  patient       User?    @relation("PatientReceipts", fields: [patientId], references: [userId])
-  doctor        User?    @relation("DoctorReceipts", fields: [doctorId], references: [userId])
-  createdBy     User?    @relation("CreatedReceipts", fields: [createdById], references: [userId])
+  id          String   @id @default(cuid())
+  number      String   @unique
+  amount      Decimal  @db.Decimal(10, 2)
+  concept     String?
+  method      String
+  createdAt   DateTime @default(now())
+  doctorId    String?
+  paymentType String
+  plan        String?
+  type        String
+  createdById String?
+  patientId   String?
+  status      String   @default("PAGADO")
+  updatedAt   DateTime @updatedAt
+  createdBy   User?    @relation("CreatedReceipts", fields: [createdById], references: [userId])
+  doctor      User?    @relation("DoctorReceipts", fields: [doctorId], references: [userId])
+  patient     User?    @relation("PatientReceipts", fields: [patientId], references: [userId])
 
   @@map("receipts")
 }

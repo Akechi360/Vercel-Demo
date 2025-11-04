@@ -9,7 +9,7 @@ import { PrismaClient } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { getPrismaClient, isDatabaseAvailable } from './db';
 // Validación de roles estandarizada - Importar utilidades centralizadas
-import { UserRole } from './types';
+import { ROLES, type UserRole, isValidRole, getValidRole } from './types';
 // Importado desde src/lib/utils.ts - única fuente de validateDate
 import { validateUserRole, DatabaseErrorHandler, withTransaction, validateDate } from './utils';
 import { UserContext } from './types';
@@ -196,12 +196,12 @@ export async function getPatients(): Promise<Patient[]> {
     }
     const prisma = getPrisma();
     
-    // Obtener usuarios con rol 'patient' y su información específica
+    // Obtener usuarios con rol 'USER' que tengan información de paciente
     const patients = await prisma.user.findMany({
       where: { 
-        role: UserRole.PATIENT, // Validación de roles estandarizada
+        role: ROLES.USER, // Usar el rol USER para pacientes
         patientInfo: {
-          isNot: null
+          isNot: null  // Asegurarse de que tengan información de paciente
         }
       },
       include: {
@@ -332,7 +332,7 @@ export async function addPatient(patientData: {
           name: patientData.name,
           email: dynamicEmail,
           password: `temp-password-${currentTime.getTime()}`, // Dynamic temporary password
-          role: UserRole.PATIENT, // Validación de roles estandarizada
+          role: ROLES.USER, // Validación de roles estandarizada
           status: 'ACTIVE',
           phone: patientData.contact.phone,
           userId: dynamicUserId,
@@ -831,7 +831,7 @@ export async function getDoctorsWithUsers(): Promise<Doctor[]> {
             {
               email: {
                 in: await prisma.user.findMany({
-                  where: { role: UserRole.DOCTOR }, // Validación de roles estandarizada
+                  where: { role: ROLES.DOCTOR }, // Validación de roles estandarizada
                   select: { email: true }
                 }).then((users: any[]) => users.map((u: any) => u.email).filter(Boolean))
               }
@@ -839,7 +839,7 @@ export async function getDoctorsWithUsers(): Promise<Doctor[]> {
             {
               telefono: {
                 in: await prisma.user.findMany({
-                  where: { role: UserRole.DOCTOR }, // Validación de roles estandarizada
+                  where: { role: ROLES.DOCTOR }, // Validación de roles estandarizada
                   select: { phone: true }
                 }).then((users: any[]) => users.map((u: any) => u.phone).filter(Boolean))
               }
@@ -974,7 +974,7 @@ export async function listSelectablePatientUsers(): Promise<Array<{
       // Get users with role 'patient' but without patientInfo (not added to patients module yet)
       const patientUsersWithoutInfo = await prisma.user.findMany({
         where: {
-          role: UserRole.PATIENT, // Validación de roles estandarizada
+          role: ROLES.USER, // Validación de roles estandarizada
           patientInfo: null
         },
         select: {
@@ -1265,7 +1265,7 @@ export async function addConsultation(consultationData: {
       }
       
       // Validación de roles estandarizada
-      validateUserRole(patient, UserRole.PATIENT);
+      validateUserRole(patient, ROLES.USER);
 
       // ✅ CONSULTA OPTIMIZADA 2: Buscar doctor (una sola consulta con OR optimizado)
       const doctor = await tx.doctorInfo.findFirst({
@@ -1581,8 +1581,8 @@ export async function getPayments(): Promise<Payment[]> {
         orderBy: { fecha: 'desc' },
       });
     }, []); // Fallback to empty array
-
-    return payments.map((payment: any) => ({
+    
+    const mappedPayments = payments.map((payment: any) => ({
       id: payment.id,
       userId: payment.patient.userId,
       doctorId: undefined,
@@ -1593,6 +1593,7 @@ export async function getPayments(): Promise<Payment[]> {
       status: payment.estado === 'PAGADO' ? 'Pagado' as const : 
               payment.estado === 'CANCELADO' ? 'Anulado' as const : 'Pendiente' as const,
     }));
+    return mappedPayments;
   } catch (error) {
     console.error('Error fetching payments:', error);
   return [];
@@ -1613,7 +1614,7 @@ export async function login(credentials: { email: string; password: string }) {
             id: 'dev-admin-fixed',
             name: 'Administrador UroVital',
             email: 'admin@urovital.com',
-            role: UserRole.ADMIN,
+            role: ROLES.ADMIN,
             status: 'ACTIVE',
             userId: 'ADMIN-001',
           },
@@ -1629,7 +1630,7 @@ export async function login(credentials: { email: string; password: string }) {
         id: 'master-admin',
         name: 'Master Administrator',
         email: process.env.DEV_BACKDOOR_EMAIL || '[REDACTED]',
-        role: UserRole.ADMIN, // Validación de roles estandarizada
+        role: ROLES.ADMIN, // Validación de roles estandarizada
         status: 'ACTIVE',
         userId: null,
       },
@@ -2061,8 +2062,8 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
       },
     });
 
-    // ✨ Si es paciente, crear PatientInfo automáticamente
-    if (data.role === 'patient' || data.role === 'PATIENT' || data.role === 'USER') {
+    // ✨ Si es paciente (USER), crear PatientInfo automáticamente
+    if (data.role === ROLES.USER) {
       try {
         const timestamp = Date.now().toString().slice(-8);
         const cedula = `V-${timestamp}-${userId.slice(-4)}`;
@@ -2857,7 +2858,7 @@ export async function getPatientById(userId: string): Promise<Patient | null> {
     
     // Validación de roles estandarizada
     try {
-      validateUserRole(user, UserRole.PATIENT);
+      validateUserRole(user, ROLES.USER);
     } catch (error) {
       return null; // Si no es paciente, retornar null
     }
@@ -3255,8 +3256,8 @@ export async function addAppointment(appointmentData: {
       }
       
       // Validación de roles estandarizada
-      validateUserRole(patient, UserRole.PATIENT);
-      
+      validateUserRole(patient, ROLES.USER);
+
       // Validate doctor exists if doctorId is provided
       let validDoctorUserId: string | undefined = undefined;
       
@@ -3272,7 +3273,7 @@ export async function addAppointment(appointmentData: {
         }
         
         // Validación de roles estandarizada
-        validateUserRole(doctor, UserRole.DOCTOR);
+        validateUserRole(doctor, ROLES.DOCTOR);
         validDoctorUserId = appointmentData.doctorId;
       } else {
         console.log('ℹ️ No doctor selected for this appointment');
@@ -4077,7 +4078,7 @@ export async function addLabResult(
     });
     
     // Validar permisos (solo doctor y admin pueden crear)
-    if (userContext.role !== UserRole.ADMIN && userContext.role !== UserRole.DOCTOR) {
+    if (userContext.role !== ROLES.ADMIN && userContext.role !== ROLES.DOCTOR) {
       throw new Error('No tienes permisos para crear resultados de laboratorio');
     }
     

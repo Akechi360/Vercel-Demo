@@ -17,6 +17,7 @@ import { useEffect, useState } from "react";
 import { getPatients, getUsers, getDoctors } from "@/lib/actions";
 import { Textarea } from "../ui/textarea";
 import { useAuth } from "../layout/auth-provider";
+import { ROLES } from "@/lib/types";
 
 const formSchema = z.object({
   userId: z.string({ required_error: "Debe seleccionar un paciente." }),
@@ -37,7 +38,7 @@ export function AddAppointmentForm({ onFormSubmit }: AddAppointmentFormProps) {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
 
-  const isPatient = currentUser?.role === 'patient';
+  const isPatient = currentUser?.role === ROLES.USER;
 
   useEffect(() => {
     async function fetchData() {

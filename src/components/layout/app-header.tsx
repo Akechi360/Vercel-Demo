@@ -16,6 +16,7 @@ import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useAuth } from './auth-provider';
+import { ROLES } from '@/lib/types';
 import type { User as UserType } from '@/lib/types';
 import NotificationBell from '@/components/notifications/notification-bell';
 
@@ -23,13 +24,13 @@ const getGreeting = (currentUser: UserType | null): string => {
     if (!currentUser) return '';
 
     switch(currentUser.role) {
-        case 'admin':
+        case ROLES.ADMIN:
             return 'Bienvenido, Admin';
-        case 'doctor':
+        case ROLES.DOCTOR:
             return `Bienvenido, Dr. ${currentUser.name}`;
-        case 'secretaria':
+        case ROLES.SECRETARIA:
             return 'Bienvenid@, Secretaria';
-        case 'patient':
+        case ROLES.USER:
             return `Bienvenido, ${currentUser.name}`;
         default:
             return `Bienvenido, ${currentUser.name || 'Usuario'}`;
@@ -85,7 +86,7 @@ export default function AppHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
               <Avatar className="h-8 w-8">
-                {(currentUser?.role === 'doctor' || currentUser?.role === 'Doctor') && currentUser?.avatarUrl ? (
+                {currentUser?.role === ROLES.DOCTOR && currentUser?.avatarUrl ? (
                   <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
                 ) : null}
                 <AvatarFallback>

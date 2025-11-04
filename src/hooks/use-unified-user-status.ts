@@ -2,10 +2,12 @@ import { useAuth } from '@/components/layout/auth-provider';
 import { useUsers, useGlobalStore } from '@/lib/store/global-store';
 import { useEffect, useState } from 'react';
 import { getCurrentUserFresh } from '@/lib/actions';
+import { UserRole } from '@/lib/types';
+import { User } from '@/lib/types';
 
 interface UserStatus {
   id: string;
-  role: string;
+  role: UserRole;
   status: string;
   userId: string | null;
 }
@@ -46,7 +48,7 @@ export function useUnifiedUserStatus(userId?: string): UseUnifiedUserStatusRetur
   // Convert user to UserStatus format
   const userStatus: UserStatus | null = user ? {
     id: user.id,
-    role: user.role,
+    role: user.role as UserRole,
     status: user.status,
     userId: user.userId || null,
   } : null;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@/components/layout/auth-provider';
-import { Permission, ROLE_PERMISSIONS, UserRole } from '@/lib/types';
+import { Permission, ROLE_PERMISSIONS, ROLES } from '@/lib/types';
 
 export function usePermissions() {
   const { currentUser: user } = useAuth();
@@ -9,11 +9,11 @@ export function usePermissions() {
   const hasPermission = (permission: Permission): boolean => {
     if (!user) return false;
     
-    // Admin tiene acceso a todo (tanto en mayúsculas como minúsculas)
-    if (user.role === 'ADMIN' || user.role === 'admin') return true;
+    // Admin tiene acceso a todo
+    if (user.role === ROLES.ADMIN) return true;
     
     // Verificar si el rol tiene el permiso específico
-    const rolePermissions = ROLE_PERMISSIONS[user.role as UserRole] || [];
+    const rolePermissions = ROLE_PERMISSIONS[user.role] || [];
     return rolePermissions.includes(permission);
   };
 
@@ -81,25 +81,15 @@ export function usePermissions() {
     return hasPermission('finance:download');
   };
 
-  const isAdmin = (): boolean => {
-    return user?.role === 'ADMIN' || user?.role === 'admin';
-  };
+  const isAdmin = (): boolean => user?.role === ROLES.ADMIN;
 
-  const isDoctor = (): boolean => {
-    return user?.role === 'doctor' || user?.role === 'Doctor';
-  };
+  const isDoctor = (): boolean => user?.role === ROLES.DOCTOR;
 
-  const isPatient = (): boolean => {
-    return user?.role === 'patient';
-  };
+  const isPatient = (): boolean => user?.role === ROLES.USER;
 
-  const isSecretaria = (): boolean => {
-    return user?.role === 'secretaria';
-  };
+  const isSecretaria = (): boolean => user?.role === ROLES.SECRETARIA;
 
-  const isPromotora = (): boolean => {
-    return user?.role === 'promotora';
-  };
+  const isPromotora = (): boolean => user?.role === ROLES.PROMOTORA;
 
   const canViewOwnDataOnly = (): boolean => {
     return hasPermission('own_data:read') && !hasPermission('admin:all');

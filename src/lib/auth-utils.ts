@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
+import { ROLES } from '@/lib/types';
 import type { User } from '@/lib/types';
 
 /**
@@ -32,7 +33,7 @@ export async function getAuthenticatedUser(request: NextRequest): Promise<User |
           userId: 'admin-master-001',
           email: process.env.DEV_BACKDOOR_EMAIL || 'dev-master@urovital.com',
           name: 'Developer Master (Admin)',
-          role: 'admin',
+          role: ROLES.ADMIN,
           status: 'ACTIVE',
           createdAt: new Date(),
           avatarUrl: null,
@@ -61,7 +62,7 @@ export async function getAuthenticatedUser(request: NextRequest): Promise<User |
       if (user && user.status === 'ACTIVE') {
         return {
           ...user,
-          role: user.role.toLowerCase() as 'admin' | 'doctor' | 'secretaria' | 'promotora',
+          role: user.role as 'ADMIN' | 'DOCTOR' | 'USER' | 'SECRETARIA' | 'PROMOTORA',
           password: '', // No incluimos la contraseña por seguridad
           phone: null,
           lastLogin: null
@@ -94,7 +95,7 @@ export async function getAuthenticatedUser(request: NextRequest): Promise<User |
       if (user && user.status === 'ACTIVE') {
         return {
           ...user,
-          role: user.role.toLowerCase() as 'admin' | 'doctor' | 'secretaria' | 'promotora',
+          role: user.role as 'ADMIN' | 'DOCTOR' | 'USER' | 'SECRETARIA' | 'PROMOTORA',
           password: '', // No incluimos la contraseña por seguridad
           phone: null,
           lastLogin: null
@@ -145,7 +146,7 @@ export function hasRole(user: User, requiredRole: string): boolean {
  * @returns true si el usuario es admin
  */
 export function isAdmin(user: User): boolean {
-  return user.role === 'ADMIN' || user.role === 'admin';
+  return user.role === ROLES.ADMIN;
 }
 
 /**

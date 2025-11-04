@@ -7,7 +7,7 @@
  * IMPORTANTE: Este es un archivo de ejemplo - NO usar en producción
  */
 
-import { UserRole, User } from './types';
+import { ROLES, User } from './types';
 // Importado desde src/lib/utils.ts - única fuente de validateDate
 import { validateUserRole, DatabaseErrorHandler, withTransaction, validateDate } from './utils';
 
@@ -50,7 +50,7 @@ export async function addAppointmentRefactored(appointmentData: {
       }
       
       // ✅ Usar función centralizada de validación de roles
-      validateUserRole(patient, UserRole.PATIENT);
+      validateUserRole(patient, ROLES.USER);
       
       console.log('✅ Patient exists:', patient.name);
       
@@ -68,8 +68,9 @@ export async function addAppointmentRefactored(appointmentData: {
         }
         
         // ✅ Usar función centralizada de validación de roles
-        validateUserRole(doctor, UserRole.DOCTOR);
-        
+        if (doctor.role !== ROLES.ADMIN && doctor.role !== ROLES.DOCTOR) {
+          throw new Error(`El usuario con ID ${appointmentData.doctorId} no es un doctor válido`);
+        }
         console.log('✅ Doctor exists:', doctor.name);
         validDoctorUserId = appointmentData.doctorId;
       }
@@ -153,7 +154,7 @@ export async function addPatientRefactored(patientData: {
           name: patientData.name,
           email: patientData.contact.email || `patient-${Date.now()}@local.com`,
           password: 'temp-password',
-          role: UserRole.PATIENT, // ✅ Usar enum
+          role: ROLES.USER, 
           status: 'ACTIVE',
           phone: patientData.contact.phone,
           userId: `U${Date.now().toString().slice(-6)}`,
@@ -258,7 +259,7 @@ export async function addAffiliationRefactored(affiliationData: {
       }
       
       // ✅ Usar función centralizada de validación de roles
-      validateUserRole(user, UserRole.PATIENT);
+      validateUserRole(user, ROLES.USER);
       
       console.log('✅ User exists and is a patient:', user.name);
       

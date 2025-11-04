@@ -1,13 +1,14 @@
 'use client';
 
 import { globalEventBus } from '@/lib/store/global-store';
+import { ROLES } from './types';
 
 // Function to sync user data in localStorage when changes are made by admin
 export function syncUserData(updatedUser: {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: keyof typeof ROLES;
   status: string;
   userId?: string | null;
 }) {
@@ -53,6 +54,8 @@ export function syncUserData(updatedUser: {
              phone: null,
              lastLogin: null,
              avatarUrl: null,
+             // Asegurar que el rol sea válido
+             role: ROLES[updatedUser.role as keyof typeof ROLES] || ROLES.USER,
            };
     globalEventBus.emitUserUpdate(fullUser);
     console.log('✅ Global user update event dispatched successfully');

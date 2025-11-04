@@ -1,5 +1,6 @@
 import { getCurrentUserFresh } from '@/lib/actions';
 import { getCurrentUserWithStatus } from '@/lib/actions';
+import { UserRole, ROLES } from '@/lib/types';
 
 interface PatientStatusCheckerProps {
   userId: string;
@@ -16,7 +17,7 @@ export async function PatientStatusChecker({ userId, children }: PatientStatusCh
     }
 
     // Check if user is a patient with restrictions
-    const isRestricted = user.role === 'patient' && (user.status === 'INACTIVE' || !user.userId);
+    const isRestricted = user.role === ROLES.USER && (user.status === 'INACTIVE' || !user.userId);
     
     if (isRestricted) {
       // Import and render RestrictedNotice

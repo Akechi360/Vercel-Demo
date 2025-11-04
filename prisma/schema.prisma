@@ -489,6 +489,7 @@ enum UserRole {
   DOCTOR
   USER
   PROMOTORA
+  SECRETARIA
 }
 
 enum AppointmentType {

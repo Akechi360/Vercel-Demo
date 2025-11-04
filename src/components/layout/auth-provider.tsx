@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import React, { useEffect, useState, createContext, useContext, useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ROLE_PERMISSIONS, type Permission, type User, UserRole } from '@/lib/types';
+import { ROLE_PERMISSIONS, type Permission, type User, ROLES, type UserRole, isValidRole } from '@/lib/types';
 import { LogoLoading } from '@/components/shared/logo-loading';
 
 const PROTECTED_ROUTES = ['/dashboard', '/patients', '/settings', '/appointments', '/companies', '/administrativo'];
@@ -33,9 +33,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userJson = localStorage.getItem('user');
         const user = userJson ? JSON.parse(userJson) : null;
         
-        // Mapear el rol "user" a "secretaria" para compatibilidad
-        if (user && user.role === 'user') {
-            user.role = 'secretaria';
+        // Mapear el rol del usuario al enum UserRole
+        if (user) {
+            // Convertir el rol a mayúsculas para coincidir con el enum
+            const role = user.role.toUpperCase();
+            
+            // Verificar si el rol es válido, si no, asignar USER por defecto
+            if (isValidRole(role)) {
+                user.role = role as UserRole;
+            } else {
+                user.role = ROLES.USER;
+            }
+            
             // Actualizar el localStorage con el rol corregido
             localStorage.setItem('user', JSON.stringify(user));
         }
@@ -66,25 +75,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [pathname, router]);
 
-  const canFn = (perm: Permission) => {
+  const can = (permission: Permission): boolean => {
     if (!currentUser) return false;
     
-    // Admin has all permissions
-    if (currentUser.role === 'ADMIN' || currentUser.role === 'admin') return true;
+    // Admin tiene acceso a todo
+    if (currentUser.role === ROLES.ADMIN) return true;
     
     // Safety check to ensure the role exists in ROLE_PERMISSIONS
-    const rolePermissions = ROLE_PERMISSIONS[currentUser.role as UserRole];
+    const rolePermissions = ROLE_PERMISSIONS[currentUser.role as keyof typeof ROLE_PERMISSIONS];
     if (!rolePermissions) return false;
     
-    return rolePermissions.includes(perm);
+    return rolePermissions.includes(permission);
   };
 
   const authContextValue = useMemo(() => ({
     currentUser,
     isAuthenticated: !!currentUser,
     loading: isAuthenticating,
-    can: canFn,
-  }), [currentUser, isAuthenticating]);
+    can,
+  }), [currentUser, isAuthenticating, can]);
 
   // Don't render children for public routes until auth check is complete,
   // to avoid flicker on initial load to `/`.

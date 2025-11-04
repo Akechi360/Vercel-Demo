@@ -1,10 +1,23 @@
-// Centralized UserRole enum to prevent inconsistencies
-export enum UserRole {
-  ADMIN = 'admin',
-  DOCTOR = 'doctor',
-  PATIENT = 'patient',
-  PROMOTORA = 'promotora',
-  SECRETARIA = 'secretaria'
+// Definir los roles como constante para uso en runtime
+export const ROLES = {
+  ADMIN: 'ADMIN' as const,
+  DOCTOR: 'DOCTOR' as const,
+  USER: 'USER' as const,
+  PROMOTORA: 'PROMOTORA' as const,
+  SECRETARIA: 'SECRETARIA' as const
+} as const;
+
+// Tipo derivado de las claves de ROLES
+export type UserRole = keyof typeof ROLES;
+
+// Función de validación de roles
+export function isValidRole(role: string): role is UserRole {
+  return Object.values(ROLES).includes(role as any);
+}
+
+// Función para validar y obtener un rol seguro
+export function getValidRole(role: string, defaultRole: UserRole = 'USER'): UserRole {
+  return isValidRole(role) ? role : defaultRole;
 }
 
 // UserContext interface for dynamic user context injection
@@ -41,60 +54,74 @@ export const ALL_PERMISSIONS = [
 ] as const;
 export type Permission = (typeof ALL_PERMISSIONS)[number];
 
-export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
-  [UserRole.ADMIN]: [
+// Define role permissions
+export const ROLE_PERMISSIONS = {
+  [ROLES.ADMIN]: [
     'admin:all',
     'dashboard:read',
     'appointments:read',
     'appointments:write',
+    'appointments:delete',
     'patients:read',
     'patients:write',
-    'companies:read',
-    'companies:write',
+    'patients:delete',
+    'medical_history:read',
+    'medical_history:write',
+    'lab_results:read',
+    'lab_results:write',
+    'reports:read',
+    'reports:write',
+    'reports:delete',
+    'users:read',
+    'users:write',
+    'users:delete',
     'settings:read',
     'settings:write',
-    'finance:read',
-    'finance:write',
-    'finance:admin',
-    'finance:receipts',
-    'finance:download',
+    'billing:read',
+    'billing:write',
     'affiliations:read',
     'affiliations:write',
     'medical_history:read',
   ],
-  [UserRole.DOCTOR]: [
+  [ROLES.DOCTOR]: [
     'dashboard:read',
     'appointments:read',
     'patients:read',
-    'patients:write',
     'medical_history:read',
+    'lab_results:read',
+    'reports:read',
+    'reports:write',
     'own_data:read',
     'own_data:write',
   ],
-  [UserRole.SECRETARIA]: [
+  [ROLES.SECRETARIA]: [
     'dashboard:read',
     'appointments:read',
     'appointments:write',
+    'appointments:delete',
     'patients:read',
     'patients:write',
-    'companies:read',
-    'companies:write',
-    'finance:read',
-    'finance:receipts',
-    'finance:download',
+    'medical_history:read',
+    'lab_results:read',
+    'reports:read',
+    'reports:write',
+    'billing:read',
+    'billing:write',
+    'affiliations:read',
+    'affiliations:write',
     'own_data:read',
     'own_data:write',
   ],
-  [UserRole.PATIENT]: [
+  [ROLES.USER]: [
     'appointments:read',
     'appointments:write',
     'medical_history:read',
-    'finance:read',
-    'finance:download',
+    'lab_results:read',
+    'reports:read',
     'own_data:read',
     'own_data:write',
   ],
-  [UserRole.PROMOTORA]: [
+  [ROLES.PROMOTORA]: [
     'dashboard:read',
     'affiliations:read',
     'own_data:read',
@@ -192,16 +219,18 @@ export interface Consultation {
 
 import { User as PrismaUser } from "@prisma/client"
 
-// Extender el tipo User de Prisma para incluir userId como alias de userId
-export type User = PrismaUser & {
-  userId?: string; // Alias para userId cuando se usa como paciente
-}
+// Extender el tipo User de Prisma para incluir userId como alias de id
+export interface User extends Omit<PrismaUser, 'role' | 'userId'> {
+  userId: string;
+  role: UserRole;
+};
 
-// Helper function para mapear userId a userId
+// Helper function para mapear PrismaUser a User
 export function mapUserToPatient(user: PrismaUser): User {
   return {
     ...user,
-    userId: user.userId
+    userId: user.userId || user.id, // Usar userId si existe, de lo contrario usar id
+    role: user.role // Ya es del tipo correcto
   };
 }
 

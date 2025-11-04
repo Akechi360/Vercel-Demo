@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/components/layout/auth-provider';
+import { ROLES } from '@/lib/types';
 import { RestrictedNotice } from './RestrictedNotice';
 import { useUnifiedUserStatus } from '@/hooks/use-unified-user-status';
 import { globalEventBus } from '@/lib/store/global-store';
@@ -81,7 +82,7 @@ export function PatientAccessGate({ children }: PatientAccessGateProps) {
   };
 
   // Check restrictions
-  const isRestricted = effectiveStatus.role === 'patient' && effectiveStatus.status === 'INACTIVE';
+  const isRestricted = effectiveStatus.role === ROLES.USER && effectiveStatus.status === 'INACTIVE';
   
   if (isRestricted) {
     return <RestrictedNotice />;

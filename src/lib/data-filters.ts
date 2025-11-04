@@ -1,30 +1,30 @@
 'use server';
 
-import { User } from './types';
+import { User, ROLES } from './types';
 
 // Función para filtrar pacientes según el rol del usuario
 export function filterPatientsByRole(patients: any[], user: User): any[] {
   if (!user) return [];
   
   switch (user.role) {
-    case 'admin':
+    case ROLES.ADMIN:
       // Admin ve todos los pacientes
       return patients;
     
-    case 'doctor':
+    case ROLES.DOCTOR:
       // Doctor ve solo los pacientes que ha atendido
       // Por ahora retornamos todos, pero esto se puede mejorar con relaciones
       return patients;
     
-    case 'patient':
+    case ROLES.USER:
       // Paciente ve solo su propia información
       return patients.filter(patient => patient.id === user.userId);
     
-    case 'secretaria':
+    case ROLES.SECRETARIA:
       // Secretaria ve todos los pacientes
       return patients;
     
-    case 'promotora':
+    case ROLES.PROMOTORA:
       // Promotora no ve pacientes
       return [];
     
@@ -38,23 +38,23 @@ export function filterAppointmentsByRole(appointments: any[], user: User): any[]
   if (!user) return [];
   
   switch (user.role) {
-    case 'admin':
+    case ROLES.ADMIN:
       // Admin ve todas las citas
       return appointments;
     
-    case 'doctor':
+    case ROLES.DOCTOR:
       // Doctor ve solo sus citas
       return appointments.filter(appointment => appointment.doctorId === user.id);
     
-    case 'patient':
+    case ROLES.USER:
       // Paciente ve solo sus citas
       return appointments.filter(appointment => appointment.userId === user.userId);
     
-    case 'secretaria':
+    case ROLES.SECRETARIA:
       // Secretaria ve todas las citas
       return appointments;
     
-    case 'promotora':
+    case ROLES.PROMOTORA:
       // Promotora no ve citas
       return [];
     
@@ -68,23 +68,23 @@ export function filterCompaniesByRole(companies: any[], user: User): any[] {
   if (!user) return [];
   
   switch (user.role) {
-    case 'admin':
+    case ROLES.ADMIN:
       // Admin ve todas las empresas
       return companies;
     
-    case 'doctor':
+    case ROLES.DOCTOR:
       // Doctor no ve empresas
       return [];
     
-    case 'patient':
+    case ROLES.USER:
       // Paciente no ve empresas
       return [];
     
-    case 'secretaria':
+    case ROLES.SECRETARIA:
       // Secretaria ve todas las empresas
       return companies;
     
-    case 'promotora':
+    case ROLES.PROMOTORA:
       // Promotora no ve empresas
       return [];
     
@@ -98,23 +98,23 @@ export function filterPaymentsByRole(payments: any[], user: User): any[] {
   if (!user) return [];
   
   switch (user.role) {
-    case 'admin':
+    case ROLES.ADMIN:
       // Admin ve todos los pagos
       return payments;
     
-    case 'doctor':
+    case ROLES.DOCTOR:
       // Doctor no ve pagos
       return [];
     
-    case 'patient':
+    case ROLES.USER:
       // Paciente ve solo sus pagos
       return payments.filter(payment => payment.userId === user.userId);
     
-    case 'secretaria':
+    case ROLES.SECRETARIA:
       // Secretaria ve todos los pagos
       return payments;
     
-    case 'promotora':
+    case ROLES.PROMOTORA:
       // Promotora no ve pagos
       return [];
     
@@ -128,23 +128,23 @@ export function filterAffiliationsByRole(affiliations: any[], user: User): any[]
   if (!user) return [];
   
   switch (user.role) {
-    case 'admin':
+    case ROLES.ADMIN:
       // Admin ve todas las afiliaciones
       return affiliations;
     
-    case 'doctor':
+    case ROLES.DOCTOR:
       // Doctor no ve afiliaciones
       return [];
     
-    case 'patient':
+    case ROLES.USER:
       // Paciente no ve afiliaciones
       return [];
     
-    case 'secretaria':
+    case ROLES.SECRETARIA:
       // Secretaria no ve afiliaciones
       return [];
     
-    case 'promotora':
+    case ROLES.PROMOTORA:
       // Promotora ve solo sus afiliaciones
       return affiliations.filter(affiliation => affiliation.promotoraId === user.id);
     
@@ -158,23 +158,23 @@ export function filterMedicalHistoryByRole(history: any[], user: User): any[] {
   if (!user) return [];
   
   switch (user.role) {
-    case 'admin':
+    case ROLES.ADMIN:
       // Admin ve todas las historias
       return history;
     
-    case 'doctor':
+    case ROLES.DOCTOR:
       // Doctor ve las historias de sus pacientes
       return history;
     
-    case 'patient':
+    case ROLES.USER:
       // Paciente ve solo su historia médica
       return history.filter(record => record.userId === user.userId);
     
-    case 'secretaria':
+    case ROLES.SECRETARIA:
       // Secretaria ve todas las historias
       return history;
     
-    case 'promotora':
+    case ROLES.PROMOTORA:
       // Promotora no ve historias médicas
       return [];
     

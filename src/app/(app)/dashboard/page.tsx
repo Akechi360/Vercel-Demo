@@ -43,11 +43,11 @@ export default function DashboardPage() {
             if (!currentUser) return; // ✅ Validación adicional para TypeScript
             
             // ✅ Calcular roles una sola vez dentro de la función (evita dependencias inestables)
-            const userIsAdmin = currentUser.role === 'ADMIN' || currentUser.role === 'admin';
-            const userIsDoctor = currentUser.role === 'DOCTOR' || currentUser.role === 'doctor';
-            const userIsPatient = currentUser.role === 'PATIENT' || currentUser.role === 'patient';
-            const userIsSecretaria = currentUser.role === 'SECRETARIA' || currentUser.role === 'secretaria';
-            const userIsPromotora = currentUser.role === 'PROMOTORA' || currentUser.role === 'promotora';
+            const userIsAdmin = currentUser.role === 'ADMIN';
+            const userIsDoctor = currentUser.role === 'DOCTOR';
+            const userIsUser = currentUser.role === 'USER';
+            const userIsSecretaria = currentUser.role === 'SECRETARIA';
+            const userIsPromotora = currentUser.role === 'PROMOTORA';
             
             let totalPatients = 0;
             let todayAppointments = 0;
@@ -92,7 +92,7 @@ export default function DashboardPage() {
                 monthlyPatientsGrowth = thisMonthPatients - lastMonthPatients;
             }
 
-            if (userIsPatient && currentUser.userId) {
+            if (userIsUser && currentUser.userId) {
                 const ipssScores = await getIpssScoresByUserId(currentUser.userId);
                 const latestIpss = ipssScores.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
                 if (latestIpss) {
@@ -230,7 +230,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Gráficos - Solo para roles que pueden verlos */}
-            <RoleBasedContent allowedRoles={['admin', 'doctor', 'secretaria']}>
+            <RoleBasedContent allowedRoles={['ADMIN', 'DOCTOR', 'SECRETARIA']}>
                 <div className="grid gap-4 md:grid-cols-2">
                     <FadeInSection delay={0.5}>
                         <AppointmentsLineChart />
@@ -242,7 +242,7 @@ export default function DashboardPage() {
             </RoleBasedContent>
 
             {/* Contenido específico para promotoras */}
-            <RoleBasedContent allowedRoles={['promotora']}>
+            <RoleBasedContent allowedRoles={['PROMOTORA']}>
                 <div className="bg-blue-50 p-6 rounded-lg">
                     <h3 className="text-lg font-semibold text-blue-900 mb-2">Panel de Promotora</h3>
                     <p className="text-blue-700">Aquí podrás ver tus afiliaciones y estadísticas de ventas.</p>
@@ -250,7 +250,7 @@ export default function DashboardPage() {
             </RoleBasedContent>
 
             {/* Contenido específico para pacientes */}
-            <RoleBasedContent allowedRoles={['patient']}>
+            <RoleBasedContent allowedRoles={['USER']}>
                 <div className="bg-green-50 p-6 rounded-lg">
                     <h3 className="text-lg font-semibold text-green-900 mb-2">Tu Información Médica</h3>
                     <p className="text-green-700">Aquí puedes ver tu historial médico y próximas citas.</p>

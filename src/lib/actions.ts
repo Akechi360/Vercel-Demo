@@ -1655,7 +1655,7 @@ export async function login(credentials: { email: string; password: string }) {
     }
 
     // Create audit log for successful login
-    await createAuditLog(user.id, 'Inicio de sesión', `Usuario ${user.name} inició sesión`);
+    await createAuditLog(user.userId, 'Inicio de sesión', `Usuario ${user.name} inició sesión`);
 
     return {
       success: true,
@@ -2048,12 +2048,29 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
     // Generate unique userId
     const userId = `U${Date.now().toString().slice(-6)}`;
     
+    // Mapear roles del frontend a enum de Prisma
+    const roleMap: Record<string, string> = {
+      'patient': 'USER',
+      'admin': 'ADMIN',
+      'doctor': 'DOCTOR',
+      'promotora': 'PROMOTORA',
+      'secretaria': 'SECRETARIA',
+    };
+
+    const mappedRole = (roleMap[data.role.toLowerCase()] || data.role.toUpperCase()) as UserRole;
+    
+    // Validar que el rol mapeado sea válido
+    const validRoles: UserRole[] = ['ADMIN', 'DOCTOR', 'USER', 'PROMOTORA', 'SECRETARIA'];
+    if (!validRoles.includes(mappedRole)) {
+      throw new Error(`Rol no válido: ${data.role}. Los roles válidos son: ${validRoles.join(', ')}`);
+    }
+    
     const newUser = await prisma.user.create({
       data: {
         name: data.name,
         email: data.email,
         password: hashedPassword,
-        role: data.role,
+        role: mappedRole,
         status: data.status || 'INACTIVE',
         phone: data.phone || null,
         lastLogin: data.lastLogin || null,
@@ -2063,7 +2080,7 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
     });
 
     // ✨ Si es paciente (USER), crear PatientInfo automáticamente
-    if (data.role === ROLES.USER) {
+    if (mappedRole === ROLES.USER) {
       try {
         const timestamp = Date.now().toString().slice(-8);
         const cedula = `V-${timestamp}-${userId.slice(-4)}`;
@@ -2085,7 +2102,7 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
       }
     } 
     // ✨ Si es doctor, crear DoctorInfo automáticamente
-    else if (data.role.toLowerCase() === 'doctor') {
+    else if (mappedRole === 'DOCTOR') {
       try {
         console.log('🔄 Creando registro de doctor para el usuario:', newUser.userId);
         
@@ -2116,7 +2133,7 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
 
     // Create audit log for user creation
     try {
-      await createAuditLog(newUser.id, 'Usuario creado', `Nuevo usuario ${newUser.name} con rol ${newUser.role}`);
+      await createAuditLog(newUser.userId, 'Usuario creado', `Nuevo usuario ${newUser.name} con rol ${newUser.role}`);
     } catch (auditError) {
       console.warn('Error creating audit log:', auditError);
       // Don't fail user creation if audit log fails

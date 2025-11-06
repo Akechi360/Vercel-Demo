@@ -138,20 +138,6 @@ model Company {
   @@map("companies")
 }
 
-model Provider {
-  id           String        @id @default(cuid())
-  nombre       String
-  especialidad String
-  telefono     String?
-  email        String?
-  direccion    String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  appointments Appointment[]
-
-  @@map("providers")
-}
-
 model Appointment {
   id            String            @id @default(cuid())
   fecha         DateTime
@@ -159,7 +145,6 @@ model Appointment {
   tipo          AppointmentType
   estado        AppointmentStatus @default(PROGRAMADA)
   notas         String?
-  providerId    String?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   createdBy     String
@@ -168,7 +153,6 @@ model Appointment {
   creator       User              @relation("CreatedAppointments", fields: [createdBy], references: [userId], onDelete: Cascade)
   doctor        User?             @relation("DoctorAppointments", fields: [doctorUserId], references: [userId], onDelete: Cascade)
   patient       User              @relation("PatientAppointments", fields: [patientUserId], references: [userId], onDelete: Cascade)
-  provider      Provider?         @relation(fields: [providerId], references: [id])
   consultations Consultation[]
 
   @@map("appointments")
@@ -319,22 +303,6 @@ model Affiliation {
   user          User              @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@map("affiliations")
-}
-
-model Supply {
-  id               String       @id @default(cuid())
-  nombre           String
-  descripcion      String?
-  cantidad         Int
-  unidad           String
-  precio           Decimal      @db.Decimal(10, 2)
-  proveedor        String?
-  fechaVencimiento DateTime?
-  estado           SupplyStatus @default(DISPONIBLE)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-
-  @@map("supplies")
 }
 
 model Report {
@@ -530,13 +498,6 @@ enum AffiliationStatus {
   VENCIDA
   ABONO
   INICIAL
-}
-
-enum SupplyStatus {
-  DISPONIBLE
-  AGOTADO
-  VENCIDO
-  RESERVADO
 }
 
 enum NotificationType {

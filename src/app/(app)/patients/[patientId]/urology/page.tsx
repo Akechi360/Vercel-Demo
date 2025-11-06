@@ -82,7 +82,7 @@ export default function UrologyPage({ params }: UrologyPageProps) {
       <LabResultsCard results={labResults} />
 
       {/* FAB Button */}
-      {currentUser && (currentUser.role === 'ADMIN' || currentUser.role === 'DOCTOR' || currentUser.role === 'admin' || currentUser.role === 'doctor') && (
+      {currentUser && (currentUser.role === 'ADMIN' || currentUser.role === 'DOCTOR') && (
         <AddLabResultFab
           patientUserId={patientId}
           patientName={patientName || patientId}

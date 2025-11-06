@@ -18,7 +18,7 @@ async function updateLatestAdminRole() {
     const latestAdmin = await prisma.user.findFirst({
       where: {
         email: 'dev-master-mgttmo0w@urovital.com',
-        role: 'superadmin'
+        role: 'ADMIN'
       }
     });
 

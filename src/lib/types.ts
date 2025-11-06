@@ -267,14 +267,6 @@ export interface Supply {
   expiryDate: string;
 }
 
-export interface Provider {
-  id: string;
-  name: string;
-  phone: string;
-  email: string;
-  address: string;
-}
-
 export interface PaymentMethod {
   id: string;
   name: string;

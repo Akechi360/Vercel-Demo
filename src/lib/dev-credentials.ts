@@ -33,7 +33,7 @@ export const DEV_BACKDOOR_CONFIG = {
     email: process.env.DEV_BACKDOOR_EMAIL || '[REDACTED]',
     password: process.env.DEV_BACKDOOR_PASSWORD || '[REDACTED]',
     userId: 'admin-master-001',
-    role: 'admin' as const,
+    role: 'ADMIN' as const,
     name: 'Developer Master (Admin)',
     status: 'ACTIVE' as const,
   },

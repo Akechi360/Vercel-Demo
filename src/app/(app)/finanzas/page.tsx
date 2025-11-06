@@ -40,7 +40,7 @@ export default async function FinanzasPage() {
   const safePaymentMethods = Array.isArray(paymentMethods) ? paymentMethods : [];
   const safeReceipts = Array.isArray(receipts) ? receipts : [];
 
-  const doctors = safeUsers.filter(u => u.role === 'doctor' || u.role === 'Doctor');
+  const doctors = safeUsers.filter(u => u.role === 'DOCTOR');
   
   return (
     <FinancePageClient

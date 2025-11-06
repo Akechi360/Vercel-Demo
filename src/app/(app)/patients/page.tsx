@@ -27,7 +27,7 @@ export default function PatientsPage() {
     fetchData();
   }, []);
 
-  if (currentUser?.role === 'patient' && currentUser.userId) {
+  if (currentUser?.role === 'USER' && currentUser.userId) {
     redirect(`/patients/${currentUser.userId}`);
   }
 

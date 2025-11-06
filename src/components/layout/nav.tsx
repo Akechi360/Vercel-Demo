@@ -49,8 +49,6 @@ const mainMenuItems = [
 ];
 
 const adminMenuItems = [
-    { href: '/administrativo/supplies', label: 'Suministros', icon: Box, permission: 'admin:all' },
-    { href: '/administrativo/providers', label: 'Proveedores', icon: Truck, permission: 'admin:all' },
     { href: '/administrativo/alerts', label: 'Alertas', icon: Bell, permission: 'admin:all' },
 ]
 

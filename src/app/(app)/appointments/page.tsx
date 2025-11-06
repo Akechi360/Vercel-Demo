@@ -45,9 +45,9 @@ export default function AppointmentsPage() {
   
   const renderContent = () => {
     switch (role) {
-      case 'doctor':
-      case 'admin':
-      case 'secretaria':
+      case 'DOCTOR':
+      case 'ADMIN':
+      case 'SECRETARIA':
         return (
           <>
             <DoctorAppointments
@@ -57,7 +57,7 @@ export default function AppointmentsPage() {
             {can('appointments:write') && <AddAppointmentFab />}
           </>
         );
-      case 'patient':
+      case 'USER':
         return (
             <>
                 <PatientAppointments
@@ -81,7 +81,7 @@ export default function AppointmentsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader title={role === 'patient' ? "Mis Citas" : "Agenda de Citas"} />
+      <PageHeader title={role === 'USER' ? "Mis Citas" : "Agenda de Citas"} />
       {renderContent()}
     </div>
   );

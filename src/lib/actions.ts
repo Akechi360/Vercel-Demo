@@ -1,6 +1,6 @@
 'use server';
 
-import type { Patient, Appointment, Consultation, LabResult, IpssScore, Report, Company, Supply, Provider, PaymentMethod, PaymentType, Payment, Doctor, Estudio, AffiliateLead } from './types';
+import type { Patient, Appointment, Consultation, LabResult, IpssScore, Report, Company, Supply, PaymentMethod, PaymentType, Payment, Doctor, Estudio, AffiliateLead } from './types';
 import { User } from '@prisma/client';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -1539,33 +1539,8 @@ export async function getSupplies(): Promise<Supply[]> {
       expiryDate: supply.fechaVencimiento?.toISOString() || '',
     }));
   } catch (error) {
-    console.error('Error fetching supplies:', error);
-  return [];
-  }
-}
-
-// PROVIDER ACTIONS
-export async function getProviders(): Promise<Provider[]> {
-  try {
-    const providers = await withDatabase(async (prisma) => {
-      return await prisma.provider.findMany({
-        orderBy: { createdAt: 'desc' },
-      });
-    });
-
-    return providers.map((provider: any) => ({
-      id: provider.id,
-      name: provider.nombre,
-      specialty: provider.especialidad,
-      phone: provider.telefono || '',
-      email: provider.email || '',
-      address: provider.direccion || '',
-      createdAt: provider.createdAt.toISOString(),
-      updatedAt: provider.updatedAt.toISOString(),
-    }));
-  } catch (error) {
-    console.error('Error fetching providers:', error);
-  return [];
+    console.error('Error al obtener suministros:', error);
+    return [];
   }
 }
 
@@ -1582,7 +1557,7 @@ export async function getPayments(): Promise<Payment[]> {
       });
     }, []); // Fallback to empty array
     
-    const mappedPayments = payments.map((payment: any) => ({
+    return payments.map((payment: any) => ({
       id: payment.id,
       userId: payment.patient.userId,
       doctorId: undefined,
@@ -1593,10 +1568,9 @@ export async function getPayments(): Promise<Payment[]> {
       status: payment.estado === 'PAGADO' ? 'Pagado' as const : 
               payment.estado === 'CANCELADO' ? 'Anulado' as const : 'Pendiente' as const,
     }));
-    return mappedPayments;
   } catch (error) {
     console.error('Error fetching payments:', error);
-  return [];
+    return [];
   }
 }
 
@@ -2468,19 +2442,19 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
 
       // Manejar cambios de rol
       if (data.role && currentUser && data.role !== currentUser.role) {
-        console.log(`🔄 Cambio de rol detectado: ${currentUser.role} -> ${data.role}`);
-        const newRole = data.role.toLowerCase();
-        const oldRole = currentUser.role?.toLowerCase();
+        console.log(`🔄 Cambio de rol detectido: ${currentUser.role} -> ${data.role}`);
+        const newRole = data.role;
+        const oldRole = currentUser.role;
         
         // Manejar cambios DESDE roles específicos
-        if (oldRole === 'doctor' && newRole !== 'doctor') {
+        if (oldRole === 'DOCTOR' && newRole !== 'DOCTOR') {
           await removeDoctorRecord(userId);
-        } else if (oldRole === 'promotora' && newRole !== 'promotora') {
+        } else if (oldRole === 'PROMOTORA' && newRole !== 'PROMOTORA') {
           await removePromotoraRecord(userId);
-        } else if ((oldRole === 'secretaria' || oldRole === 'user') && 
-                  (newRole !== 'secretaria' && newRole !== 'user')) {
+        } else if ((oldRole === 'SECRETARIA' || oldRole === 'USER') && 
+                  (newRole !== 'SECRETARIA' && newRole !== 'USER')) {
           await removeSecretariaRecord(userId);
-        } else if (oldRole === 'patient' && newRole !== 'patient') {
+        } else if (oldRole === 'USER' && newRole !== 'USER') {
           try {
             await prisma.patientInfo.deleteMany({
               where: { userId: updatedUser.userId }
@@ -2491,7 +2465,7 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
         }
         
         // Manejar cambios A roles específicos
-        if (newRole === 'doctor') {
+        if (newRole === 'DOCTOR') {
           try {
             const existingDoctor = await prisma.doctorInfo.findUnique({
               where: { userId: updatedUser.userId }
@@ -2517,7 +2491,7 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
           }
         } 
         // Manejar cambios a paciente
-        else if (newRole === 'patient') {
+        else if (newRole === 'USER') {
           try {
             const existingPatientInfo = await prisma.patientInfo.findUnique({
               where: { userId: updatedUser.userId }
@@ -2608,10 +2582,6 @@ export async function getPaymentMethods(): Promise<PaymentMethod[]> {
 
 export async function getPaymentTypes(): Promise<PaymentType[]> {
   return [];
-}
-
-export async function addProvider(providerData: Omit<Provider, 'id'>): Promise<Provider> {
-  throw new Error('Not implemented');
 }
 
 export async function addPaymentMethod(data: Omit<PaymentMethod, 'id'>): Promise<PaymentMethod> {

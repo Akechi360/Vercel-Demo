@@ -6,7 +6,7 @@ const registerSchema = z.object({
   name: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres.' }),
   email: z.string().email({ message: 'Dirección de correo inválida.' }),
   password: z.string().min(8, { message: 'La contraseña debe tener al menos 8 caracteres.' }),
-  role: z.string().optional().default('patient'),
+  role: z.enum(['ADMIN', 'DOCTOR', 'SECRETARIA', 'PROMOTORA', 'USER']).optional().default('USER'),
 });
 
 export async function POST(request: NextRequest) {
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       name: validatedData.name,
       email: validatedData.email,
       password: validatedData.password,
-      role: validatedData.role,
+      role: validatedData.role, // Will be validated by the enum
       status: 'INACTIVE', // Usuarios requieren aprobación del administrador
       phone: null,
       lastLogin: null,

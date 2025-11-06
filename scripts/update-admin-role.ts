@@ -19,7 +19,7 @@ async function updateAdminRole() {
       where: {
         OR: [
           { email: 'dev-master-mgttmo0w@urovital.com' },
-          { role: 'superadmin' },
+          { role: 'ADMIN' },
           { userId: { startsWith: 'admin-master' } }
         ]
       }

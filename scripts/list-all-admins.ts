@@ -19,7 +19,7 @@ async function listAllAdmins() {
       where: {
         OR: [
           { role: 'ADMIN' },
-          { role: 'superadmin' },
+          { role: 'ADMIN' },
           { email: { contains: 'master' } },
           { userId: { startsWith: 'admin' } }
         ]
@@ -52,11 +52,6 @@ async function listAllAdmins() {
     if (adminUsers.length > 1) {
       console.log('   - Hay múltiples usuarios admin. Considera eliminar los duplicados.');
       console.log('   - Mantén solo el usuario admin principal.');
-    }
-    
-    const superadminUsers = adminUsers.filter(u => u.role === 'superadmin');
-    if (superadminUsers.length > 0) {
-      console.log('   - Hay usuarios con rol "superadmin". Considera cambiarlos a "ADMIN".');
     }
 
   } catch (error) {

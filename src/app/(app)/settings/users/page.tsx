@@ -48,7 +48,7 @@ import { useAuth } from '@/components/layout/auth-provider';
 import { usePermissions } from '@/hooks/use-permissions';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
-import { User } from "@prisma/client";
+import { User, UserRole } from "@prisma/client";
 
 // Mock data removed - now using database
 
@@ -330,7 +330,7 @@ export default function UsersManagementPage() {
         name: newUser.name,
         email: newUser.email,
         password: 'TempPassword123!', // Default password, should be changed on first login
-        role: newUser.role,
+        role: newUser.role.toUpperCase() as UserRole,
         status: 'ACTIVE',
         phone: null,
         lastLogin: null,
@@ -579,11 +579,11 @@ export default function UsersManagementPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant={getRoleBadgeVariant(user.role)}>
-                      {user.role === 'ADMIN' || user.role === 'admin' ? 'Administrador' : 
-                       user.role === 'DOCTOR' || user.role === 'doctor' || user.role === 'Doctor' ? 'Doctor' : 
-                       user.role === 'SECRETARIA' || user.role === 'secretaria' ? 'Secretaria' :
-                       user.role === 'PATIENT' || user.role === 'patient' ? 'Paciente' :
-                       user.role === 'PROMOTORA' || user.role === 'promotora' ? 'Promotora' : 'Desconocido'}
+                      {user.role === 'ADMIN' ? 'Administrador' : 
+                       user.role === 'DOCTOR' ? 'Doctor' : 
+                       user.role === 'SECRETARIA' ? 'Secretaria' :
+                       user.role === 'USER' ? 'Paciente' :
+                       user.role === 'PROMOTORA' ? 'Promotora' : 'Desconocido'}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -814,7 +814,7 @@ export default function UsersManagementPage() {
                 <Label htmlFor="editUserRole">Rol</Label>
                 <Select 
                   value={selectedUser.role} 
-                  onValueChange={(value: 'admin' | 'doctor' | 'secretaria' | 'patient' | 'promotora') => 
+                  onValueChange={(value: UserRole) => 
                     setSelectedUser({...selectedUser, role: value})
                   }
                 >

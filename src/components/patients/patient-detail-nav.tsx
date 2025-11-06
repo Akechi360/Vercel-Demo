@@ -45,13 +45,6 @@ export default function PatientDetailNav({ patientId }: { patientId: string }) {
         radius="full"
         className="w-full"
         disableAnimation={false}
-        motionProps={{
-          transition: {
-            type: "tween",
-            duration: 0.3,
-            ease: [0.4, 0, 0.2, 1]
-          }
-        }}
         classNames={{
           tabList: "w-fit p-0.5 gap-0 rounded-full border border-default-200/20 bg-default-50/10 backdrop-blur-sm relative",
           tab: "px-4 h-9 text-sm font-medium text-foreground-500 data-[hover=true]:text-foreground data-[selected=true]:text-foreground relative z-10",

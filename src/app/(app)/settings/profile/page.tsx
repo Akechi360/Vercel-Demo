@@ -91,7 +91,7 @@ export default function ProfilePage() {
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Avatar Section */}
-        {(currentUser?.role === 'doctor' || currentUser?.role === 'Doctor') && (
+        {currentUser?.role === 'DOCTOR' && (
           <div className="space-y-4">
             <Label>Foto de Perfil</Label>
             <div className="flex items-center gap-4">

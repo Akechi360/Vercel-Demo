@@ -662,7 +662,6 @@ export async function getAppointments(): Promise<Appointment[]> {
       include: {
         patient: true, // Relación con User (paciente)
         doctor: true,  // Relación con User (doctor)
-        provider: true,
         creator: true, // Relación con User (creador)
       },
       orderBy: { fecha: 'desc' },

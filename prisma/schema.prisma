@@ -8,6 +8,122 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum UserRole {
+  ADMIN
+  DOCTOR
+  PATIENT
+  SECRETARIA
+  PROMOTORA
+  USER
+}
+
+enum BloodType {
+  A_POSITIVE
+  A_NEGATIVE
+  B_POSITIVE
+  B_NEGATIVE
+  AB_POSITIVE
+  AB_NEGATIVE
+  O_POSITIVE
+  O_NEGATIVE
+  UNKNOWN
+}
+
+enum Gender {
+  MASCULINO
+  FEMENINO
+  OTRO
+}
+
+enum ReceiptStatus {
+  PAGADO
+  PENDIENTE
+  CANCELADO
+  ANULADO
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum AppointmentType {
+  CONSULTA
+  SEGUIMIENTO
+  URGENCIA
+  PROCEDIMIENTO
+}
+
+enum AppointmentStatus {
+  PROGRAMADA
+  CONFIRMADA
+  EN_PROGRESO
+  COMPLETADA
+  CANCELADA
+  NO_ASISTIO
+}
+
+enum PaymentType {
+  CONSULTA_GENERAL
+  CONSULTA_SEGUIMIENTO
+  AFILIACION_ANUAL
+  ESTUDIO_LABORATORIO
+  PROCEDIMIENTO_MENOR
+}
+
+enum PaymentStatus {
+  PENDIENTE
+  PAGADO
+  CANCELADO
+  REEMBOLSADO
+}
+
+enum AffiliationStatus {
+  ACTIVA
+  INACTIVA
+  SUSPENDIDA
+  VENCIDA
+  ABONO
+  INICIAL
+}
+
+enum NotificationType {
+  APPOINTMENT_REMINDER
+  PAYMENT_CONFIRMATION
+  SYSTEM_ALERT
+  APPOINTMENT_CANCELLATION
+  NEW_MESSAGE
+  APPOINTMENT
+  PAYMENT_REMINDER
+  LAB_RESULT_READY
+  PRESCRIPTION_READY
+  AFFILIATION_EXPIRING
+  MAINTENANCE_NOTICE
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  PUSH
+  IN_APP
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum LabResultStatus {
+  PENDIENTE
+  EN_PROCESO
+  COMPLETADO
+  RECHAZADO
+}
+
 model User {
   id                         String                      @id @default(cuid())
   email                      String                      @unique
@@ -16,7 +132,7 @@ model User {
   createdAt                  DateTime                    @default(now())
   lastLogin                  DateTime?
   phone                      String?
-  status                     String                      @default("ACTIVE")
+  status                     UserStatus                  @default(ACTIVE)
   role                       UserRole
   avatarUrl                  String?                     @default("/images/avatars/default-doctor.png")
   userId                     String                      @unique
@@ -53,17 +169,17 @@ model User {
 }
 
 model PatientInfo {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  cedula          String   @unique
+  id              String     @id @default(cuid())
+  userId          String     @unique
+  cedula          String     @unique
   fechaNacimiento DateTime
   telefono        String?
   direccion       String?
-  bloodType       String?
-  gender          String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  user            User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  bloodType       BloodType?
+  gender          Gender?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  user            User       @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@map("patient_info")
 }
@@ -184,29 +300,29 @@ model Consultation {
 }
 
 model LabResult {
-  id               String        @id @default(cuid())
+  id               String          @id @default(cuid())
   nombre           String
   tipo             String
   resultado        String
   valores          Json?
-  fecha            DateTime      @default(now())
+  fecha            DateTime        @default(now())
   consultationId   String?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
   archivoContenido String?
   archivoNombre    String?
   archivoTamaño   Int?
   archivoTipo      String?
   doctorUserId     String?
-  estado           String        @default("PENDIENTE")
+  estado           LabResultStatus @default(PENDIENTE)
   patientUserId    String
-  consultation     Consultation? @relation(fields: [consultationId], references: [id])
-  doctor           User?         @relation("DoctorLabResults", fields: [doctorUserId], references: [userId])
-  patient          User          @relation("PatientLabResults", fields: [patientUserId], references: [userId], onDelete: Cascade)
+  consultation     Consultation?   @relation(fields: [consultationId], references: [id])
+  doctor           User?           @relation("DoctorLabResults", fields: [doctorUserId], references: [userId])
+  patient          User            @relation("PatientLabResults", fields: [patientUserId], references: [userId], onDelete: Cascade)
 
   @@index([patientUserId])
   @@index([doctorUserId])
-  @@index([estado])
+  // Removed index on enum field
   @@map("lab_results")
 }
 
@@ -364,23 +480,23 @@ model SystemConfig {
 }
 
 model Receipt {
-  id          String   @id @default(cuid())
-  number      String   @unique
-  amount      Decimal  @db.Decimal(10, 2)
+  id          String        @id @default(cuid())
+  number      String        @unique
+  amount      Decimal       @db.Decimal(10, 2)
   concept     String?
   method      String
-  createdAt   DateTime @default(now())
+  createdAt   DateTime      @default(now())
   doctorId    String?
   paymentType String
   plan        String?
   type        String
   createdById String?
   patientId   String?
-  status      String   @default("PAGADO")
-  updatedAt   DateTime @updatedAt
-  createdBy   User?    @relation("CreatedReceipts", fields: [createdById], references: [userId])
-  doctor      User?    @relation("DoctorReceipts", fields: [doctorId], references: [userId])
-  patient     User?    @relation("PatientReceipts", fields: [patientId], references: [userId])
+  status      ReceiptStatus @default(PAGADO)
+  updatedAt   DateTime      @updatedAt
+  createdBy   User?         @relation("CreatedReceipts", fields: [createdById], references: [userId])
+  doctor      User?         @relation("DoctorReceipts", fields: [doctorId], references: [userId])
+  patient     User?         @relation("PatientReceipts", fields: [patientId], references: [userId])
 
   @@map("receipts")
 }
@@ -450,81 +566,4 @@ model UserNotificationPreference {
   user                 User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@map("user_notification_preferences")
-}
-
-enum UserRole {
-  ADMIN
-  DOCTOR
-  USER
-  PROMOTORA
-  SECRETARIA
-}
-
-enum AppointmentType {
-  CONSULTA
-  SEGUIMIENTO
-  URGENCIA
-  PROCEDIMIENTO
-}
-
-enum AppointmentStatus {
-  PROGRAMADA
-  CONFIRMADA
-  EN_PROGRESO
-  COMPLETADA
-  CANCELADA
-  NO_ASISTIO
-}
-
-enum PaymentType {
-  CONSULTA_GENERAL
-  CONSULTA_SEGUIMIENTO
-  AFILIACION_ANUAL
-  ESTUDIO_LABORATORIO
-  PROCEDIMIENTO_MENOR
-}
-
-enum PaymentStatus {
-  PENDIENTE
-  PAGADO
-  CANCELADO
-  REEMBOLSADO
-}
-
-enum AffiliationStatus {
-  ACTIVA
-  INACTIVA
-  SUSPENDIDA
-  VENCIDA
-  ABONO
-  INICIAL
-}
-
-enum NotificationType {
-  APPOINTMENT_REMINDER
-  PAYMENT_CONFIRMATION
-  SYSTEM_ALERT
-  APPOINTMENT_CANCELLATION
-  NEW_MESSAGE
-  APPOINTMENT
-  PAYMENT_REMINDER
-  LAB_RESULT_READY
-  PRESCRIPTION_READY
-  AFFILIATION_EXPIRING
-  MAINTENANCE_NOTICE
-}
-
-enum NotificationChannel {
-  EMAIL
-  SMS
-  PUSH
-  IN_APP
-}
-
-enum NotificationStatus {
-  PENDING
-  SENT
-  DELIVERED
-  READ
-  FAILED
 }

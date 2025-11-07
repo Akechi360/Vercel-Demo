@@ -48,9 +48,6 @@ const mainMenuItems = [
   { href: '/auditoria', label: 'Auditoría', icon: Shield, permission: 'admin:all' },
 ];
 
-const adminMenuItems = [
-    { href: '/administrativo/alerts', label: 'Alertas', icon: Bell, permission: 'admin:all' },
-]
 
 const settingsMenuItem = { href: '/settings', label: 'Configuración', icon: Settings, permission: 'settings:read' };
 
@@ -61,7 +58,6 @@ export default function Nav() {
   const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
   
-  const [isAdminOpen, setIsAdminOpen] = useState(pathname.startsWith('/administrativo'));
 
   // Don't render navigation until user is loaded
   if (loading || !currentUser) {
@@ -75,7 +71,6 @@ export default function Nav() {
     return pathname.startsWith(href);
   }
   
-  const canViewAdmin = adminMenuItems.some(item => hasPermission(item.permission as any));
 
   return (
     <>
@@ -116,34 +111,6 @@ export default function Nav() {
             );
           })}
             
-            {canViewAdmin && (
-            <SidebarMenuItem>
-                <SidebarMenuButton
-                    onClick={() => setIsAdminOpen(!isAdminOpen)}
-                    isActive={isActive('/administrativo')}
-                    tooltip={{ children: 'Administrativo' }}
-                >
-                    <Box />
-                    {!isCollapsed && <span>Administrativo</span>}
-                    {!isCollapsed && <ChevronDown className={`ml-auto h-5 w-5 transition-transform ${isAdminOpen ? 'rotate-180' : ''}`} />}
-                </SidebarMenuButton>
-                {!isCollapsed && isAdminOpen && (
-                    <SidebarMenuSub>
-                        {adminMenuItems.map(item => (
-                             hasPermission(item.permission as any) &&
-                            <SidebarMenuSubItem key={item.href}>
-                                <SidebarMenuSubButton asChild isActive={pathname === item.href}>
-                                    <Link href={item.href}>
-                                        <item.icon />
-                                        <span>{item.label}</span>
-                                    </Link>
-                                </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                        ))}
-                    </SidebarMenuSub>
-                )}
-            </SidebarMenuItem>
-            )}
 
           {hasPermission(settingsMenuItem.permission as any) && <SidebarMenuItem>
               <SidebarMenuButton

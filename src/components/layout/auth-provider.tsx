@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ROLE_PERMISSIONS, type Permission, type User, ROLES, type UserRole, isValidRole } from '@/lib/types';
 import { LogoLoading } from '@/components/shared/logo-loading';
 
-const PROTECTED_ROUTES = ['/dashboard', '/patients', '/settings', '/appointments', '/companies', '/administrativo'];
+const PROTECTED_ROUTES = ['/dashboard', '/patients', '/settings', '/appointments', '/companies'];
 const AUTH_ROUTES = ['/login', '/register', '/forgot-password', '/landing'];
 
 type AuthContextType = {

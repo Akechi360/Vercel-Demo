@@ -26,6 +26,14 @@ enum BloodType {
   AB_NEGATIVE
   O_POSITIVE
   O_NEGATIVE
+  O_PLUS
+  O_MINUS
+  A_PLUS
+  A_MINUS
+  B_PLUS
+  B_MINUS
+  AB_PLUS
+  AB_MINUS
   UNKNOWN
 }
 

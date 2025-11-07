@@ -30,48 +30,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
-        const userJson = localStorage.getItem('user');
-        const user = userJson ? JSON.parse(userJson) : null;
-        
-        // Mapear el rol del usuario al enum UserRole
-        if (user) {
-            // Convertir el rol a mayúsculas para coincidir con el enum
-            const role = user.role.toUpperCase();
-            
-            // Verificar si el rol es válido, si no, asignar USER por defecto
-            if (isValidRole(role)) {
-                user.role = role as UserRole;
-            } else {
-                user.role = ROLES.USER;
-            }
-            
-            // Actualizar el localStorage con el rol corregido
-            localStorage.setItem('user', JSON.stringify(user));
+      const userJson = localStorage.getItem('user');
+      const user = userJson ? JSON.parse(userJson) : null;
+      
+      if (user && user.role) {
+        const role = user.role.toUpperCase();
+        if (isValidRole(role)) {
+          user.role = role as UserRole;
+        } else {
+          user.role = ROLES.USER;
         }
-        
-        console.log('AuthProvider: Loaded user from localStorage:', user?.role, user?.name);
-        setCurrentUser(user);
-
-        const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route));
-        const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
-
-        if (!user && isProtectedRoute) {
-            router.push('/login');
-        } else if (user && isAuthRoute) {
-            if (pathname !== '/landing') { // Allow logged-in users to see landing page
-                router.push('/dashboard');
-            }
-        }
-        
+        localStorage.setItem('user', JSON.stringify(user));
+      }
+      
+      setCurrentUser(user);
+      
+      const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route));
+      const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
+      
+      // Solo redirecciona si REALMENTE necesita cambiar
+      if (!user && isProtectedRoute && !pathname.includes('/login')) {
+        router.push('/login');
+      } else if (user && isAuthRoute && pathname !== '/landing') {
+        // Agregar un pequeño delay para evitar race conditions
+        const timer = setTimeout(() => {
+          router.push('/dashboard');
+        }, 100);
+        return () => clearTimeout(timer);
+      }
     } catch (error) {
-        // Corrupted user data in localStorage
-        localStorage.removeItem('user');
-        setCurrentUser(null);
-         if (PROTECTED_ROUTES.some(route => pathname.startsWith(route))) {
-            router.push('/login');
-        }
+      // Corrupted user data in localStorage
+      console.error('Error en la autenticación:', error);
+      localStorage.removeItem('user');
+      setCurrentUser(null);
+      if (PROTECTED_ROUTES.some(route => pathname.startsWith(route))) {
+        router.push('/login');
+      }
     } finally {
-        setIsAuthenticating(false);
+      setIsAuthenticating(false);
     }
   }, [pathname, router]);
 

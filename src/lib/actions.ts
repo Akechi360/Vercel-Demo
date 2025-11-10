@@ -3932,7 +3932,7 @@ export async function getReceipts(): Promise<any[]> {
         cu.email as "createdByEmail",
         du.name as "doctorName",
         du.email as "doctorEmail"
-      FROM "Receipt" r
+      FROM "receipts" r
       LEFT JOIN "User" u ON r."patientId" = u.id
       LEFT JOIN "patient_info" pi ON u.id = pi."userId"
       LEFT JOIN "User" cu ON r."createdById" = cu.id

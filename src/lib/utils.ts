@@ -1,8 +1,43 @@
 // Todas las funciones exportadas aquí son únicas y centralizadas para evitar duplicidad de definición e importación.
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { User, UserRole } from "./types"
+import { User, UserRole, UserStatus } from "./types"
 import { getPrismaClient, isDatabaseAvailable } from "./db"
+
+/**
+ * Normalize role values to match the database enum
+ * @param role Role value to normalize
+ * @returns Normalized role in uppercase
+ */
+export function normalizeRole(role: string): 'ADMIN' | 'DOCTOR' | 'SECRETARIA' | 'PROMOTORA' | 'USER' {
+  const roleMap: Record<string, 'ADMIN' | 'DOCTOR' | 'SECRETARIA' | 'PROMOTORA' | 'USER'> = {
+    'admin': 'ADMIN',
+    'doctor': 'DOCTOR',
+    'secretaria': 'SECRETARIA',
+    'promotora': 'PROMOTORA',
+    'patient': 'USER',
+    'user': 'USER',
+  };
+  
+  const normalizedRole = roleMap[role.toLowerCase()] || 'USER';
+  return normalizedRole;
+}
+
+/**
+ * Normalize status values to match the database enum
+ * @param status Status value to normalize
+ * @returns Normalized status in uppercase
+ */
+export function normalizeStatus(status: string): 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' {
+  const statusMap: Record<string, 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'> = {
+    'active': 'ACTIVE',
+    'inactive': 'INACTIVE',
+    'suspended': 'SUSPENDED',
+  };
+  
+  const normalizedStatus = statusMap[status.toLowerCase()] || 'INACTIVE';
+  return normalizedStatus;
+}
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

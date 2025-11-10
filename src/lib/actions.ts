@@ -59,6 +59,45 @@ export const withDatabase = async <T>(operation: (prisma: any) => Promise<T>, fa
 // Simulate network delay
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
+/**
+ * Normalize role values to match the database enum
+ * @param role Role value to normalize
+ * @returns Normalized role in uppercase
+ */
+function normalizeRole(role: string): 'ADMIN' | 'DOCTOR' | 'SECRETARIA' | 'PROMOTORA' | 'USER' {
+  const roleMap: Record<string, 'ADMIN' | 'DOCTOR' | 'SECRETARIA' | 'PROMOTORA' | 'USER'> = {
+    'admin': 'ADMIN',
+    'doctor': 'DOCTOR',
+    'secretaria': 'SECRETARIA',
+    'promotora': 'PROMOTORA',
+    'patient': 'USER',
+    'user': 'USER',
+  };
+  
+  const normalizedRole = roleMap[role.toLowerCase()] || 'USER';
+  
+  // Type assertion is safe because we've provided all possible values in the map
+  return normalizedRole as 'ADMIN' | 'DOCTOR' | 'SECRETARIA' | 'PROMOTORA' | 'USER';
+}
+
+/**
+ * Normalize status values to match the database enum
+ * @param status Status value to normalize
+ * @returns Normalized status in uppercase
+ */
+function normalizeStatus(status: string): 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' {
+  const statusMap: Record<string, 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'> = {
+    'active': 'ACTIVE',
+    'inactive': 'INACTIVE',
+    'suspended': 'SUSPENDED',
+  };
+  
+  const normalizedStatus = statusMap[status.toLowerCase()] || 'INACTIVE';
+  
+  // Type assertion is safe because we've provided all possible values in the map
+  return normalizedStatus as 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+}
+
 // Test database connection
 export async function testDatabaseConnection(): Promise<boolean> {
   try {
@@ -187,7 +226,7 @@ export async function deleteReport(reportId: string, currentUserId: string): Pro
   }, { success: false, error: 'Database not available' });
 }
 
-// PATIENT ACTIONS
+// USER ACTIONS (Patients)
 export async function getPatients(): Promise<Patient[]> {
   try {
     const isAvailable = await isDatabaseAvailable();
@@ -596,7 +635,7 @@ export async function updatePatient(userId: string, patientData: {
     console.log('✅ Patient updated successfully - FINAL RESULT:', JSON.stringify(updatedPatient, null, 2));
     return updatedPatient;
   } catch (error: unknown) {
-    console.error('[UPDATE_PATIENT] ❌ Error capturado:', {
+    console.error('[UPDATE_USER] ❌ Error capturado:', {
       message: error instanceof Error ? error.message : 'Error desconocido',
       name: error instanceof Error ? error.name : 'UnknownError',
       stack: error instanceof Error ? error.stack : undefined,
@@ -2021,22 +2060,8 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
     // Generate unique userId
     const userId = `U${Date.now().toString().slice(-6)}`;
     
-    // Mapear roles del frontend a enum de Prisma
-    const roleMap: Record<string, string> = {
-      'patient': 'USER',
-      'admin': 'ADMIN',
-      'doctor': 'DOCTOR',
-      'promotora': 'PROMOTORA',
-      'secretaria': 'SECRETARIA',
-    };
-
-    const mappedRole = (roleMap[data.role.toLowerCase()] || data.role.toUpperCase()) as UserRole;
-    
-    // Validar que el rol mapeado sea válido
-    const validRoles: UserRole[] = ['ADMIN', 'DOCTOR', 'USER', 'PROMOTORA', 'SECRETARIA'];
-    if (!validRoles.includes(mappedRole)) {
-      throw new Error(`Rol no válido: ${data.role}. Los roles válidos son: ${validRoles.join(', ')}`);
-    }
+    // Normalizar el rol usando la función de utilidad
+    const mappedRole = normalizeRole(data.role);
     
     const newUser = await prisma.user.create({
       data: {
@@ -2044,7 +2069,7 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
         email: data.email,
         password: hashedPassword,
         role: mappedRole,
-        status: data.status || 'INACTIVE',
+        status: normalizeStatus(data.status || 'inactive'),
         phone: data.phone || null,
         lastLogin: data.lastLogin || null,
         avatarUrl: data.avatarUrl || null,
@@ -2065,8 +2090,8 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
             fechaNacimiento: new Date(2000, 0, 1), // Fecha por defecto - el usuario puede actualizarla después
             telefono: data.phone || '',
             direccion: '',
-            bloodType: 'O+', // Tipo de sangre por defecto
-            gender: 'Otro' // Género por defecto
+            bloodType: null, // Se establecerá más tarde
+            gender: null     // Se establecerá más tarde
           }
         });
       } catch (patientInfoError) {
@@ -2433,10 +2458,23 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
     
     // Update user using withTransaction - atomicidad asegurada
     const result = await withTransaction(async (prisma) => {
+      // Prepare update data with normalized role and status
+      const updateData = { ...data };
+      
+      // Normalize role if provided
+      if (updateData.role) {
+        updateData.role = normalizeRole(updateData.role);
+      }
+      
+      // Normalize status if provided
+      if (updateData.status) {
+        updateData.status = normalizeStatus(updateData.status);
+      }
+      
       // First update the user
       const updatedUser = await prisma.user.update({
         where: { id: userId },
-        data,
+        data: updateData,
       });
 
       // Manejar cambios de rol

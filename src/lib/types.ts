@@ -1,4 +1,41 @@
-// Definir los roles como constante para uso en runtime
+// UI form types (lowercase, español)
+export type UIRole = 'admin' | 'doctor' | 'secretaria' | 'paciente' | 'promotora';
+
+// DB role types (uppercase)
+type DBUserRole = 'ADMIN' | 'DOCTOR' | 'SECRETARIA' | 'PROMOTORA' | 'USER';
+
+// Export UserRole as an alias for DBUserRole
+export type UserRole = DBUserRole;
+
+// Define a mapping between UI roles and DB roles
+const UI_TO_DB_ROLE: Record<UIRole, UserRole> = {
+  admin: 'ADMIN',
+  doctor: 'DOCTOR',
+  secretaria: 'SECRETARIA',
+  paciente: 'USER',
+  promotora: 'PROMOTORA'
+};
+
+// Map DB roles to UI roles
+const DB_TO_UI_ROLE: Record<UserRole, UIRole> = {
+  'ADMIN': 'admin',
+  'DOCTOR': 'doctor',
+  'SECRETARIA': 'secretaria',
+  'PROMOTORA': 'promotora',
+  'USER': 'paciente'
+};
+
+// Convert UI role to DB role
+export function toDBRole(uiRole: UIRole): UserRole {
+  return UI_TO_DB_ROLE[uiRole];
+}
+
+// Convert DB role to UI role
+export function toUIRole(dbRole: UserRole): UIRole {
+  return DB_TO_UI_ROLE[dbRole] || 'paciente'; // Default to 'paciente' for unknown roles
+}
+
+// For backward compatibility
 export const ROLES = {
   ADMIN: 'ADMIN' as const,
   DOCTOR: 'DOCTOR' as const,
@@ -6,6 +43,15 @@ export const ROLES = {
   PROMOTORA: 'PROMOTORA' as const,
   SECRETARIA: 'SECRETARIA' as const
 } as const;
+
+// Definir los estados de usuario como constante para uso en runtime
+export const USER_STATUS = {
+  ACTIVE: 'ACTIVE' as const,
+  INACTIVE: 'INACTIVE' as const,
+  SUSPENDED: 'SUSPENDED' as const
+} as const;
+
+export type UserStatus = keyof typeof USER_STATUS;
 
 // Tipo derivado de las claves de ROLES
 export type UserRole = keyof typeof ROLES;

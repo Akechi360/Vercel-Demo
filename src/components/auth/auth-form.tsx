@@ -135,7 +135,7 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
                 },
                 body: JSON.stringify({
                     ...values,
-                    role: 'patient', // Default role for new users
+                    role: 'USER', // Default role for new users
                 }),
             });
             

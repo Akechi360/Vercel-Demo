@@ -187,8 +187,9 @@ export default function UsersManagementPage() {
       case 'SECRETARIA':
       case 'secretaria':
         return 'secondary';
-      case 'PATIENT':
-      case 'patient':
+      case 'USER':
+      case 'user':
+      case 'patient':  // Mantener por compatibilidad UI
         return 'outline';
       case 'PROMOTORA':
       case 'promotora':
@@ -227,8 +228,9 @@ export default function UsersManagementPage() {
         const updatedUser = await updateUser(selectedUser.id, {
           name: selectedUser.name,
           email: selectedUser.email,
-          role: selectedUser.role,
+          role: selectedUser.role as 'ADMIN' | 'DOCTOR' | 'SECRETARIA' | 'PROMOTORA' | 'USER',
           status: selectedUser.status,
+          userId: selectedUser.userId
         });
         
         console.log('✅ User updated successfully:', updatedUser);

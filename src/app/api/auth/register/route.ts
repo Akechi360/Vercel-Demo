@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createUser } from '@/lib/actions';
+import { normalizeRole } from '@/lib/utils';
 import { z } from 'zod';
 
 const registerSchema = z.object({
@@ -21,14 +22,16 @@ export async function POST(request: NextRequest) {
     const validatedData = registerSchema.parse(body);
     console.log('✅ Datos validados:', validatedData);
     
-    // Create user with validated data
-    console.log('🔄 Llamando a createUser...');
+    // Normalize role and create user
+    console.log('🔄 Normalizando rol y llamando a createUser...');
+    const normalizedRole = normalizeRole(validatedData.role);
+    
     const newUser = await createUser({
       name: validatedData.name,
       email: validatedData.email,
       password: validatedData.password,
-      role: validatedData.role, // Will be validated by the enum
-      status: 'INACTIVE', // Usuarios requieren aprobación del administrador
+      role: normalizedRole,
+      status: 'INACTIVE',
       phone: null,
       lastLogin: null,
       userId: `U${Date.now().toString().slice(-6)}`,

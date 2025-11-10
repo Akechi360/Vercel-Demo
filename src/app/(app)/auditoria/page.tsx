@@ -94,8 +94,8 @@ export default function AuditoriaPage() {
       case 'SECRETARIA':
       case 'secretaria':
         return 'secondary';
-      case 'PATIENT':
-      case 'patient':
+      case 'USER':
+      case 'user':
         return 'outline';
       case 'PROMOTORA':
       case 'promotora':
@@ -116,8 +116,9 @@ export default function AuditoriaPage() {
       case 'SECRETARIA':
       case 'secretaria':
         return 'Secretaria';
-      case 'PATIENT':
-      case 'patient':
+      case 'USER':
+      case 'user':
+      case 'patient':  // Mantener por compatibilidad UI
         return 'Paciente';
       case 'PROMOTORA':
       case 'promotora':

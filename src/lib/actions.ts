@@ -2545,8 +2545,8 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
                   fechaNacimiento: new Date(2000, 0, 1),
                   telefono: data.phone || currentUser.phone || '',
                   direccion: '',
-                  bloodType: 'O+',
-                  gender: 'Otro'
+                  bloodType: null,
+                  gender: null
                 }
               });
               console.log('✅ Registro de paciente creado exitosamente');

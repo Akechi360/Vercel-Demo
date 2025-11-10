@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -32,6 +32,7 @@ export type ReportAttachment = {
   type: string;
   size: number;
   url: string;
+  base64Content?: string;
 };
 
 type ReportFormValues = {
@@ -115,6 +116,20 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
   const [isProcessingFiles, setIsProcessingFiles] = useState(false);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+
+  // Función para convertir File a base64
+  const fileToBase64 = useCallback((file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        // Extraer solo el base64, sin el prefijo "data:application/pdf;base64,"
+        const base64String = (reader.result as string).split(',')[1];
+        resolve(base64String);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  }, []);
 
   // Initialize form with default values
   const form = useForm<FormValues>({
@@ -237,8 +252,22 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
   const handleFileUpload = async (file: File, reportIndex: number) => {
     try {
       setIsProcessingFiles(true);
-      // In a real app, you would upload the file to a server here
-      // For now, we'll just create a local URL for the file
+      
+      console.log('📎 Procesando archivo:', file.name, `(${(file.size / 1024).toFixed(2)} KB)`);
+
+      // Convert File to base64
+      const base64Content = await fileToBase64(file);
+      
+      console.log('✅ [consultation-form] Archivo convertido a base64:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        base64Length: base64Content.length,
+        base64Preview: base64Content.substring(0, 100) + '...',
+        reportIndex
+      });
+
+      // Create temporary URL only for UI preview
       const fileUrl = URL.createObjectURL(file);
       
       // Update the form with the new file
@@ -257,7 +286,8 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
         name: file.name,
         type: file.type,
         size: file.size,
-        url: fileUrl
+        url: fileUrl, // Temporary URL for preview
+        base64Content: base64Content // Base64 content for persistence
       };
       
       if (!updatedReports[reportIndex].attachments) {
@@ -266,10 +296,31 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
       
       updatedReports[reportIndex].attachments!.push(newAttachment);
       
-      form.setValue('reports', updatedReports);
+      console.log('💾 [consultation-form] Actualizando form con reporte:', {
+        reportIndex,
+        reportTitle: updatedReports[reportIndex].title || 'Sin título',
+        attachmentsCount: updatedReports[reportIndex].attachments?.length || 0,
+        hasBase64Content: !!(updatedReports[reportIndex].attachments?.[0] as any)?.base64Content,
+        base64ContentLength: ((updatedReports[reportIndex].attachments?.[0] as any)?.base64Content?.length) || 0,
+        attachment: {
+          name: newAttachment.name,
+          type: newAttachment.type,
+          size: newAttachment.size,
+          hasBase64: !!newAttachment.base64Content,
+          base64Length: newAttachment.base64Content?.length || 0
+        }
+      });
+      
+      form.setValue('reports', updatedReports, { shouldDirty: true });
+      
+      console.log('✅ [consultation-form] Archivo agregado al reporte:', {
+        fileName: newAttachment.name,
+        reportIndex,
+        totalAttachments: updatedReports[reportIndex].attachments?.length || 0
+      });
       
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error('❌ Error uploading file:', error);
       toast({
         title: 'Error',
         description: 'No se pudo cargar el archivo. Por favor, intente nuevamente.',

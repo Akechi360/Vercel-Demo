@@ -28,25 +28,76 @@ export function QuickActions({ patient, upcomingAppointments, latestConsultation
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
     const handleAddHistory = async (values: ConsultationFormValues) => {
-        // Ensure date is properly formatted as ISO string
-        const formattedDate = values.date instanceof Date ? values.date.toISOString() : 
-                           typeof values.date === 'string' ? values.date : 
-                           new Date().toISOString();
-                           
-        const submissionValues = {
-            ...values,
-            date: formattedDate,
-            userId: patient.id,
-        };
         try {
+            console.log('📝 Iniciando guardado de consulta desde QuickActions...', {
+                hasReports: !!values.reports?.length,
+                reportsCount: values.reports?.length || 0
+            });
+
+            // Ensure date is properly formatted as ISO string
+            const formattedDate = values.date instanceof Date ? values.date.toISOString() : 
+                               typeof values.date === 'string' ? values.date : 
+                               new Date().toISOString();
+            
+            const submissionValues = {
+                ...values,
+                date: formattedDate,
+                userId: patient.id,
+            };
+
+            // Preparar reportes con mapeo correcto de attachments
+            const reports = values.reports?.flatMap(report => {
+                // Si no hay attachments, devolver un reporte sin archivo
+                if (!report.attachments || report.attachments.length === 0) {
+                    return [{
+                        title: report.title || 'Sin título',
+                        notes: (report as any).notes || '',
+                    }];
+                }
+
+                // Mapear cada attachment a un reporte separado
+                return report.attachments.map(attachment => {
+                    const extendedAttachment = attachment as any; // Usamos any para evitar problemas de tipos
+                    
+                    console.log('📎 QuickActions - Procesando reporte:', {
+                        title: report.title,
+                        hasAttachment: true,
+                        attachmentName: attachment.name,
+                        hasBase64: !!extendedAttachment.base64Content,
+                        base64Length: extendedAttachment.base64Content?.length || 0
+                    });
+                    
+                    return {
+                        title: report.title || 'Sin título',
+                        notes: (report as any).notes || '',
+                        // Mapear datos del attachment
+                        archivoNombre: attachment.name,
+                        archivoTipo: attachment.type,
+                        archivoTamaño: attachment.size,
+                        archivoUrl: attachment.url,
+                        archivoContenido: extendedAttachment.base64Content, // ⭐ CRÍTICO: contenido base64
+                    };
+                });
+            }) || [];
+
+            console.log('✅ QuickActions - Reportes mapeados:', {
+                totalReports: reports.length,
+                reportsWithContent: reports.filter((r: any) => r.archivoContenido).length
+            });
+
+            // Usar submissionValues con reportes correctamente mapeados
             await addConsultation({
                 ...submissionValues,
+                reports: reports, // ⭐ Usar reportes mapeados
             });
+            
+            console.log('✅ Consulta guardada exitosamente desde QuickActions');
             
             toast({
                 title: "Consulta Guardada",
                 description: `Nueva consulta de tipo "${values.type}" ha sido guardada exitosamente.`,
             });
+            
             setIsHistoryModalOpen(false);
         } catch (error) {
             console.error('Error saving consultation:', error);

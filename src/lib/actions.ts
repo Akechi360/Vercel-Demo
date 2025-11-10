@@ -522,90 +522,40 @@ export async function updatePatient(userId: string, patientData: {
       throw new Error('Tipo de sangre inválido. Debe ser: A+, A-, B+, B-, AB+, AB-, O+ u O-');
     }
     
-    // Update patient using withDatabase - mejor manejo de errores
-    const updatedPatient = await withDatabase(async (prisma) => {
-      
-      // Find user by userId
-      const existingUser = await prisma.user.findUnique({
-        where: { userId: userId },
-        include: { patientInfo: true }
-      });
+    // Prepare patient info data
+    const patientInfoData = {
+      cedula: patientData.cedula,
+      direccion: patientData.direccion || '',
+      gender: normalizedGender,
+      bloodType: normalizedBloodType,
+      telefono: patientData.phone || '',
+      fechaNacimiento: fechaNacimientoDate,
+    };
 
-      if (!existingUser) {
-        throw new Error(`Usuario con ID ${userId} no encontrado en la base de datos`);
-      }
-
-      // Normalizar gender y bloodType
-      const normalizedGender = patientData.gender ? normalizeGender(patientData.gender) : null;
-      const normalizedBloodType = patientData.bloodType ? normalizeBloodType(patientData.bloodType) : null;
-
-      if (!existingUser.patientInfo) {
-        // Create patient info if it doesn't exist
-        const newPatientInfo = await prisma.patientInfo.create({
+    // Execute transaction and capture result
+    const result = await withDatabase(async (prisma) => {
+      const [updatedUser, updatedPatientInfo] = await prisma.$transaction([
+        // Update user data
+        prisma.user.update({
+          where: { userId: userId },
           data: {
-            userId: existingUser.userId, // Use the userId field of the user
-            cedula: patientData.cedula,
-            fechaNacimiento: fechaNacimientoDate,
-            telefono: patientData.phone || null,
-            direccion: patientData.direccion || null,
-            bloodType: normalizedBloodType,
-            gender: normalizedGender,
-          }
-        });
-        
-        // Update the existingUser object to include the new patientInfo
-        existingUser.patientInfo = newPatientInfo;
-      }
-
-      // Update user record (name, email, phone)
-      const updatedUser = await prisma.user.update({
-        where: { userId: userId },
-        data: {
-          name: patientData.name.trim(),
-          email: patientData.email,
-          phone: patientData.phone
-          // updatedAt is managed automatically by Prisma for User model
-        },
-        include: {
-          patientInfo: true
-        }
-      });
-
-      // Update or create patient info
-      const patientInfoData = {
-        cedula: patientData.cedula,
-        direccion: patientData.direccion || '',
-        gender: normalizedGender,
-        bloodType: normalizedBloodType,
-        telefono: patientData.phone || '',
-        fechaNacimiento: fechaNacimientoDate,
-      };
-
-      let updatedPatientInfo;
-      
-      if (existingUser.patientInfo) {
-        // Update existing patient info
-        updatedPatientInfo = await prisma.patientInfo.update({
-          where: { userId: existingUser.userId },
-          data: patientInfoData,
-          include: {
-            user: true
-            // No incluir 'company' ya que no existe esta relación en el esquema
-          }
-        });
-      } else {
-        // Create new patient info if it doesn't exist (shouldn't happen in normal flow)
-        updatedPatientInfo = await prisma.patientInfo.create({
-          data: {
-            ...patientInfoData,
-            userId: existingUser.userId,
+            name: patientData.name.trim(),
+            email: patientData.email,
+            phone: patientData.phone
           },
-          include: {
-            user: true
-            // No incluir 'company' ya que no existe esta relación en el esquema
-          }
-        });
-      }
+          include: { patientInfo: true }
+        }),
+        
+        // Upsert patient info (update if exists, create if not)
+        prisma.patientInfo.upsert({
+          where: { userId: userId },
+          update: patientInfoData,
+          create: {
+            ...patientInfoData,
+            userId: userId,
+          },
+        }),
+      ]);
 
       // Handle company affiliation changes
       if (patientData.companyId) {
@@ -658,8 +608,9 @@ export async function updatePatient(userId: string, patientData: {
 
       // Return patient in the expected format
       return {
+        ...updatedUser,
+        patientInfo: updatedPatientInfo,
         id: updatedUser.userId,
-        name: updatedUser.name,
         cedula: updatedPatientInfo.cedula,
         age,
         gender: patientData.gender,
@@ -677,8 +628,8 @@ export async function updatePatient(userId: string, patientData: {
       };
     });
 
-    console.log('✅ Patient updated successfully - FINAL RESULT:', JSON.stringify(updatedPatient, null, 2));
-    return updatedPatient;
+    console.log(`✅ Paciente actualizado: ${result.name} (userId: ${result.userId})`);
+    return result;
   } catch (error: unknown) {
     console.error('[UPDATE_USER] ❌ Error capturado:', {
       message: error instanceof Error ? error.message : 'Error desconocido',

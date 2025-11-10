@@ -53,9 +53,6 @@ export const USER_STATUS = {
 
 export type UserStatus = keyof typeof USER_STATUS;
 
-// Tipo derivado de las claves de ROLES
-export type UserRole = keyof typeof ROLES;
-
 // Función de validación de roles
 export function isValidRole(role: string): role is UserRole {
   return Object.values(ROLES).includes(role as any);
@@ -231,6 +228,7 @@ export interface ReportAttachment {
   type: string;
   size: number;
   url: string;
+  base64Content?: string;
 }
 
 export interface Report {

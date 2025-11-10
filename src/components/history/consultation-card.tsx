@@ -359,7 +359,26 @@ export function ConsultationCard({ consultation }: ConsultationCardProps) {
                     setIsFileViewerOpen(false);
                     setSelectedReport(null);
                 }}
-                report={selectedReport}
+                // Normalizar archivoNombre: extraer solo el string
+                archivoNombre={
+                    typeof selectedReport.archivoNombre === 'string'
+                        ? selectedReport.archivoNombre
+                        : selectedReport.archivoNombre?.name || 'Archivo sin nombre'
+                }
+                // Normalizar fileUrl: extraer solo el string
+                fileUrl={
+                    typeof selectedReport.fileUrl === 'string'
+                        ? selectedReport.fileUrl
+                        : selectedReport.fileUrl?.url || selectedReport.archivoContenido || ''
+                }
+                fileType={selectedReport.archivoTipo || 'application/pdf'}
+                report={{
+                    ...selectedReport,
+                    // Asegurar que archivoNombre sea un string en el objeto report también
+                    archivoNombre: typeof selectedReport.archivoNombre === 'string'
+                        ? selectedReport.archivoNombre
+                        : selectedReport.archivoNombre?.name || 'Archivo sin nombre'
+                }}
             />
         )}
     </>

@@ -9,13 +9,19 @@ import {
     DialogTitle,
     DialogTrigger,
   } from "@/components/ui/accessible-dialog"
-import { ConsultationForm, ConsultationFormValues } from "./consultation-form";
+import { ConsultationForm, ConsultationFormValues, ReportAttachment } from "./consultation-form";
 import type { Patient } from "@/lib/types";
 import { addConsultation } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useAuth } from "@/components/layout/auth-provider";
 import { UserRole } from "@/lib/types";
+
+// Extend the ReportAttachment type to include base64Content
+type ExtendedReportAttachment = ReportAttachment & {
+  base64Content?: string;
+  notes?: string;
+};
   
 
 export function AddHistoryFab({ userId, onFormSubmit }: { userId: string; onFormSubmit: (values: ConsultationFormValues) => void }) {
@@ -25,6 +31,11 @@ export function AddHistoryFab({ userId, onFormSubmit }: { userId: string; onForm
 
     const handleFormSubmit = async (values: ConsultationFormValues) => {
         try {
+            console.log('📝 Iniciando guardado de consulta...', {
+                hasReports: !!values.reports?.length,
+                reportsCount: values.reports?.length || 0
+            });
+
             // Ensure date is properly formatted as ISO string
             const formattedDate = values.date instanceof Date ? values.date.toISOString() : 
                                typeof values.date === 'string' ? values.date : 
@@ -62,13 +73,55 @@ export function AddHistoryFab({ userId, onFormSubmit }: { userId: string; onForm
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
             };
 
-            // Use the submissionValues we prepared earlier which has the properly formatted date
+            // Preparar reportes con mapeo correcto de attachments
+            const reports = values.reports?.flatMap(report => {
+                // Si no hay attachments, devolver un reporte sin archivo
+                if (!report.attachments || report.attachments.length === 0) {
+                    return [{
+                        title: report.title || 'Sin título',
+                        notes: (report as any).notes || '',
+                    }];
+                }
+
+                // Mapear cada attachment a un reporte separado
+                return report.attachments.map(attachment => {
+                    const extendedAttachment = attachment as ExtendedReportAttachment;
+                    
+                    console.log('📎 Procesando reporte:', {
+                        title: report.title,
+                        hasAttachment: true,
+                        attachmentName: attachment.name,
+                        hasBase64: !!extendedAttachment.base64Content,
+                        base64Length: extendedAttachment.base64Content?.length || 0
+                    });
+                    
+                    return {
+                        title: report.title || 'Sin título',
+                        notes: (report as any).notes || '',
+                        // Mapear datos del attachment con optional chaining
+                        archivoNombre: attachment?.name || undefined,
+                        archivoTipo: attachment?.type || undefined,
+                        archivoTamaño: attachment?.size || undefined,
+                        archivoUrl: attachment?.url || undefined,
+                        archivoContenido: extendedAttachment?.base64Content || undefined,
+                    } as const;
+                });
+            }) || [];
+
+            console.log('✅ Reportes mapeados:', {
+                totalReports: reports.length,
+                reportsWithContent: reports.filter((r: any) => 'archivoContenido' in r && r.archivoContenido).length
+            });
+
+            // Usar submissionValues con reportes correctamente mapeados
             await addConsultation({
                 ...submissionValues,
                 prescriptions: values.prescriptions,
-                reports: values.reports,
+                reports: reports, // ⭐ Usar reportes mapeados
                 labResults: values.labResults,
             }, userContext);
+            
+            console.log('✅ Consulta guardada exitosamente');
             
             toast({
                 title: "Consulta Guardada",

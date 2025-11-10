@@ -5,40 +5,57 @@ import { Button } from "@/components/ui/button";
 import { FileText, Image, Download, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
+interface ReportType {
+  id: string;
+  title: string;
+  notes?: string;
+  attachments?: string[];
+  type?: string;
+  archivoNombre?: string | { name: string };
+  archivoTipo?: string;
+  archivoContenido?: string;
+  archivoTamaño?: number;
+  fileUrl?: string;
+}
+
 interface FileViewerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  report: {
-    id: string;
-    title: string;
-    notes?: string;
-    attachments?: string[];
-    fileUrl?: string;
-    type?: string;
-    archivoNombre?: string | { name: string };
-    archivoTipo?: string;
-    archivoContenido?: string;
-    archivoTamaño?: number;
-  };
+  archivoNombre?: string | { name: string };
+  fileUrl?: string;
+  fileType?: string;
+  report: ReportType;
 }
 
-export function FileViewerModal({ isOpen, onClose, report }: FileViewerModalProps) {
+export function FileViewerModal({ 
+  isOpen, 
+  onClose, 
+  archivoNombre: propArchivoNombre, 
+  fileUrl: propFileUrl,
+  fileType: propFileType,
+  report 
+}: FileViewerModalProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Debug: Log completo del reporte recibido
-  console.log('🔍 FileViewerModal - Report recibido:', {
+  // Usar los props directos si están disponibles, de lo contrario usar los del reporte
+  const archivoNombre = propArchivoNombre || report.archivoNombre;
+  const fileUrl = propFileUrl || report.fileUrl || '';
+  const fileType = propFileType || report.archivoTipo || 'application/pdf';
+
+  // Debug: Log completo de los datos recibidos
+  console.log('🔍 FileViewerModal - Datos recibidos:', {
     id: report.id,
     title: report.title,
-    archivoNombre: report.archivoNombre,
-    archivoTipo: report.archivoTipo,
+    archivoNombre,
+    fileType,
+    fileUrl,
     archivoTamaño: report.archivoTamaño,
     hasArchivoContenido: !!report.archivoContenido,
     archivoContenidoLength: report.archivoContenido?.length || 0,
     archivoContenidoPreview: report.archivoContenido?.substring(0, 100),
     attachments: report.attachments,
-    fileUrl: report.fileUrl,
     type: report.type
   });
 
@@ -111,61 +128,43 @@ export function FileViewerModal({ isOpen, onClose, report }: FileViewerModalProp
         }
 
         // Construir data URL correctamente
-        let dataUrl: string;
-        if (report.archivoContenido.startsWith('data:')) {
-          // Ya tiene el prefijo data:
-          dataUrl = report.archivoContenido;
-        } else {
-          // Construir el data URL con el tipo MIME correcto
-          const mimeType = report.archivoTipo || 'application/octet-stream';
-          dataUrl = `data:${mimeType};base64,${report.archivoContenido}`;
-        }
+        const dataUrl = report.archivoContenido;
+        const isImage = dataUrl.startsWith('data:image');
+        const isLargeFile = dataUrl.length > 100000; // ~100KB
 
-        console.log('📄 FileViewerModal - Data URL constructed:', {
-          dataUrlLength: dataUrl.length,
-          dataUrlPrefix: dataUrl.substring(0, 100) + '...'
-        });
-
-        // Para imágenes y PDFs, usar data URL directamente
-        // Solo convertir a blob URL si el archivo es muy grande (>2MB)
-        if (report.archivoTipo?.startsWith('image/') || report.archivoTipo === 'application/pdf') {
-          const estimatedSize = (report.archivoContenido.length * 3) / 4; // Tamaño aproximado del base64
+        if (isImage && isLargeFile) {
+          console.log('📄 FileViewerModal - Archivo de imagen grande detectado, convirtiendo a blob URL');
           
-          if (estimatedSize > 2 * 1024 * 1024) {
-            // Archivo grande, usar blob URL para mejor rendimiento
-            console.log('📄 FileViewerModal - Large file detected, converting to blob URL');
-            fetch(dataUrl)
-              .then(res => res.blob())
-              .then(blob => {
-                const url = URL.createObjectURL(blob);
-                console.log('📄 FileViewerModal - Blob URL created:', url);
-                setFileContent(url);
-                setIsLoading(false);
-              })
-              .catch(error => {
-                console.error('❌ Error al convertir a blob:', error);
-                setFileContent('Error al cargar el archivo');
-                setIsLoading(false);
-              });
-          } else {
-            // Archivo pequeño, usar data URL directamente
-            console.log('📄 FileViewerModal - Using data URL directly');
-            setFileContent(dataUrl);
-            setIsLoading(false);
+          // Convertir data URL a Blob
+          const byteString = atob(dataUrl.split(',')[1]);
+          const mimeString = dataUrl.split(':')[1].split(';')[0];
+          const ab = new ArrayBuffer(byteString.length);
+          const ia = new Uint8Array(ab);
+          
+          for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
           }
+          
+          const blob = new Blob([ab], { type: mimeString });
+          const url = URL.createObjectURL(blob);
+          
+          console.log('📄 FileViewerModal - Blob URL creada:', url);
+          setFileContent(url);
+          setIsLoading(false);
         } else {
-          // Para otros tipos, mostrar información
-          setFileContent(`Archivo cargado: ${displayName} (${report.archivoTamaño || '?'} bytes)`);
+          // Archivo pequeño o no es imagen, usar data URL directamente
+          console.log('📄 FileViewerModal - Usando data URL directamente');
+          setFileContent(dataUrl);
           setIsLoading(false);
         }
-      } else if (report.fileUrl) {
-        // Para compatibilidad con URLs externas (opcional)
-        console.log('📄 FileViewerModal - Using external URL:', report.fileUrl);
-        setFileContent(report.fileUrl);
-        setIsLoading(false);
       } else {
-        console.warn('⚠️ FileViewerModal - No file content available');
-        setFileContent('No hay contenido de archivo disponible');
+        // Si no hay URL de archivo, verificar si hay contenido directo
+        if (report.archivoContenido) {
+          setFileContent(report.archivoContenido);
+        } else {
+          console.warn('⚠️ FileViewerModal - No hay contenido de archivo disponible');
+          setFileContent('No hay contenido de archivo disponible');
+        }
         setIsLoading(false);
       }
     } catch (error) {
@@ -176,19 +175,21 @@ export function FileViewerModal({ isOpen, onClose, report }: FileViewerModalProp
   };
 
   // Verifica si el reporte tiene archivos adjuntos
-  const hasFileAttachment = (report: any): boolean => {
+  const hasFileAttachment = (report: ReportType): boolean => {
     return !!report.archivoContenido || 
-           !!(report.fileUrl) || 
+           !!report.fileUrl || 
            !!(report.attachments && report.attachments.length > 0);
   };
 
   // Obtiene la URL del archivo adjunto
-  const getFileUrl = (report: any): string | null => {
+  const getFileUrl = (report: ReportType): string | null => {
     if (report.archivoContenido) {
-      return `data:${report.archivoTipo || 'application/octet-stream'};base64,${report.archivoContenido}`;
+      return report.archivoContenido;
+    } else if (report.fileUrl) {
+      return report.fileUrl;
+    } else if (report.attachments?.length) {
+      return report.attachments[0];
     }
-    if (report.fileUrl) return report.fileUrl;
-    if (report.attachments && report.attachments.length > 0) return report.attachments[0];
     return null;
   };
   
@@ -206,9 +207,13 @@ export function FileViewerModal({ isOpen, onClose, report }: FileViewerModalProp
   };
 
   const handleDownload = async (fileName: string | { name: string } | null | undefined) => {
-    const displayName = typeof fileName === 'string' ? fileName : fileName?.name || 'Archivo';
+    // Normalizar el nombre del archivo
+    const name = typeof fileName === 'string' 
+      ? fileName 
+      : (fileName?.name || 'archivo');
+
     try {
-      console.log('💾 FileViewerModal - Starting download:', fileName);
+      console.log('💾 FileViewerModal - Iniciando descarga:', name);
       
       // Verificar si el reporte tiene un archivo adjunto
       if (!hasFileAttachment(report)) {
@@ -218,99 +223,91 @@ export function FileViewerModal({ isOpen, onClose, report }: FileViewerModalProp
       // Determinar el nombre del archivo
       const downloadName = typeof report.archivoNombre === 'string' 
         ? report.archivoNombre 
-        : (report.archivoNombre?.name || displayName || `reporte-${report.id}.${getFileExtension(report.archivoTipo || '')}`);
+        : (report.archivoNombre?.name || name || `reporte-${report.id}${getFileExtension(report.archivoTipo || '')}`);
 
-      console.log('💾 FileViewerModal - Download name:', downloadName);
+      console.log('💾 FileViewerModal - Nombre de descarga:', downloadName);
 
-      // Si tenemos contenido base64 directamente
-      if (report.archivoContenido) {
+      // 1. PRIORIDAD: contenido base64 de la BD
+      if (report?.archivoContenido) {
+        console.log('📦 Descargando desde base64...');
+        
+        const base64Data = report.archivoContenido.startsWith('data:') 
+          ? report.archivoContenido.split(',')[1]
+          : report.archivoContenido;
+        const mimeType = report.archivoTipo || 'application/octet-stream';
+        
         try {
-          // Construir data URL correctamente
-          let dataUrl: string;
-          if (report.archivoContenido.startsWith('data:')) {
-            dataUrl = report.archivoContenido;
-          } else {
-            const mimeType = report.archivoTipo || 'application/octet-stream';
-            dataUrl = `data:${mimeType};base64,${report.archivoContenido}`;
+          const byteCharacters = atob(base64Data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
           }
-
-          console.log('💾 FileViewerModal - Converting base64 to blob for download');
-
-          // Convertir data URL a blob para descarga
-          const response = await fetch(dataUrl);
-          if (!response.ok) {
-            throw new Error('Error al decodificar el archivo base64');
-          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: mimeType });
           
-          const blob = await response.blob();
-          console.log('💾 FileViewerModal - Blob created:', {
-            size: blob.size,
-            type: blob.type
-          });
-
-          // Crear URL del blob y descargar
           const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = downloadName;
-          document.body.appendChild(a);
-          a.click();
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = downloadName;
+          document.body.appendChild(link);
+          link.click();
           
-          // Limpieza
           setTimeout(() => {
+            document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-            console.log('💾 FileViewerModal - Download completed and cleaned up');
           }, 100);
           
+          console.log('✅ Descarga desde base64 completada');
           return;
+          
         } catch (base64Error) {
-          console.error('❌ Error al procesar base64:', base64Error);
+          console.error('Error al procesar base64:', base64Error);
           throw new Error('El archivo base64 está corrupto o tiene un formato inválido');
         }
       }
 
-      // Fallback: usar fileUrl si está disponible
+      // 2. FALLBACK: URL externa (solo HTTP/HTTPS válidas, NO blob URLs)
       const fileUrl = getFileUrl(report);
-      if (!fileUrl) {
-        throw new Error('No se pudo obtener el contenido del archivo.');
+      if (fileUrl && typeof fileUrl === 'string' && 
+          (fileUrl.startsWith('http://') || fileUrl.startsWith('https://'))) {
+        console.log('🌐 Descargando desde URL externa:', fileUrl);
+        
+        try {
+          const response = await fetch(fileUrl);
+          if (!response.ok) {
+            throw new Error(`Error en la respuesta: ${response.status} ${response.statusText}`);
+          }
+          
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = downloadName;
+          document.body.appendChild(link);
+          link.click();
+          
+          setTimeout(() => {
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+          }, 100);
+          
+          console.log('✅ Descarga desde URL completada');
+          return;
+          
+        } catch (urlError) {
+          console.error('Error al descargar desde URL:', urlError);
+          // Continuar al siguiente método de descarga
+        }
       }
 
-      console.log('💾 FileViewerModal - Using fileUrl:', fileUrl);
-
-      // Para URLs externas (compatibilidad hacia atrás)
-      const response = await fetch(fileUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/octet-stream',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error al descargar el archivo: ${response.status} ${response.statusText}`);
-      }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = downloadName;
-      document.body.appendChild(a);
-      a.click();
-      
-      // Limpieza
-      setTimeout(() => {
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      }, 100);
+      // 3. No hay archivo disponible
+      throw new Error('No hay archivo disponible para descargar. Los reportes antiguos no tienen archivos almacenados.');
       
     } catch (error) {
       console.error('❌ Error al descargar el archivo:', error);
-      const errorMessage = error instanceof Error 
-        ? error.message 
+      const errorMessage = error instanceof Error
+        ? error.message
         : 'Ocurrió un error inesperado al intentar descargar el archivo.';
-      
       alert(errorMessage);
     }
   };
@@ -453,11 +450,17 @@ export function FileViewerModal({ isOpen, onClose, report }: FileViewerModalProp
                   ) : getFileType(selectedFile) === 'PDF' ? (
                     <div className="h-full flex flex-col">
                       <div className="flex-1">
-                        <iframe 
-                          src={fileContent || ''}
-                          className="w-full h-full border-0"
-                          title={selectedFile}
-                        />
+                        {fileUrl ? (
+                          <iframe 
+                            src={fileUrl} 
+                            className="w-full h-full border-0" 
+                            title={selectedFile || 'Archivo'} 
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center h-full">
+                            <p className="text-gray-500">Cargando archivo...</p>
+                          </div>
+                        )}
                       </div>
                       <div className="p-4 border-t bg-white">
                         <Button 

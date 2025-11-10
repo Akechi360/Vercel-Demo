@@ -15,7 +15,7 @@ interface FileViewerModalProps {
     attachments?: string[];
     fileUrl?: string;
     type?: string;
-    archivoNombre?: string;
+    archivoNombre?: string | { name: string };
     archivoTipo?: string;
     archivoContenido?: string;
     archivoTamaño?: number;
@@ -42,16 +42,42 @@ export function FileViewerModal({ isOpen, onClose, report }: FileViewerModalProp
     type: report.type
   });
 
-  const getFileIcon = (fileName: string) => {
-    const extension = fileName.split('.').pop()?.toLowerCase();
+  const getFileIcon = (fileName: string | { name: string } | null | undefined) => {
+    // Normalize fileName to string
+    let name: string = '';
+    if (typeof fileName === 'string') {
+      name = fileName;
+    } else if (fileName && typeof fileName === 'object' && 'name' in fileName) {
+      name = fileName.name;
+    }
+    
+    // If no valid name, return default icon
+    if (!name) {
+      return <FileText className="w-4 h-4" />;
+    }
+    
+    const extension = name.split('.').pop()?.toLowerCase();
     if (['jpg', 'jpeg', 'png', 'gif'].includes(extension || '')) {
       return <Image className="w-4 h-4" />;
+    }
+    if (['pdf'].includes(extension || '')) {
+      return <FileText className="w-4 h-4" />;
     }
     return <FileText className="w-4 h-4" />;
   };
 
-  const getFileType = (fileName: string) => {
-    const extension = fileName.split('.').pop()?.toLowerCase();
+  const getFileType = (fileName: string | { name: string } | null | undefined) => {
+    // Normalize fileName to string
+    let name: string = '';
+    if (typeof fileName === 'string') {
+      name = fileName;
+    } else if (fileName && typeof fileName === 'object' && 'name' in fileName) {
+      name = fileName.name;
+    }
+    
+    if (!name) return 'Documento';
+    
+    const extension = name.split('.').pop()?.toLowerCase();
     if (['jpg', 'jpeg', 'png', 'gif'].includes(extension || '')) {
       return 'Imagen';
     }
@@ -61,8 +87,9 @@ export function FileViewerModal({ isOpen, onClose, report }: FileViewerModalProp
     return 'Documento';
   };
 
-  const handleFileClick = (fileName: string) => {
-    setSelectedFile(fileName);
+  const handleFileClick = (fileName: string | { name: string } | null | undefined) => {
+    const displayName = typeof fileName === 'string' ? fileName : fileName?.name || 'Archivo';
+    setSelectedFile(displayName);
     setIsLoading(true);
     
     try {
@@ -128,7 +155,7 @@ export function FileViewerModal({ isOpen, onClose, report }: FileViewerModalProp
           }
         } else {
           // Para otros tipos, mostrar información
-          setFileContent(`Archivo cargado: ${fileName} (${report.archivoTamaño || '?'} bytes)`);
+          setFileContent(`Archivo cargado: ${displayName} (${report.archivoTamaño || '?'} bytes)`);
           setIsLoading(false);
         }
       } else if (report.fileUrl) {
@@ -167,12 +194,19 @@ export function FileViewerModal({ isOpen, onClose, report }: FileViewerModalProp
   
   // Obtiene el nombre del archivo a mostrar
   const getDisplayFileName = (report: any): string => {
-    return report.archivoNombre || 
-           report.fileUrl?.split('/').pop() || 
-           (report.attachments?.[0] || 'Archivo adjunto');
+    const name = report.archivoNombre;
+    if (name && typeof name === 'object' && 'name' in name) {
+      return name.name;
+    }
+    if (typeof name === 'string') {
+      return name;
+    }
+    const fileNameFromUrl = report.fileUrl?.split('/').pop();
+    return fileNameFromUrl || (report.attachments?.[0] || 'Archivo adjunto');
   };
 
-  const handleDownload = async (fileName: string) => {
+  const handleDownload = async (fileName: string | { name: string } | null | undefined) => {
+    const displayName = typeof fileName === 'string' ? fileName : fileName?.name || 'Archivo';
     try {
       console.log('💾 FileViewerModal - Starting download:', fileName);
       
@@ -182,9 +216,9 @@ export function FileViewerModal({ isOpen, onClose, report }: FileViewerModalProp
       }
 
       // Determinar el nombre del archivo
-      const downloadName = report.archivoNombre || 
-                          fileName || 
-                          `reporte-${report.id}.${getFileExtension(report.archivoTipo || '')}`;
+      const downloadName = typeof report.archivoNombre === 'string' 
+        ? report.archivoNombre 
+        : (report.archivoNombre?.name || displayName || `reporte-${report.id}.${getFileExtension(report.archivoTipo || '')}`);
 
       console.log('💾 FileViewerModal - Download name:', downloadName);
 
@@ -301,12 +335,9 @@ export function FileViewerModal({ isOpen, onClose, report }: FileViewerModalProp
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5" />
-            {report.title}
-          </DialogTitle>
+          <DialogTitle>Visualizador de Archivos</DialogTitle>
         </DialogHeader>
         
         <div className="flex h-[70vh]">
@@ -319,25 +350,25 @@ export function FileViewerModal({ isOpen, onClose, report }: FileViewerModalProp
                   className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                     selectedFile ? 'bg-primary/10 border-primary' : 'hover:bg-muted/50'
                   }`}
-                  onClick={() => handleFileClick(getDisplayFileName(report))}
+                  onClick={() => handleFileClick(report.archivoNombre || report.fileUrl || '')}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      {getFileIcon(getDisplayFileName(report))}
+                      {getFileIcon(report.archivoNombre || report.fileUrl || '')}
                       <span className="text-sm font-medium truncate">
                         {getDisplayFileName(report)}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Badge variant="secondary" className="text-xs">
-                        {getFileType(getDisplayFileName(report))}
+                        {getFileType(report.archivoNombre || report.fileUrl || '')}
                       </Badge>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDownload(getDisplayFileName(report));
+                          handleDownload(report.archivoNombre || report.fileUrl || '');
                         }}
                         className="h-6 w-6 p-0"
                         title="Descargar archivo"
@@ -358,7 +389,7 @@ export function FileViewerModal({ isOpen, onClose, report }: FileViewerModalProp
 
           {/* Visor de archivo */}
           <div className="w-2/3 pl-4">
-                {selectedFile ? (
+            {selectedFile ? (
               <div className="h-full">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold flex items-center gap-2">
@@ -403,7 +434,7 @@ export function FileViewerModal({ isOpen, onClose, report }: FileViewerModalProp
                         <div className="h-full flex items-center justify-center bg-muted/30">
                           <div className="text-center">
                             <Image className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                            <p className="text-muted-foreground">{fileContent || 'No se puede mostrar la vista previa'}</p>
+                            <p className="text-muted-foreground">No se puede mostrar la vista previa de la imagen</p>
                           </div>
                         </div>
                       )}
@@ -421,23 +452,13 @@ export function FileViewerModal({ isOpen, onClose, report }: FileViewerModalProp
                     </div>
                   ) : getFileType(selectedFile) === 'PDF' ? (
                     <div className="h-full flex flex-col">
-                      {fileContent && (fileContent.startsWith('blob:') || fileContent.startsWith('data:')) ? (
-                        <div className="flex-1">
-                          <iframe 
-                            src={fileContent}
-                            className="w-full h-full border-0"
-                            title={selectedFile}
-                            onError={() => setFileContent('Error al cargar el PDF')}
-                          />
-                        </div>
-                      ) : (
-                        <div className="h-full flex items-center justify-center bg-muted/30">
-                          <div className="text-center">
-                            <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                            <p className="text-muted-foreground">{fileContent || 'No se puede mostrar la vista previa'}</p>
-                          </div>
-                        </div>
-                      )}
+                      <div className="flex-1">
+                        <iframe 
+                          src={fileContent || ''}
+                          className="w-full h-full border-0"
+                          title={selectedFile}
+                        />
+                      </div>
                       <div className="p-4 border-t bg-white">
                         <Button 
                           variant="outline" 

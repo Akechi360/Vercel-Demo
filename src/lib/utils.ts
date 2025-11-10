@@ -15,12 +15,59 @@ export function normalizeRole(role: string): 'ADMIN' | 'DOCTOR' | 'SECRETARIA' |
     'doctor': 'DOCTOR',
     'secretaria': 'SECRETARIA',
     'promotora': 'PROMOTORA',
+    'paciente': 'USER',
     'patient': 'USER',
     'user': 'USER',
   };
   
   const normalizedRole = roleMap[role.toLowerCase()] || 'USER';
   return normalizedRole;
+}
+
+export function normalizeGender(gender: string): 'MASCULINO' | 'FEMENINO' | 'OTRO' | null {
+  if (!gender) return null;
+  const genderMap: Record<string, 'MASCULINO' | 'FEMENINO' | 'OTRO'> = {
+    'masculino': 'MASCULINO',
+    'male': 'MASCULINO',
+    'femenino': 'FEMENINO',
+    'female': 'FEMENINO',
+    'otro': 'OTRO',
+    'other': 'OTRO',
+  };
+  const normalized = genderMap[gender.toLowerCase()];
+  if (!normalized) {
+    console.warn(`⚠️ Género no reconocido: ${gender}`);
+    return null;
+  }
+  return normalized;
+}
+
+export function normalizeBloodType(bloodType: string): string | null {
+  if (!bloodType) return null;
+  const bloodTypeMap: Record<string, string> = {
+    'a+': 'A_POSITIVE',
+    'a-': 'A_NEGATIVE',
+    'b+': 'B_POSITIVE',
+    'b-': 'B_NEGATIVE',
+    'ab+': 'AB_POSITIVE',
+    'ab-': 'AB_NEGATIVE',
+    'o+': 'O_POSITIVE',
+    'o-': 'O_NEGATIVE',
+    'a plus': 'A_POSITIVE',
+    'a minus': 'A_NEGATIVE',
+    'b plus': 'B_POSITIVE',
+    'b minus': 'B_NEGATIVE',
+    'ab plus': 'AB_POSITIVE',
+    'ab minus': 'AB_NEGATIVE',
+    'o plus': 'O_POSITIVE',
+    'o minus': 'O_NEGATIVE',
+  };
+  const normalized = bloodTypeMap[bloodType.toLowerCase().replace(/\s+/g, '')];
+  if (!normalized) {
+    console.warn(`⚠️ Tipo de sangre no reconocido: ${bloodType}`);
+    return null;
+  }
+  return normalized;
 }
 
 /**

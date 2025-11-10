@@ -228,7 +228,7 @@ export default function UsersManagementPage() {
         const updatedUser = await updateUser(selectedUser.id, {
           name: selectedUser.name,
           email: selectedUser.email,
-          role: selectedUser.role as 'ADMIN' | 'DOCTOR' | 'SECRETARIA' | 'PROMOTORA' | 'USER',
+          role: selectedUser.role, // Sin cast, se normaliza en actions.ts
           status: selectedUser.status,
           userId: selectedUser.userId
         });

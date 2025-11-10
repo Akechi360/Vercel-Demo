@@ -10,7 +10,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { getPrismaClient, isDatabaseAvailable } from './db';
 // Validación de roles estandarizada - Importar utilidades centralizadas
 import { ROLES, type UserRole, isValidRole, getValidRole } from './types';
-// Importado desde src/lib/utils.ts - única fuente de validateDate
+// Importado desde src/lib/utils.ts - única fuente de validaciones
 import { validateUserRole, DatabaseErrorHandler, withTransaction, validateDate } from './utils';
 import { UserContext } from './types';
 import { notifyNewAppointment } from './notification-service';
@@ -90,12 +90,53 @@ function normalizeStatus(status: string): 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' {
     'active': 'ACTIVE',
     'inactive': 'INACTIVE',
     'suspended': 'SUSPENDED',
+    'activo': 'ACTIVE',
+    'inactivo': 'INACTIVE',
+    'suspendido': 'SUSPENDED'
   };
   
-  const normalizedStatus = statusMap[status.toLowerCase()] || 'INACTIVE';
-  
-  // Type assertion is safe because we've provided all possible values in the map
-  return normalizedStatus as 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+  const normalizedStatus = statusMap[status.toLowerCase()] || 'ACTIVE';
+  return normalizedStatus;
+}
+
+// Helper function to normalize gender
+function normalizeGender(gender: string): 'MASCULINO' | 'FEMENINO' | 'OTRO' | null {
+  if (!gender) return null;
+  const genderMap: Record<string, 'MASCULINO' | 'FEMENINO' | 'OTRO'> = {
+    'masculino': 'MASCULINO',
+    'male': 'MASCULINO',
+    'femenino': 'FEMENINO',
+    'female': 'FEMENINO',
+    'otro': 'OTRO',
+    'other': 'OTRO',
+  };
+  const normalized = genderMap[gender.toLowerCase()];
+  if (!normalized) {
+    console.warn(`⚠️ Género no reconocido: ${gender}`);
+    return null;
+  }
+  return normalized;
+}
+
+// Helper function to normalize blood type
+function normalizeBloodType(bloodType: string): string | null {
+  if (!bloodType) return null;
+  const bloodTypeMap: Record<string, string> = {
+    'a+': 'A_POSITIVE',
+    'a-': 'A_NEGATIVE',
+    'b+': 'B_POSITIVE',
+    'b-': 'B_NEGATIVE',
+    'ab+': 'AB_POSITIVE',
+    'ab-': 'AB_NEGATIVE',
+    'o+': 'O_POSITIVE',
+    'o-': 'O_NEGATIVE',
+  };
+  const normalized = bloodTypeMap[bloodType.toLowerCase().replace(/\s+/g, '')];
+  if (!normalized) {
+    console.warn(`⚠️ Tipo de sangre no reconocido: ${bloodType}`);
+    return null;
+  }
+  return normalized;
 }
 
 // Test database connection
@@ -469,13 +510,15 @@ export async function updatePatient(userId: string, patientData: {
       throw new Error('La fecha de nacimiento no puede ser en el futuro');
     }
 
-    // Validate gender
-    if (!['Masculino', 'Femenino', 'Otro'].includes(patientData.gender)) {
-      throw new Error('Género inválido. Debe ser: Masculino, Femenino o Otro');
+    // Normalize and validate gender
+    const normalizedGender = normalizeGender(patientData.gender);
+    if (!normalizedGender) {
+      throw new Error('Género inválido. Debe ser: Masculino, Femenino u Otro');
     }
 
-    // Validate blood type
-    if (!['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].includes(patientData.bloodType)) {
+    // Normalize and validate blood type
+    const normalizedBloodType = normalizeBloodType(patientData.bloodType);
+    if (!normalizedBloodType) {
       throw new Error('Tipo de sangre inválido. Debe ser: A+, A-, B+, B-, AB+, AB-, O+ u O-');
     }
     
@@ -492,8 +535,11 @@ export async function updatePatient(userId: string, patientData: {
         throw new Error(`Usuario con ID ${userId} no encontrado en la base de datos`);
       }
 
+      // Normalizar gender y bloodType
+      const normalizedGender = patientData.gender ? normalizeGender(patientData.gender) : null;
+      const normalizedBloodType = patientData.bloodType ? normalizeBloodType(patientData.bloodType) : null;
+
       if (!existingUser.patientInfo) {
-        
         // Create patient info if it doesn't exist
         const newPatientInfo = await prisma.patientInfo.create({
           data: {
@@ -502,8 +548,8 @@ export async function updatePatient(userId: string, patientData: {
             fechaNacimiento: fechaNacimientoDate,
             telefono: patientData.phone || null,
             direccion: patientData.direccion || null,
-            bloodType: patientData.bloodType,
-            gender: patientData.gender,
+            bloodType: normalizedBloodType,
+            gender: normalizedGender,
           }
         });
         
@@ -528,12 +574,11 @@ export async function updatePatient(userId: string, patientData: {
       // Update or create patient info
       const patientInfoData = {
         cedula: patientData.cedula,
-        direccion: patientData.direccion,
-        gender: patientData.gender,
-        bloodType: patientData.bloodType,
-        telefono: patientData.phone,
+        direccion: patientData.direccion || '',
+        gender: normalizedGender,
+        bloodType: normalizedBloodType,
+        telefono: patientData.phone || '',
         fechaNacimiento: fechaNacimientoDate,
-        // updatedAt is managed automatically by Prisma for PatientInfo model (via @updatedAt)
       };
 
       let updatedPatientInfo;
@@ -1401,11 +1446,24 @@ export async function addConsultation(consultationData: {
               titulo: report.title,
               descripcion: report.notes || '',
               tipo: 'Informe',
-              archivoNombre: report.archivoNombre || report.attachments?.[0] || report.fileUrl || '',
-              archivoUrl: report.fileUrl || report.attachments?.[0] || '',
-              archivoTipo: report.archivoTipo || report.type || 'application/pdf',
-              archivoTamaño: report.archivoTamaño || report.size || null,
-              archivoContenido: report.archivoContenido || report.fileContent || null, // Contenido base64 del archivo
+              // Extraer solo el nombre del archivo, no el objeto completo
+              archivoNombre: typeof report.archivoNombre === 'object' 
+                ? report.archivoNombre.name 
+                : report.archivoNombre || report.attachments?.[0]?.name || '',
+              // Extraer solo la URL, no el objeto completo
+              archivoUrl: typeof report.fileUrl === 'string' 
+                ? report.fileUrl 
+                : report.attachments?.[0]?.url || '',
+              // Extraer el tipo MIME
+              archivoTipo: typeof report.archivoTipo === 'string' 
+                ? report.archivoTipo 
+                : report.archivoNombre?.type || report.type || 'application/pdf',
+              // Extraer el tamaño en bytes
+              archivoTamaño: typeof report.archivoTamaño === 'number' 
+                ? report.archivoTamaño 
+                : report.archivoNombre?.size || report.size || null,
+              // Base64 content si existe
+              archivoContenido: report.archivoContenido || report.fileContent || null,
               patientUserId: consultationData.userId,
               consultationId: newConsultation.id,
               createdBy: userContext.userId,
@@ -2456,14 +2514,17 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
       });
     });
     
+    // Normalize role before any comparison
+    const normalizedRole = data.role ? normalizeRole(data.role) : undefined;
+    
     // Update user using withTransaction - atomicidad asegurada
     const result = await withTransaction(async (prisma) => {
       // Prepare update data with normalized role and status
       const updateData = { ...data };
       
-      // Normalize role if provided
-      if (updateData.role) {
-        updateData.role = normalizeRole(updateData.role);
+      // Use the pre-normalized role
+      if (normalizedRole) {
+        updateData.role = normalizedRole;
       }
       
       // Normalize status if provided
@@ -2478,9 +2539,9 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
       });
 
       // Manejar cambios de rol
-      if (data.role && currentUser && data.role !== currentUser.role) {
-        console.log(`🔄 Cambio de rol detectido: ${currentUser.role} -> ${data.role}`);
-        const newRole = data.role;
+      if (normalizedRole && currentUser && normalizedRole !== currentUser.role) {
+        console.log(`🔄 Cambio de rol detectado: ${currentUser.role} -> ${normalizedRole}`);
+        const newRole = normalizedRole;
         const oldRole = currentUser.role;
         
         // Manejar cambios DESDE roles específicos
@@ -2501,34 +2562,29 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
           }
         }
         
-        // Manejar cambios A roles específicos
-        if (newRole === 'DOCTOR') {
+        // Limpiar información de roles anteriores si es necesario
+        if (newRole !== 'USER' && oldRole === 'USER') {
           try {
-            const existingDoctor = await prisma.doctorInfo.findUnique({
+            await prisma.patientInfo.deleteMany({
               where: { userId: updatedUser.userId }
             });
-            
-            if (!existingDoctor) {
-              await prisma.doctorInfo.create({
-                data: {
-                  userId: updatedUser.userId,
-                  cedula: `MD-${Date.now().toString().slice(-6)}`,
-                  especialidad: 'Urología',
-                  telefono: data.phone || currentUser.phone || '',
-                  direccion: '',
-                  area: 'Urología General',
-                  contacto: data.name || currentUser.name || '',
-                  email: data.email || currentUser.email || ''
-                }
-              });
-              console.log('✅ Registro de doctor creado exitosamente');
-            }
+            console.log('🧹 Registro de paciente eliminado');
           } catch (error) {
-            console.error('❌ Error al crear registro de doctor:', error);
+            console.error('⚠️ Error eliminando registro de paciente:', error);
           }
-        } 
-        // Manejar cambios a paciente
-        else if (newRole === 'USER') {
+        }
+        
+        if (newRole !== 'DOCTOR' && oldRole === 'DOCTOR') {
+          try {
+            await removeDoctorRecord(userId);
+            console.log('🧹 Registro de doctor eliminado');
+          } catch (error) {
+            console.error('⚠️ Error eliminando registro de doctor:', error);
+          }
+        }
+        
+        // Manejar cambios A roles específicos
+        if (newRole === 'USER') {
           try {
             const existingPatientInfo = await prisma.patientInfo.findUnique({
               where: { userId: updatedUser.userId }
@@ -2553,6 +2609,31 @@ export async function updateUser(userId: string, data: Partial<Omit<User, "id" |
             }
           } catch (error) {
             console.error('⚠️ Error creando registro de paciente:', error);
+          }
+        } 
+        else if (newRole === 'DOCTOR') {
+          try {
+            const existingDoctor = await prisma.doctorInfo.findUnique({
+              where: { userId: updatedUser.userId }
+            });
+            
+            if (!existingDoctor) {
+              await prisma.doctorInfo.create({
+                data: {
+                  userId: updatedUser.userId,
+                  cedula: `MD-${Date.now().toString().slice(-6)}`,
+                  especialidad: 'Urología',
+                  telefono: data.phone || currentUser.phone || '',
+                  direccion: '',
+                  area: 'Urología General',
+                  contacto: data.name || currentUser.name || '',
+                  email: data.email || currentUser.email || ''
+                }
+              });
+              console.log('✅ Registro de doctor creado exitosamente');
+            }
+          } catch (error) {
+            console.error('❌ Error al crear registro de doctor:', error);
           }
         }
       }

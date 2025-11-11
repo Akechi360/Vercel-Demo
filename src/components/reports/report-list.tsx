@@ -33,13 +33,22 @@ export default function ReportList({ initialReports, userId, currentUserRole }: 
       
       // Create the report in the database
       const newReport = await createReport({
+        // Frontend field names
+        title: values.title,
+        date: values.date,
+        type: values.type,
+        notes: values.notes || '',
+        // Backend field names (kept for backward compatibility)
         titulo: values.title,
         fecha: values.date,
         tipo: values.type,
         notas: values.notes || '',
+        // Common fields
         descripcion: values.notes || '',
         autor: 'Sistema',
-        patientUserId: userId,
+        patientUserId: userId,  // Required by the type
+        userId: userId,         // Alternative field name
+        // File fields
         archivoNombre: attachment?.name,
         archivoTipo: attachment?.type,
         archivoTamaño: attachment?.size,

@@ -194,10 +194,14 @@ async function getCurrentUserRoleFromRequest(prisma: PrismaClient): Promise<stri
 
 // REPORT UPDATE with role validation
 export async function updateReport(reportId: string, currentUserId: string, data: {
-  titulo: string;
-  fecha: string;
-  tipo: string;
-  notas?: string;
+  titulo?: string;  // Backend field name
+  title?: string;   // Frontend field name
+  fecha?: string;   // Backend field name
+  date?: string;    // Frontend field name
+  tipo?: string;    // Backend field name
+  type?: string;    // Frontend field name
+  notas?: string;   // Backend field name
+  notes?: string;   // Frontend field name
   descripcion?: string;
   archivoNombre?: string;
   archivoTipo?: string;
@@ -218,15 +222,15 @@ export async function updateReport(reportId: string, currentUserId: string, data
       const updatedReport = await prisma.report.update({
         where: { id: reportId },
         data: {
-          titulo: data.titulo,
-          tipo: data.tipo,
-          fecha: new Date(data.fecha),
-          notas: data.notas || '',
+          titulo: data.titulo || data.title,  // Accept both frontend and backend field names
+          tipo: data.tipo || data.type,        // Accept both frontend and backend field names
+          fecha: new Date(data.fecha || data.date || new Date().toISOString()),  // Accept both frontend and backend field names with fallback to current date
+          notas: data.notas || data.notes || '',     // Accept both frontend and backend field names
           descripcion: data.descripcion || '',
-          archivoNombre: data.archivoNombre || null,
-          archivoTipo: data.archivoTipo || null,
-          archivoContenido: data.archivoContenido || null,
-          archivoTamaño: data.archivoTamaño || null,
+          archivoNombre: data.archivoNombre ?? null,
+          archivoTipo: data.archivoTipo ?? null,
+          archivoContenido: data.archivoContenido ?? null,
+          archivoTamaño: data.archivoTamaño ?? null,
         },
       });
 
@@ -1517,14 +1521,21 @@ export async function getReports(): Promise<Report[]> {
 }
 
 export async function createReport(reportData: {
-  title: string;        // Frontend field name
-  date: string;         // Frontend field name
-  type: string;         // Frontend field name
-  notes?: string;       // Frontend field name
+  // Frontend field names (with fallbacks to backend names)
+  title?: string;
+  titulo?: string;
+  type?: string;
+  tipo?: string;
+  date?: string;
+  fecha?: string;
+  notes?: string;
+  notas?: string;
+  // Other fields
   descripcion?: string;
   contenido?: any;
   autor?: string;
   patientUserId: string;
+  userId?: string; // Alternative to patientUserId
   archivoNombre?: string;
   archivoTipo?: string;
   archivoTamaño?: number;
@@ -1532,29 +1543,39 @@ export async function createReport(reportData: {
   createdBy?: string;
 }) {
   console.log('🔵 createReport called with:', {
-    title: reportData.title,
-    type: reportData.type,
-    patientId: reportData.patientUserId,
+    title: reportData.title || reportData.titulo,
+    type: reportData.type || reportData.tipo,
+    patientId: reportData.patientUserId || reportData.userId,
     hasFile: !!reportData.archivoNombre
   });
 
   return withDatabase(async (prisma) => {
     try {
+      const patientId = reportData.patientUserId || reportData.userId;
+      if (!patientId) {
+        throw new Error('Se requiere un ID de paciente válido');
+      }
+
       const report = await prisma.report.create({
         data: {
-          titulo: reportData.title,          // Map frontend 'title' to DB 'titulo'
-          tipo: reportData.type,             // Map frontend 'type' to DB 'tipo'
-          fecha: new Date(reportData.date),  // Map frontend 'date' to DB 'fecha'
-          notas: reportData.notes || '',     // Map frontend 'notes' to DB 'notas'
+          // Handle both frontend and backend field names with fallbacks
+          titulo: reportData.title || reportData.titulo || 'Sin título',
+          tipo: reportData.type || reportData.tipo || 'General',
+          fecha: reportData.date 
+            ? new Date(reportData.date)
+            : reportData.fecha 
+              ? new Date(reportData.fecha)
+              : new Date(), // Fallback to current date
+          notas: reportData.notes || reportData.notas || '',
           descripcion: reportData.descripcion || '',
           contenido: reportData.contenido || {},
           autor: reportData.autor || 'Sistema',
-          patientUserId: reportData.patientUserId,
-          archivoNombre: reportData.archivoNombre || null,
-          archivoTipo: reportData.archivoTipo || null,
-          archivoTamaño: reportData.archivoTamaño || null,
-          archivoContenido: reportData.archivoContenido || null,
-          createdBy: reportData.createdBy || null,
+          patientUserId: patientId,
+          archivoNombre: reportData.archivoNombre ?? null,
+          archivoTipo: reportData.archivoTipo ?? null,
+          archivoTamaño: reportData.archivoTamaño ?? null,
+          archivoContenido: reportData.archivoContenido ?? null,
+          createdBy: reportData.createdBy ?? patientId, // Fallback to patientId if createdBy not provided
         },
       });
       

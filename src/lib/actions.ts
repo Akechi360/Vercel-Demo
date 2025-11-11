@@ -1517,10 +1517,10 @@ export async function getReports(): Promise<Report[]> {
 }
 
 export async function createReport(reportData: {
-  titulo: string;
-  fecha: string;
-  tipo: string;
-  notas?: string;
+  title: string;        // Frontend field name
+  date: string;         // Frontend field name
+  type: string;         // Frontend field name
+  notes?: string;       // Frontend field name
   descripcion?: string;
   contenido?: any;
   autor?: string;
@@ -1532,8 +1532,8 @@ export async function createReport(reportData: {
   createdBy?: string;
 }) {
   console.log('🔵 createReport called with:', {
-    titulo: reportData.titulo,
-    tipo: reportData.tipo,
+    title: reportData.title,
+    type: reportData.type,
     patientId: reportData.patientUserId,
     hasFile: !!reportData.archivoNombre
   });
@@ -1542,10 +1542,10 @@ export async function createReport(reportData: {
     try {
       const report = await prisma.report.create({
         data: {
-          titulo: reportData.titulo,
-          tipo: reportData.tipo,
-          fecha: new Date(reportData.fecha),
-          notas: reportData.notas || '',
+          titulo: reportData.title,          // Map frontend 'title' to DB 'titulo'
+          tipo: reportData.type,             // Map frontend 'type' to DB 'tipo'
+          fecha: new Date(reportData.date),  // Map frontend 'date' to DB 'fecha'
+          notas: reportData.notes || '',     // Map frontend 'notes' to DB 'notas'
           descripcion: reportData.descripcion || '',
           contenido: reportData.contenido || {},
           autor: reportData.autor || 'Sistema',

@@ -1,8 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FileText, Image, Download, X } from "lucide-react";
+import { FileText, Image, Download, X, ExternalLink, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface ReportType {
@@ -34,29 +34,109 @@ export function FileViewerModal({
   fileUrl: propFileUrl,
   fileType: propFileType,
   report 
-}: FileViewerModalProps) {
+}: FileViewerModalProps): JSX.Element {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Usar los props directos si están disponibles, de lo contrario usar los del reporte
-  const archivoNombre = propArchivoNombre || report.archivoNombre;
-  const fileUrl = propFileUrl || report.fileUrl || '';
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Moved fileType declaration before useEffect
   const fileType = propFileType || report.archivoTipo || 'application/pdf';
+  const archivoNombre = propArchivoNombre || report.archivoNombre || 'documento';
+  const fileUrl = propFileUrl || report.fileUrl || '';
+  
+  useEffect(() => {
+    const loadFileContent = async () => {
+      if (!report.archivoContenido) {
+        console.log('⚠️ No file content available in report');
+        setError('No hay contenido de archivo disponible');
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('🔄 Loading file content...', {
+        hasContent: !!report.archivoContenido,
+        contentLength: report.archivoContenido.length,
+        fileType
+      });
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        // Create a data URL from the base64 content
+        const dataUrl = `data:${fileType};base64,${report.archivoContenido}`;
+        console.log('📄 Created data URL:', dataUrl.substring(0, 50) + '...');
+        
+        setFileContent(dataUrl);
+        setSelectedFile(dataUrl);
+      } catch (error) {
+        console.error('❌ Error loading file content:', error);
+        setError('Error al cargar el archivo');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (isOpen && report.archivoContenido) {
+      loadFileContent();
+    } else {
+      setFileContent(null);
+      setSelectedFile(null);
+      setIsLoading(false);
+    }
+  }, [isOpen, report.archivoContenido, fileType]);
+  
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Utility functions
+  const hasFileAttachment = (r: ReportType) => !!(r.archivoContenido || (r.attachments && r.attachments.length > 0));
+  const getDisplayFileName = (r: ReportType) => {
+    const name = r.archivoNombre || r.title || 'Archivo';
+    return typeof name === 'string' ? name : name?.name || 'Archivo';
+  };
 
   // Debug: Log completo de los datos recibidos
-  console.log('🔍 FileViewerModal - Datos recibidos:', {
-    id: report.id,
-    title: report.title,
-    archivoNombre,
+  useEffect(() => {
+    if (isOpen) {
+      console.log('🔍 FileViewerModal - Datos recibidos:', {
+        id: report.id,
+        title: report.title,
+        archivoNombre,
+        fileType,
+        fileUrl,
+        archivoTamaño: report.archivoTamaño,
+        hasArchivoContenido: !!report.archivoContenido,
+        archivoContenidoLength: report.archivoContenido?.length || 0,
+        archivoContenidoPreview: report.archivoContenido ? 
+          `[Base64: ${report.archivoContenido.substring(0, 10)}...]` : 
+          'No content',
+        hasAttachments: !!report.attachments?.length,
+        type: report.type
+      });
+    }
+  }, [isOpen, report, archivoNombre, fileType, fileUrl]);
+
+  // Check if we have content to display
+  const hasContent = !!report.archivoContenido && report.archivoContenido.length > 0;
+  
+  // Create data URL for the file if we have content
+  const fileDataUrl = hasContent && report.archivoContenido
+    ? `data:${fileType};base64,${report.archivoContenido}`
+    : null;
+    
+  console.log('📄 FileViewerModal - File data:', {
+    hasContent,
     fileType,
-    fileUrl,
-    archivoTamaño: report.archivoTamaño,
-    hasArchivoContenido: !!report.archivoContenido,
-    archivoContenidoLength: report.archivoContenido?.length || 0,
-    archivoContenidoPreview: report.archivoContenido?.substring(0, 100),
-    attachments: report.attachments,
-    type: report.type
+    dataUrl: fileDataUrl ? `[Data URL, length: ${fileDataUrl.length}]` : 'No data URL',
+    archivoNombre,
+    fileUrl
   });
 
   const getFileIcon = (fileName: string | { name: string } | null | undefined) => {
@@ -164,46 +244,25 @@ export function FileViewerModal({
         } else {
           console.warn('⚠️ FileViewerModal - No hay contenido de archivo disponible');
           setFileContent('No hay contenido de archivo disponible');
+          setIsLoading(false);
         }
-        setIsLoading(false);
       }
     } catch (error) {
       console.error('❌ Error al cargar el archivo:', error);
-      setFileContent('Error al cargar el archivo: ' + (error instanceof Error ? error.message : 'Error desconocido'));
+      setError('Error al cargar el archivo');
       setIsLoading(false);
     }
-  };
-
-  // Verifica si el reporte tiene archivos adjuntos
-  const hasFileAttachment = (report: ReportType): boolean => {
-    return !!report.archivoContenido || 
-           !!report.fileUrl || 
-           !!(report.attachments && report.attachments.length > 0);
   };
 
   // Obtiene la URL del archivo adjunto
   const getFileUrl = (report: ReportType): string | null => {
     if (report.archivoContenido) {
-      return report.archivoContenido;
-    } else if (report.fileUrl) {
-      return report.fileUrl;
-    } else if (report.attachments?.length) {
+      return `data:${report.archivoTipo || 'application/octet-stream'};base64,${report.archivoContenido}`;
+    }
+    if (report.attachments && report.attachments.length > 0) {
       return report.attachments[0];
     }
     return null;
-  };
-  
-  // Obtiene el nombre del archivo a mostrar
-  const getDisplayFileName = (report: any): string => {
-    const name = report.archivoNombre;
-    if (name && typeof name === 'object' && 'name' in name) {
-      return name.name;
-    }
-    if (typeof name === 'string') {
-      return name;
-    }
-    const fileNameFromUrl = report.fileUrl?.split('/').pop();
-    return fileNameFromUrl || (report.attachments?.[0] || 'Archivo adjunto');
   };
 
   const handleDownload = async (fileName: string | { name: string } | null | undefined) => {
@@ -216,7 +275,7 @@ export function FileViewerModal({
       console.log('💾 FileViewerModal - Iniciando descarga:', name);
       
       // Verificar si el reporte tiene un archivo adjunto
-      if (!hasFileAttachment(report)) {
+      if (!(report.archivoContenido || (report.attachments && report.attachments.length > 0))) {
         throw new Error('Este reporte no tiene un archivo adjunto para descargar.');
       }
 
@@ -342,7 +401,7 @@ export function FileViewerModal({
           <div className="w-1/3 border-r pr-4">
             <h3 className="font-semibold mb-3">Archivos Adjuntos</h3>
             <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-              {hasFileAttachment(report) ? (
+              {(report.archivoContenido || (report.attachments && report.attachments.length > 0)) ? (
                 <div
                   className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                     selectedFile ? 'bg-primary/10 border-primary' : 'hover:bg-muted/50'
@@ -413,89 +472,25 @@ export function FileViewerModal({
                     <div className="h-full flex items-center justify-center bg-muted/30">
                       <div className="text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                        <p className="text-muted-foreground">Cargando archivo...</p>
                       </div>
                     </div>
-                  ) : getFileType(selectedFile) === 'Imagen' ? (
-                    <div className="h-full flex flex-col">
-                      {fileContent && (fileContent.startsWith('blob:') || fileContent.startsWith('data:')) ? (
-                        <div className="flex-1 flex items-center justify-center bg-gray-50 p-4">
-                          <img 
-                            src={fileContent} 
-                            alt={selectedFile}
-                            className="max-w-full max-h-full object-contain"
-                            onError={() => setFileContent('Error al cargar la imagen')}
-                          />
-                        </div>
-                      ) : (
-                        <div className="h-full flex items-center justify-center bg-muted/30">
-                          <div className="text-center">
-                            <Image className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                            <p className="text-muted-foreground">No se puede mostrar la vista previa de la imagen</p>
-                          </div>
-                        </div>
-                      )}
-                      <div className="p-4 border-t bg-white">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleDownload(selectedFile)}
-                          className="w-full"
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          Descargar Imagen
-                        </Button>
-                      </div>
-                    </div>
-                  ) : getFileType(selectedFile) === 'PDF' ? (
-                    <div className="h-full flex flex-col">
-                      <div className="flex-1">
-                        {fileUrl ? (
-                          <iframe 
-                            src={fileUrl} 
-                            className="w-full h-full border-0" 
-                            title={selectedFile || 'Archivo'} 
-                          />
-                        ) : (
-                          <div className="flex items-center justify-center h-full">
-                            <p className="text-gray-500">Cargando archivo...</p>
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-4 border-t bg-white">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleDownload(selectedFile)}
-                          className="w-full"
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          Descargar PDF Completo
-                        </Button>
-                      </div>
-                    </div>
+                  ) : fileContent ? (
+                    fileType.startsWith('image/') ? (
+                      <img 
+                        src={fileContent} 
+                        alt="Preview" 
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <iframe 
+                        src={fileContent} 
+                        className="w-full h-full" 
+                        title="Document preview"
+                      />
+                    )
                   ) : (
-                    <div className="h-full flex items-center justify-center bg-muted/30">
-                      <div className="text-center">
-                        <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                        <p className="text-muted-foreground">Vista previa no disponible</p>
-                        <p className="text-sm text-muted-foreground mt-2">
-                          {selectedFile}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Tipo: {report.archivoTipo || 'Desconocido'}
-                        </p>
-                        <div className="mt-4">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleDownload(selectedFile)}
-                          >
-                            <Download className="w-4 h-4 mr-2" />
-                            Descargar Archivo
-                          </Button>
-                        </div>
-                      </div>
+                    <div className="h-full flex items-center justify-center">
+                      <p>No se pudo cargar el archivo</p>
                     </div>
                   )}
                 </div>

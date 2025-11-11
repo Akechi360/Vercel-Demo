@@ -80,7 +80,8 @@ const formSchema = z.object({
       name: z.string(),
       type: z.string(),
       size: z.number(),
-      url: z.string()
+      url: z.string(),
+      base64Content: z.string().optional()
     })).optional(),
   })).optional(),
   labResults: z.array(z.object({
@@ -250,6 +251,7 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
 
   // Handle file upload for reports
   const handleFileUpload = async (file: File, reportIndex: number) => {
+    console.log('🚀 [handleFileUpload] INICIO:', { fileName: file.name, fileSize: file.size, reportIndex });
     try {
       setIsProcessingFiles(true);
       
@@ -608,28 +610,100 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
                         <FormItem>
                           <FormLabel>Archivo adjunto</FormLabel>
                           <FormControl>
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-col gap-2">
                               <input
                                 type="file"
                                 accept="application/pdf,image/*"
-                                onChange={(e) => {
+                                onChange={async (e) => {
                                   const file = e.target.files?.[0];
-                                  if (file) {
-                                    handleFileUpload(file, index);
+                                  if (!file) return;
+                                  
+                                  console.log('🔴 Archivo seleccionado:', file.name);
+
+                                  try {
+                                    setIsProcessingFiles(true);
+                                    
+                                    // Convertir a base64
+                                    const reader = new FileReader();
+                                    const base64Promise = new Promise<string>((resolve, reject) => {
+                                      reader.onload = () => {
+                                        const base64 = (reader.result as string).split(',')[1];
+                                        resolve(base64);
+                                      };
+                                      reader.onerror = reject;
+                                      reader.readAsDataURL(file);
+                                    });
+                                    
+                                    const base64Content = await base64Promise;
+                                    console.log('✅ Base64 generado, length:', base64Content.length);
+                                    
+                                    // URL para preview
+                                    const fileUrl = URL.createObjectURL(file);
+                                    
+                                    // Obtener reportes actuales
+                                    const currentReports = form.getValues('reports') || [];
+                                    const updatedReports = [...currentReports];
+                                    
+                                    // Inicializar si no existe
+                                    if (!updatedReports[index]) {
+                                      updatedReports[index] = { 
+                                        title: '', 
+                                        date: format(new Date(), 'yyyy-MM-dd'), 
+                                        attachments: [] 
+                                      };
+                                    }
+                                    
+                                    // Crear attachment con base64
+                                    const newAttachment = {
+                                      name: file.name,
+                                      type: file.type,
+                                      size: file.size,
+                                      url: fileUrl,
+                                      base64Content: base64Content
+                                    };
+                                    
+                                    if (!updatedReports[index].attachments) {
+                                      updatedReports[index].attachments = [];
+                                    }
+                                    
+                                    updatedReports[index].attachments = [newAttachment];
+                                    
+                                    // Actualizar form
+                                    form.setValue('reports', updatedReports, { shouldDirty: true });
+                                    
+                                    console.log('✅ Archivo agregado:', file.name);
+                                    
+                                  } catch (error) {
+                                    console.error('❌ Error:', error);
+                                    toast({
+                                      title: 'Error',
+                                      description: 'No se pudo procesar el archivo',
+                                      variant: 'destructive',
+                                    });
+                                  } finally {
+                                    setIsProcessingFiles(false);
                                   }
                                 }}
                                 className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                               />
-                              {field.value?.[0]?.url && (
-                                <a 
-                                  href={field.value[0].url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="text-sm text-blue-600 hover:underline"
-                                >
-                                  Ver archivo
-                                </a>
-                              )}
+                              {isProcessingFiles ? (
+                                <div className="text-sm text-gray-500">Procesando archivo...</div>
+                              ) : (() => {
+                                const currentReport = form.watch(`reports.${index}`);
+                                const attachment = currentReport?.attachments?.[0];
+                                
+                                return attachment ? (
+                                  <div className="mt-2 flex items-center gap-2 text-sm text-green-600">
+                                    <FileText className="h-4 w-4" />
+                                    <span className="font-medium">{attachment.name}</span>
+                                    <span className="text-gray-500">
+                                      ({(attachment.size / 1024).toFixed(1)} KB)
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <p className="mt-2 text-xs text-gray-500">Ningún archivo seleccionado</p>
+                                );
+                              })()}
                             </div>
                           </FormControl>
                           <FormMessage />

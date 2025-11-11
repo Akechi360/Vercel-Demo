@@ -30,6 +30,31 @@ export default function LabResultsCard({ results, labResults }: LabResultsCardPr
     router.refresh(); // Recargar datos
   };
 
+  const handleViewReport = (result: LabResult) => {
+    console.log('🔍 [LabResults] Visualizando:', {
+      testName: result.testName,
+      hasContent: !!result.archivoContenido,
+    });
+    
+    const mappedReport = {
+      id: result.id,
+      title: result.testName || 'Resultado de laboratorio',
+      archivoNombre: result.archivoNombre || `Resultado-${result.testName}.pdf`,
+      archivoTipo: result.archivoTipo || 'application/pdf',
+      archivoTamaño: result.archivoTamaño,
+      archivoContenido: result.archivoContenido,
+      date: result.date,
+    };
+    
+    console.log('📤 [LabResults] Datos para modal:', {
+      hasArchivoContenido: !!mappedReport.archivoContenido,
+      archivoNombre: mappedReport.archivoNombre,
+    });
+    
+    setSelectedResult(mappedReport);
+    setModalOpen(true);
+  };
+
   const getEstadoBadge = (estado?: string) => {
     if (!estado) return null;
     
@@ -93,7 +118,7 @@ export default function LabResultsCard({ results, labResults }: LabResultsCardPr
                   <TableCell>
                     <div className="flex gap-2 justify-end">
                       {result.archivoContenido && (
-                        <Button size="icon" variant="outline" title="Ver archivo adjunto" onClick={() => {setSelectedResult(result); setModalOpen(true);}}>
+                        <Button size="icon" variant="outline" title="Ver archivo adjunto" onClick={() => handleViewReport(result)}>
                           <Eye className="w-4 h-4" />
                         </Button>
                       )}
@@ -130,7 +155,11 @@ export default function LabResultsCard({ results, labResults }: LabResultsCardPr
         )}
       </CardContent>
       {selectedResult && (
-        <FileViewerModal isOpen={modalOpen} onClose={()=>setModalOpen(false)} report={selectedResult}/>
+        <FileViewerModal 
+          isOpen={modalOpen} 
+          onClose={() => setModalOpen(false)} 
+          report={selectedResult}
+        />
       )}
     </Card>
   );

@@ -2834,7 +2834,20 @@ export async function getConsultationsByUserId(userId: string): Promise<Consulta
           creator: true,
           prescriptions: true, // ✅ Incluir prescripciones
           labResults: true,    // ✅ Incluir resultados de laboratorio
-          reports: true,        // ✅ Incluir reportes de consulta
+          reports: {           // ✅ Incluir reportes de consulta con campos específicos
+            select: {
+              id: true,
+              titulo: true,
+              descripcion: true,
+              tipo: true,
+              createdAt: true,
+              archivoNombre: true,
+              archivoTipo: true,
+              archivoTamaño: true,
+              archivoContenido: true,
+              archivoUrl: true
+            }
+          }
         },
         orderBy: { fecha: 'desc' },
       });
@@ -4003,11 +4016,11 @@ export async function getReceipts(): Promise<any[]> {
         du.name as "doctorName",
         du.email as "doctorEmail"
       FROM "receipts" r
-      LEFT JOIN "User" u ON r."patientId" = u.id
+      LEFT JOIN users u ON r."patientId" = u.id
       LEFT JOIN "patient_info" pi ON u.id = pi."userId"
-      LEFT JOIN "User" cu ON r."createdById" = cu.id
+      LEFT JOIN users cu ON r."createdById" = cu.id
       LEFT JOIN "doctor_info" d ON r."doctorId" = d.id
-      LEFT JOIN "User" du ON d."userId" = du.id
+      LEFT JOIN users du ON d."userId" = du.id
       ORDER BY r."createdAt" DESC
     `;
 

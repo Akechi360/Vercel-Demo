@@ -1,4 +1,5 @@
 'use client';
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { ClipboardPlus } from "lucide-react";
 import {
@@ -28,6 +29,7 @@ export function AddHistoryFab({ userId, onFormSubmit }: { userId: string; onForm
     const [open, setOpen] = useState(false);
     const { toast } = useToast();
     const { currentUser } = useAuth();
+    const router = useRouter();
 
     const handleFormSubmit = async (values: ConsultationFormValues) => {
         try {
@@ -130,6 +132,8 @@ export function AddHistoryFab({ userId, onFormSubmit }: { userId: string; onForm
             
             onFormSubmit(values);
             setOpen(false);
+            // Revalidar el cache de Next.js para refrescar datos de BD
+            router.refresh();
         } catch (error) {
             console.error('Error saving consultation:', error);
             toast({

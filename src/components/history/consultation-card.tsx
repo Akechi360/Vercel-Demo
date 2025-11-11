@@ -229,7 +229,41 @@ export function ConsultationCard({ consultation }: ConsultationCardProps) {
     }
 
     const handleViewReport = (report: any) => {
-        setSelectedReport(report);
+        console.log('📄 handleViewReport - Report data:', {
+            id: report.id,
+            title: report.title,
+            hasAttachments: !!report.attachments?.length,
+            attachments: report.attachments,
+            archivoNombre: report.archivoNombre,
+            archivoTipo: report.archivoTipo,
+            hasArchivoContenido: !!report.archivoContenido,
+            archivoContenidoLength: report.archivoContenido?.length || 0
+        });
+        
+        // Get the first attachment if it exists
+        const firstAttachment = report.attachments?.[0];
+        
+        // Create a new report object with all required fields
+        const reportWithContent = {
+            ...report,
+            // Use the attachment's name if archivoNombre is not set
+            archivoNombre: report.archivoNombre || firstAttachment?.name || 'Archivo adjunto',
+            // Use the attachment's type if archivoTipo is not set
+            archivoTipo: report.archivoTipo || firstAttachment?.type || 'application/pdf',
+            // Get content from either the report or the first attachment
+            archivoContenido: report.archivoContenido || firstAttachment?.base64Content || firstAttachment?.archivoContenido,
+            // Ensure we have a fileUrl
+            fileUrl: report.fileUrl || firstAttachment?.url || ''
+        };
+        
+        console.log('🔄 handleViewReport - Processed report:', {
+            ...reportWithContent,
+            archivoContenido: reportWithContent.archivoContenido ? 
+                `[Base64 data, length: ${reportWithContent.archivoContenido.length}]` : 
+                'No content'
+        });
+        
+        setSelectedReport(reportWithContent);
         setIsFileViewerOpen(true);
     };
 

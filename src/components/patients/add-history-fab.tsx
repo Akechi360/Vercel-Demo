@@ -14,7 +14,8 @@ import { ConsultationForm, ConsultationFormValues, ReportAttachment } from "./co
 import type { Patient } from "@/lib/types";
 import { addConsultation } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from 'react-dom';
 import { useAuth } from "@/components/layout/auth-provider";
 import { UserRole } from "@/lib/types";
 
@@ -144,25 +145,36 @@ export function AddHistoryFab({ userId, onFormSubmit }: { userId: string; onForm
         }
     }
 
-    return (
+    // State to track if component is mounted (for SSR/SSG)
+    const [mounted, setMounted] = useState(false);
+    
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
+
+    const dialogContent = (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                 <Button className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-lg bg-gradient-to-r from-primary to-blue-400 hover:from-primary/90 hover:to-blue-400/90 transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-[0_0_20px_rgba(58,109,255,0.4),0_0_40px_rgba(186,85,211,0.3),0_0_60px_rgba(255,105,180,0.2)] animate-pulse-slow">
+                <Button className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-lg bg-gradient-to-r from-primary to-blue-400 hover:from-primary/90 hover:to-blue-400/90 transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-[0_0_20px_rgba(58,109,255,0.4),0_0_40px_rgba(186,85,211,0.3),0_0_60px_rgba(255,105,180,0.2)] animate-pulse-slow">
                     <ClipboardPlus className="h-8 w-8" />
                     <span className="sr-only">Agregar Historial Médico</span>
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                <DialogTitle>Añadir Nueva Consulta</DialogTitle>
-                <DialogDescription>
-                    Rellena los detalles para el nuevo registro de consulta.
-                </DialogDescription>
+                    <DialogTitle>Añadir Nueva Consulta</DialogTitle>
+                    <DialogDescription>
+                        Rellena los detalles para el nuevo registro de consulta.
+                    </DialogDescription>
                 </DialogHeader>
                 <ConsultationForm userId={userId} onFormSubmit={handleFormSubmit} />
             </DialogContent>
         </Dialog>
-    )
+    );
+
+    // Only render the portal on the client side
+    return mounted ? createPortal(dialogContent, document.body) : null;
 }
 
 // Add to tailwind.config.ts animation if not present

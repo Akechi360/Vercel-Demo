@@ -7,7 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -149,6 +149,32 @@ export function EditReportForm({ initialData, onSubmit, isSubmitting = false }: 
                           onSelect={field.onChange}
                           disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
                           initialFocus
+                          className="p-4"
+                          classNames={{
+                            months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                            month: "space-y-4",
+                            caption: "flex justify-center pt-1 relative items-center",
+                            caption_label: "text-sm font-semibold",
+                            nav: "space-x-1 flex items-center",
+                            nav_button: "h-8 w-8 bg-transparent p-0 opacity-70 hover:opacity-100 hover:bg-accent transition-all rounded-md border border-input",
+                            nav_button_previous: "absolute left-1",
+                            nav_button_next: "absolute right-1",
+                            table: "w-full border-collapse space-y-1",
+                            head_row: "flex",
+                            head_cell: "text-muted-foreground rounded-md w-10 font-medium text-[0.85rem] uppercase",
+                            row: "flex w-full mt-2",
+                            cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md",
+                            day: "h-10 w-10 p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground transition-all rounded-lg",
+                            day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-lg shadow-sm",
+                            day_today: "bg-accent text-accent-foreground font-semibold",
+                            day_outside: "text-muted-foreground opacity-40",
+                            day_disabled: "text-muted-foreground opacity-30 cursor-not-allowed",
+                            day_range_middle: "aria-selected:bg-accent/50 aria-selected:text-accent-foreground",
+                          }}
+                          components={{
+                            IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" {...props} />,
+                            IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" {...props} />,
+                          }}
                         />
                       </PopoverContent>
                     </Popover>

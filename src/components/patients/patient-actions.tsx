@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { Patient, Company } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,9 +18,12 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MoreHorizontal, Edit, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import { deletePatient, updatePatient, getCompanies } from '@/lib/actions';
@@ -67,26 +70,39 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const sweetAlertTheme = useSweetAlertTheme();
+
+  // Generate years for the year selector (100 years range)
+  const years = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 100 }, (_, i) => currentYear - i);
+  }, []);
+  
+  // Months in Spanish
+  const months = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+  
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
 
   // Calcular fechaNacimiento desde la edad actual o usar fechaNacimiento si existe
   const getDefaultFechaNacimiento = (): string => {
     if ((patient as any).fechaNacimiento) {
-      const fecha = new Date((patient as any).fechaNacimiento);
-      return fecha.toISOString().split('T')[0];
+      return (patient as any).fechaNacimiento;
     }
     // Si no hay fechaNacimiento, calcular aproximada desde edad
     const today = new Date();
     const ageNum = Number(patient.age);
     if (!Number.isFinite(ageNum) || ageNum <= 0) return '';
-    const estimatedDate = new Date(
-      today.getFullYear() - ageNum,
-      today.getMonth(),
-      today.getDate()
-    );
-    const time = estimatedDate.getTime();
-    if (Number.isNaN(time)) return '';
-    return estimatedDate.toISOString().split('T')[0];
+    
+    const year = today.getFullYear() - ageNum;
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
   };
 
   const form = useForm<EditPatientFormValues>({
@@ -245,15 +261,192 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="fechaNacimiento">Fecha de Nacimiento *</Label>
-              <Input
-                id="fechaNacimiento"
-                type="date"
-                {...form.register('fechaNacimiento')}
-                value={form.watch('fechaNacimiento') || ''}
-                onChange={(e) => form.setValue('fechaNacimiento', e.target.value)}
-                required
-              />
+              <Label>Fecha de Nacimiento *</Label>
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !form.watch('fechaNacimiento') && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {form.watch('fechaNacimiento') ? (
+                      new Date(form.watch('fechaNacimiento')).toLocaleDateString('es-ES', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })
+                    ) : (
+                      <span>Seleccione una fecha</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <div className="p-4">
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium">Mes:</h4>
+                        <div className="relative">
+                          <button
+                            type="button"
+                            className="absolute left-0 top-0 bottom-0 px-2 flex items-center justify-center text-muted-foreground hover:text-foreground"
+                            onClick={() => {
+                              setSelectedMonth(prev => (prev > 0 ? prev - 1 : 11));
+                            }}
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                          </button>
+                          
+                          <div 
+                            className="w-full text-center border rounded-md py-2 px-8 bg-background"
+                            onWheel={(e) => {
+                              e.preventDefault();
+                              setSelectedMonth(prev => {
+                                const delta = e.deltaY > 0 ? 1 : -1;
+                                return (prev - delta + 12) % 12;
+                              });
+                            }}
+                          >
+                            {months[selectedMonth]}
+                          </div>
+                          
+                          <button
+                            type="button"
+                            className="absolute right-0 top-0 bottom-0 px-2 flex items-center justify-center text-muted-foreground hover:text-foreground"
+                            onClick={() => {
+                              setSelectedMonth(prev => (prev + 1) % 12);
+                            }}
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium">Año:</h4>
+                        <div className="relative">
+                          <button
+                            type="button"
+                            className="absolute left-0 top-0 bottom-0 px-2 flex items-center justify-center text-muted-foreground hover:text-foreground"
+                            onClick={() => {
+                              const currentIndex = years.findIndex(y => y === selectedYear);
+                              if (currentIndex > 0) {
+                                setSelectedYear(years[currentIndex - 1]);
+                              }
+                            }}
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                          </button>
+                          
+                          <div 
+                            className="w-full text-center border rounded-md py-2 px-8 bg-background"
+                            onWheel={(e) => {
+                              e.preventDefault();
+                              const currentIndex = years.findIndex(y => y === selectedYear);
+                              const delta = e.deltaY > 0 ? 1 : -1;
+                              const newIndex = Math.min(Math.max(0, currentIndex + delta), years.length - 1);
+                              if (newIndex !== currentIndex) {
+                                setSelectedYear(years[newIndex]);
+                              }
+                            }}
+                          >
+                            {selectedYear}
+                          </div>
+                          
+                          <button
+                            type="button"
+                            className="absolute right-0 top-0 bottom-0 px-2 flex items-center justify-center text-muted-foreground hover:text-foreground"
+                            onClick={() => {
+                              const currentIndex = years.findIndex(y => y === selectedYear);
+                              if (currentIndex < years.length - 1) {
+                                setSelectedYear(years[currentIndex + 1]);
+                              }
+                            }}
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <style jsx>{`
+                        .rdp {
+                          --rdp-cell-size: 40px;
+                          --rdp-accent-color: #3b82f6;
+                          --rdp-background-color: #e0f2fe;
+                          margin: 0;
+                        }
+                        .rdp-caption {
+                          display: none !important;
+                        }
+                        .rdp-table {
+                          margin: 0;
+                        }
+                        .rdp-day {
+                          height: var(--rdp-cell-size);
+                          width: var(--rdp-cell-size);
+                          display: flex;
+                          align-items: center;
+                          justify-content: center;
+                          border-radius: 0.5rem;
+                          margin: 0;
+                        }
+                        .rdp-day_selected {
+                          background-color: var(--rdp-accent-color) !important;
+                          color: white !important;
+                        }
+                        .rdp-day_today:not(.rdp-day_selected) {
+                          background-color: #f3f4f6;
+                          color: #111827;
+                        }
+                      `}</style>
+                      <Calendar
+                        mode="single"
+                        selected={form.watch('fechaNacimiento') ? 
+                          new Date(form.watch('fechaNacimiento')) : 
+                          undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            // Obtener fecha local directamente
+                            const localDate = new Date(date);
+                            const year = localDate.getFullYear();
+                            const month = String(localDate.getMonth() + 1).padStart(2, '0');
+                            const day = String(localDate.getDate()).padStart(2, '0');
+                            const formattedDate = `${year}-${month}-${day}`;
+                            
+                            console.log('Fecha seleccionada:', { 
+                              raw: date, 
+                              local: localDate, 
+                              formatted: formattedDate 
+                            });
+                            
+                            form.setValue('fechaNacimiento', formattedDate, { shouldValidate: true });
+                            setSelectedYear(year);
+                            setSelectedMonth(parseInt(month, 10) - 1);
+                            setIsCalendarOpen(false);
+                          }
+                        }}
+                        month={new Date(selectedYear, selectedMonth)}
+                        onMonthChange={(date) => {
+                          setSelectedYear(date.getFullYear());
+                          setSelectedMonth(date.getMonth());
+                        }}
+                        disabled={(date) => date > new Date() || date < new Date('1900-01-01')}
+                        initialFocus
+                        className="p-0"
+                        components={{
+                          Caption: () => null,
+                          CaptionLabel: () => null,
+                          IconLeft: () => null,
+                          IconRight: () => null,
+                        }}
+                      />
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
               {form.formState.errors.fechaNacimiento && (
                 <p className="text-sm text-red-500">{form.formState.errors.fechaNacimiento.message}</p>
               )}

@@ -142,14 +142,28 @@ export function QuickActions({ patient, upcomingAppointments, latestConsultation
         doc.text("Información del Paciente", margin, y);
         y += 8;
 
-        autoTable(doc, {
+        const formatBloodType = (bloodType: string) => {
+      const bloodTypeMap: Record<string, string> = {
+        'A_POSITIVE': 'A+',
+        'A_NEGATIVE': 'A-',
+        'B_POSITIVE': 'B+',
+        'B_NEGATIVE': 'B-',
+        'AB_POSITIVE': 'AB+',
+        'AB_NEGATIVE': 'AB-',
+        'O_POSITIVE': 'O+',
+        'O_NEGATIVE': 'O-',
+      };
+      return bloodTypeMap[bloodType] || bloodType;
+    };
+
+    autoTable(doc, {
             startY: y,
             theme: 'plain',
             body: [
                 ['Nombre:', patient.name],
                 ['Edad:', `${patient.age} años`],
                 ['Género:', patient.gender],
-                ['Grupo Sanguíneo:', patient.bloodType || 'No disponible'],
+                ['Grupo Sanguíneo:', patient.bloodType ? formatBloodType(patient.bloodType) : 'No disponible'],
                 ['Teléfono:', patient.contact.phone || 'No disponible'],
                 ['Email:', patient.contact.email || 'No disponible'],
                 ['Empresa:', patient.companyName || 'Paciente Particular'],

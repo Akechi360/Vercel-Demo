@@ -272,15 +272,18 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {form.watch('fechaNacimiento') ? (
-                      new Date(form.watch('fechaNacimiento')).toLocaleDateString('es-ES', {
+                    {(() => {
+                      const fecha = form.watch('fechaNacimiento');
+                      if (!fecha) return <span>Seleccione una fecha</span>;
+                      
+                      const [y, m, d] = fecha.split('-').map(Number);
+                      const localDate = new Date(y, m - 1, d);
+                      return localDate.toLocaleDateString('es-ES', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric'
-                      })
-                    ) : (
-                      <span>Seleccione una fecha</span>
-                    )}
+                      });
+                    })()}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -404,27 +407,40 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
                       `}</style>
                       <Calendar
                         mode="single"
-                        selected={form.watch('fechaNacimiento') ? 
-                          new Date(form.watch('fechaNacimiento')) : 
-                          undefined}
+                        selected={
+                          form.watch('fechaNacimiento')
+                            ? (() => {
+                                const dateStr = form.watch('fechaNacimiento');
+                                if (!dateStr) return undefined;
+                                
+                                // Parse manual evitando timezone
+                                const parts = dateStr.split('-');
+                                if (parts.length !== 3) return undefined;
+                                
+                                const y = parseInt(parts[0], 10);
+                                const m = parseInt(parts[1], 10) - 1;
+                                const d = parseInt(parts[2], 10);
+                                
+                                // Crear fecha en UTC para evitar problemas de zona horaria
+                                const utcDate = new Date(Date.UTC(y, m, d, 12, 0, 0));
+                                console.log('🔵 Fecha seleccionada (UTC):', utcDate.toISOString());
+                                return utcDate;
+                              })()
+                            : undefined
+                        }
                         onSelect={(date) => {
                           if (date) {
-                            // Obtener fecha local directamente
-                            const localDate = new Date(date);
-                            const year = localDate.getFullYear();
-                            const month = String(localDate.getMonth() + 1).padStart(2, '0');
-                            const day = String(localDate.getDate()).padStart(2, '0');
-                            const formattedDate = `${year}-${month}-${day}`;
+                            const year = date.getFullYear();
+                            const month = date.getMonth() + 1;
+                            const day = date.getDate();
                             
-                            console.log('Fecha seleccionada:', { 
-                              raw: date, 
-                              local: localDate, 
-                              formatted: formattedDate 
-                            });
+                            const formattedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                            
+                            console.log('✅ Click en día:', day, '→ Guardando:', formattedDate);
                             
                             form.setValue('fechaNacimiento', formattedDate, { shouldValidate: true });
                             setSelectedYear(year);
-                            setSelectedMonth(parseInt(month, 10) - 1);
+                            setSelectedMonth(month - 1);
                             setIsCalendarOpen(false);
                           }
                         }}
@@ -435,7 +451,27 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
                         }}
                         disabled={(date) => date > new Date() || date < new Date('1900-01-01')}
                         initialFocus
-                        className="p-0"
+                        classNames={{
+                          months: "flex flex-col sm:flex-row space-y-2 sm:space-x-2 sm:space-y-0",
+                          month: "space-y-2",
+                          caption: "flex justify-center pt-1 relative items-center",
+                          caption_label: "text-sm font-medium",
+                          nav: "space-x-1 flex items-center",
+                          nav_button: "h-6 w-6 bg-transparent hover:bg-accent rounded-md",
+                          nav_button_previous: "absolute left-1",
+                          nav_button_next: "absolute right-1",
+                          table: "w-full border-collapse",
+                          head_row: "flex w-full",
+                          head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.7rem] uppercase",
+                          row: "flex w-full mt-0.5",
+                          cell: "relative p-0 text-center text-sm",
+                          day: "h-9 w-9 p-0 font-normal hover:bg-accent hover:text-accent-foreground rounded-md text-sm",
+                          day_selected: "bg-primary text-primary-foreground hover:bg-primary/90",
+                          day_today: "bg-accent text-accent-foreground font-semibold",
+                          day_outside: "text-muted-foreground/30 opacity-30",
+                          day_disabled: "text-muted-foreground/20 opacity-30",
+                          day_hidden: "invisible",
+                        }}
                         components={{
                           Caption: () => null,
                           CaptionLabel: () => null,

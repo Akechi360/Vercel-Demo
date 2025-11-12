@@ -1351,6 +1351,13 @@ export async function addConsultation(consultationData: {
         }
       });
 
+      // Create audit log for consultation
+      await createAuditLog(
+        userContext.userId,
+        'Historia clínica creada',
+        `Nueva consulta para ${patient.name} con motivo: ${consultationData.type}`
+      );
+
       // ✅ GUARDAR PRESCRIPCIONES
       if (consultationData.prescriptions && consultationData.prescriptions.length > 0) {
         await tx.prescription.createMany({
@@ -1776,6 +1783,13 @@ export async function addAffiliation(affiliationData: {
       company: affiliation.company,
       user: affiliation.user,
     };
+
+    // Create audit log for affiliation
+    await createAuditLog(
+      userContext?.userId || 'system',
+      'Afiliación creada',
+      `Nueva afiliación ${affiliation.planId} para usuario ${affiliation.user.name || affiliation.userId}${affiliation.company ? ` en compañía ${affiliation.company.name}` : ''}`
+    );
 
     return { success: true, data: result };
   } catch (error) {
@@ -3414,6 +3428,13 @@ export async function addAppointment(appointmentData: {
         console.error('[ACTIONS] Error enviando notificaciones:', error)
         // No fallar la cita si las notificaciones fallan
       });
+      
+      // Create audit log for appointment
+      await createAuditLog(
+        createdBy,
+        'Cita agendada',
+        `Nueva cita programada para el paciente (ID: ${appointmentData.userId}) el ${appointmentData.date} a las ${appointmentTime}`
+      );
       
       return result;
     });

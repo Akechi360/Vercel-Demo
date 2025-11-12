@@ -128,6 +128,28 @@ export default function AuditoriaPage() {
     }
   };
 
+  // Format action with emoji and styling
+  const formatAction = (action: string): JSX.Element => {
+    const actionMap: Record<string, { emoji: string; color: string }> = {
+      'Inicio de sesión': { emoji: '🔐', color: 'text-blue-600' },
+      'Usuario creado': { emoji: '👤', color: 'text-green-600' },
+      'Historia clínica creada': { emoji: '📋', color: 'text-purple-600' },
+      'Cita agendada': { emoji: '📅', color: 'text-amber-600' },
+      'Afiliación creada': { emoji: '🏢', color: 'text-emerald-600' },
+    };
+
+    const actionData = actionMap[action] || { emoji: '📝', color: 'text-gray-600' };
+    
+    return (
+      <div className="flex items-center space-x-2">
+        <span className={actionData.color} aria-hidden="true">
+          {actionData.emoji}
+        </span>
+        <span>{action}</span>
+      </div>
+    );
+  };
+
   // Check if user has permission to view audit logs
   if (!isAdmin()) {
     return (
@@ -258,7 +280,9 @@ export default function AuditoriaPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <span className="font-medium">{log.action}</span>
+                        <div className="font-medium">
+                          {formatAction(log.action)}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <span className="text-sm text-muted-foreground">

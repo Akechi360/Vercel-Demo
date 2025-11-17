@@ -21,6 +21,15 @@ import { format } from 'date-fns';
 import { addUroVitalLogo } from '@/lib/pdf-helpers';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
+
+const formatDoctorName = (doctor: any) => {
+  if (!doctor) return "Sin doctor asignado";
+  
+  const name = doctor.name || "Sin nombre";
+  const especialidad = doctor.doctorInfo?.especialidad || "";
+  
+  return `Dr. ${name}${especialidad ? ` (${especialidad})` : ""}`;
+};
 import { CreateReceiptModal } from './create-receipt-modal';
 
 const MySwal = withReactContent(Swal);
@@ -551,14 +560,14 @@ export function FinanceTable({
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-2">
-                              {receipt.doctorName ? (
+                              {receipt.doctor ? (
                                 <>
                                   <Avatar className="h-6 w-6">
                                     <AvatarFallback className="text-xs">
-                                      {getInitials(receipt.doctorName)}
+                                      {getInitials(receipt.doctor.name || '')}
                                     </AvatarFallback>
                                   </Avatar>
-                                  <span className="text-sm">Dr. {receipt.doctorName}</span>
+                                  <span className="text-sm">{formatDoctorName(receipt.doctor)}</span>
                                 </>
                               ) : (
                                 <span className="text-sm text-muted-foreground">Sin doctor asignado</span>
@@ -652,7 +661,7 @@ export function FinanceTable({
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>
                           <span className="text-muted-foreground">Doctor:</span>
-                          <div className="font-medium">Dr. {receipt.doctorName || 'N/A'}</div>
+                          <div className="font-medium">{formatDoctorName(receipt.doctor)}</div>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Fecha:</span>

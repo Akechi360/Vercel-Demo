@@ -1,17 +1,17 @@
 'use server';
 
 import type { Patient, Appointment, Consultation, LabResult, IpssScore, Report, Company, Supply, PaymentMethod, PaymentType, Payment, Doctor, Estudio, AffiliateLead } from './types';
-import { User } from '@prisma/client';
+import { Prisma, PrismaClient, User } from '@prisma/client';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import bcrypt from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { getPrismaClient, isDatabaseAvailable } from './db';
 // Validación de roles estandarizada - Importar utilidades centralizadas
 import { ROLES, type UserRole, isValidRole, getValidRole } from './types';
 // Importado desde src/lib/utils.ts - única fuente de validaciones
 import { validateUserRole, DatabaseErrorHandler, withTransaction, validateDate } from './utils';
+import type { User as FrontendUser } from './types';
 import { UserContext } from './types';
 import { notifyNewAppointment } from './notification-service';
 import { cookies, headers } from 'next/headers';
@@ -566,7 +566,7 @@ export async function updatePatient(userId: string, patientData: {
         // First, deactivate any existing affiliations for this user
         await prisma.affiliation.updateMany({
           where: { 
-            userId: updatedUser.id,
+            userId: userId, // Usar el parámetro userId
             estado: 'ACTIVA'
           },
           data: { estado: 'INACTIVA' }
@@ -581,14 +581,14 @@ export async function updatePatient(userId: string, patientData: {
             monto: 0,
             beneficiarios: undefined,
             companyId: patientData.companyId,
-            userId: updatedUser.id,
+            userId: userId, // Usar el parámetro userId
           },
         });
       } else {
         // If no companyId, deactivate all affiliations (patient becomes particular)
         await prisma.affiliation.updateMany({
           where: { 
-            userId: updatedUser.id,
+            userId: userId, // Usar el parámetro userId
             estado: 'ACTIVA'
           },
           data: { estado: 'INACTIVA' }
@@ -890,8 +890,17 @@ export async function getDoctorsWithUsers(): Promise<Doctor[]> {
       return doctorsWithUsers;
     });
     
-    return doctors.map((doctor: any) => ({
+    return doctors.map((doctor: {
+      id: string;
+      userId?: string;
+      nombre: string;
+      especialidad: string;
+      area: string;
+      contacto: string;
+      avatarUrl?: string;
+    }) => ({
       id: doctor.id,
+      userId: doctor.userId || doctor.id, // Usar userId si existe, si no, usar id como fallback
       nombre: doctor.nombre,
       especialidad: doctor.especialidad,
       area: doctor.area,
@@ -957,7 +966,28 @@ export async function getDoctors() {
       });
       
       console.log(`✅ Found ${doctors.length} doctors with complete info`);
-      return doctors;
+      
+      // Map the data to match the Doctor type
+      return doctors.map((doctor: {
+        id: string;
+        userId: string;
+        name: string | null;
+        email: string | null;
+        phone: string | null;
+        avatarUrl: string | null;
+        doctorInfo: {
+          especialidad?: string;
+          area?: string;
+        } | null;
+      }) => ({
+        id: doctor.id,
+        userId: doctor.userId, // Include userId from the user record
+        nombre: doctor.name || 'Sin nombre',
+        especialidad: doctor.doctorInfo?.especialidad || 'General',
+        area: doctor.doctorInfo?.area || '',
+        contacto: doctor.phone || doctor.email || '',
+        avatarUrl: doctor.avatarUrl,
+      }));
       
     } catch (error) {
       console.error('❌ Error fetching doctors:', error);
@@ -2043,14 +2073,7 @@ export async function getAuditLogs(): Promise<any[]> {
     const auditLogs = await withDatabase(async (prisma) => {
       return await prisma.auditLog.findMany({
         include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              role: true,
-            },
-          },
+          user: true
         },
         orderBy: { createdAt: 'desc' },
       });
@@ -2076,7 +2099,7 @@ export async function getAuditLogs(): Promise<any[]> {
 }
 
 // USER MANAGEMENT ACTIONS
-export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<User> {
+export async function createUser(data: Omit<FrontendUser, "id" | "createdAt">): Promise<FrontendUser> {
   try {
     
     const isAvailable = await isDatabaseAvailable();
@@ -2211,7 +2234,7 @@ export async function createUser(data: Omit<User, "id" | "createdAt">): Promise<
 }
 
 // Get current user with fresh data (no cache)
-export async function getCurrentUserFresh(userId: string): Promise<User | null> {
+export async function getCurrentUserFresh(userId: string): Promise<FrontendUser | null> {
   try {
     const { unstable_noStore: noStore } = await import('next/cache');
     noStore();
@@ -2289,7 +2312,7 @@ export async function getCurrentUserIdFromRequest(): Promise<string | null> {
 }
 
 // Helper function to create doctor record when user role changes to "Doctor"
-export async function ensureDoctorRecord(userId: string, userData: Partial<User>): Promise<string | null> {
+export async function ensureDoctorRecord(userId: string, userData: Partial<FrontendUser>): Promise<string | null> {
   console.log(`🔍 Verificando/creando registro de doctor para usuario: ${userId}`);
   
   try {
@@ -2367,7 +2390,7 @@ export async function removeDoctorRecord(userId: string): Promise<void> {
 }
 
 // Helper function to create promotora record when user role changes to "promotora"
-export async function ensurePromotoraRecord(userId: string, userData: Partial<User>): Promise<string | null> {
+export async function ensurePromotoraRecord(userId: string, userData: Partial<FrontendUser>): Promise<string | null> {
   try {
     
     const promotoraId = await withDatabase(async (prisma) => {
@@ -2428,7 +2451,7 @@ export async function removePromotoraRecord(userId: string): Promise<void> {
 }
 
 // Helper function to create secretaria record when user role changes to "secretaria"
-export async function ensureSecretariaRecord(userId: string, userData: Partial<User>): Promise<string | null> {
+export async function ensureSecretariaRecord(userId: string, userData: Partial<FrontendUser>): Promise<string | null> {
   try {
     
     const secretariaId = await withDatabase(async (prisma) => {
@@ -2488,7 +2511,7 @@ export async function removeSecretariaRecord(userId: string): Promise<void> {
   }
 }
 
-export async function updateUser(userId: string, data: Partial<Omit<User, "id" | "createdAt">>): Promise<User> {
+export async function updateUser(userId: string, data: Partial<Omit<FrontendUser, "id" | "createdAt">>): Promise<FrontendUser> {
   try {
     console.log('🔄 updateUser data keys:', Object.keys(data));
     
@@ -3246,6 +3269,7 @@ export async function createSampleDoctor(): Promise<Doctor> {
     });
     return {
       id: doctor.id,
+      userId: doctor.id, // Usar el mismo ID como userId para el doctor de ejemplo
       nombre: doctor.nombre,
       especialidad: doctor.especialidad,
       area: doctor.area,
@@ -3881,13 +3905,14 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
 
 // RECEIPT FUNCTIONS
 export async function createReceipt(data: {
-  userId: string;           // userId del paciente
+  patientUserId: string;    // userId del paciente
   amount: number;           // Monto del pago
   method: string;           // Método de pago
   type: 'Consulta' | 'Afiliación';
   paymentType: 'Contado' | 'Crédito';
-  createdBy?: string;       // userId del usuario que crea el recibo
-  doctorId?: string;        // userId del doctor (solo para consultas)
+  createdBy: string;        // userId del usuario que crea el recibo
+  doctorId?: string;        // userId del doctor (opcional para afiliaciones)
+  companyId?: string;       // ID de la empresa (requerido para afiliaciones)
   plan?: string;            // Plan (solo para afiliaciones)
   notes?: string;           // Notas adicionales
 }) {
@@ -3895,9 +3920,28 @@ export async function createReceipt(data: {
     // Iniciar transacción con tipo explícito
     return await prisma.$transaction(async (tx: typeof prisma) => {
       try {
+        // 0. Validaciones iniciales
+        if (!data.patientUserId) {
+          throw new Error('Debe seleccionar un paciente');
+        }
+        
+        // Doctor es opcional SOLO para afiliaciones
+        if (!data.doctorId && !data.companyId) {
+          throw new Error('Debe seleccionar un doctor o una empresa (afiliación)');
+        }
+        
+        // Debug logs
+        console.log('📝 Creando recibo:');
+        console.log('🏢 Company ID:', data.companyId);
+        console.log('👨‍⚕️ Doctor ID:', data.doctorId);
+        console.log('👤 Patient ID:', data.patientUserId);
+        console.log('💵 Amount:', data.amount);
+        console.log('💳 Method:', data.method);
+        console.log('📌 Type:', data.type);
+        
         // 1. Validar que el paciente existe y traer sus datos
         const patient = await tx.user.findUnique({
-          where: { userId: data.userId },
+          where: { userId: data.patientUserId },
           include: {
             patientInfo: true,
             affiliations: { 
@@ -3909,24 +3953,29 @@ export async function createReceipt(data: {
         });
 
         if (!patient) {
-          throw new Error('Paciente no encontrado');
+          throw new Error(`Paciente con ID ${data.patientUserId} no encontrado`);
         }
 
-        // 2. Validar datos según el tipo de recibo
-        if (data.type === 'Consulta' && !data.doctorId) {
-          throw new Error('Se requiere un doctor para recibo de consulta');
-        }
-
+        // 2. Validar y obtener datos del doctor si es necesario
         let doctor = null;
         if (data.doctorId) {
-          doctor = await tx.user.findUnique({
-            where: { userId: data.doctorId },
-            include: { doctorInfo: true }
-          });
+          console.log('🔍 Buscando doctor con id:', data.doctorId);
           
+          doctor = await tx.user.findUnique({
+            where: { id: data.doctorId },
+            include: {
+              doctorInfo: true,
+            }
+          });
+
           if (!doctor) {
-            throw new Error('Doctor no encontrado');
+            console.error('❌ Doctor con id', data.doctorId, 'no encontrado');
+            throw new Error(`Doctor con id ${data.doctorId} no encontrado`);
           }
+          
+          console.log('✅ Doctor encontrado:', doctor.name || 'Sin nombre');
+        } else {
+          console.log('ℹ️  No se especificó doctor (puede ser una afiliación)');
         }
 
         // 3. Generar número de recibo
@@ -3941,59 +3990,87 @@ export async function createReceipt(data: {
         const receiptNumber = `REC-${dateStr}-${String(count + 1).padStart(3, '0')}`;
 
         // 4. Generar concepto dinámico
-        let concept = '';
-        if (data.type === 'Consulta' && doctor) {
-          const doctorName = doctor.name || 'Médico';
-          const specialty = doctor.doctorInfo?.especialidad || 'No especificada';
-          concept = `Consulta médica - Dr. ${doctorName} (${specialty}) - ${now.toLocaleDateString()}`;
-        } else {
-          const companyName = patient.affiliations?.[0]?.company?.nombre || 'Particular';
-          concept = `Afiliación - ${companyName} - ${now.toLocaleDateString()}`;
+        let concept = data.notes || '';
+        if (!concept) {
+          if (data.type === 'Consulta' && doctor) {
+            const doctorName = doctor?.name || 'Médico';
+            const specialty = doctor?.doctorInfo?.especialidad || 'No especificada';
+            concept = `Consulta - Dr. ${doctorName} (${specialty})`;
+          } else if (data.type === 'Afiliación') {
+            // Si hay companyId, intentar obtener el nombre de la empresa
+            let companyName = 'Particular';
+            if (data.companyId) {
+              const company = await tx.company.findUnique({
+                where: { id: data.companyId },
+                select: { nombre: true }
+              });
+              companyName = company?.nombre || 'Empresa no encontrada';
+            } else if (patient.affiliations?.[0]?.company) {
+              companyName = patient.affiliations[0].company.nombre;
+            }
+            concept = `Afiliación - ${companyName}`;
+            
+            // Agregar el plan si está disponible
+            if (data.plan) {
+              concept += ` - Plan ${data.plan}`;
+            }
+          }
+          
+          // Agregar fecha al concepto
+          concept += ` - ${now.toLocaleDateString()}`;
         }
 
-        // 5. Crear el recibo
-        const receipt = await tx.receipt.create({
-          data: {
-            number: receiptNumber,
-            amount: new Decimal(data.amount),
-            concept: concept,
-            method: data.method,
-            type: data.type,
-            paymentType: data.paymentType,
-            notes: data.notes || null,
-            plan: data.plan || null,
-            
-            // Relaciones
-            patient: { connect: { userId: data.userId } },
-            ...(data.doctorId && { 
-              doctor: { connect: { userId: data.doctorId } } 
-            }),
-            ...(data.createdBy && { 
-              createdBy: { connect: { userId: data.createdBy } } 
-            })
-          },
-          include: {
-            patient: {
-              include: {
-                patientInfo: true,
-                affiliations: {
-                  include: { company: true }
-                }
-              }
-            },
-            doctor: {
-              include: { doctorInfo: true }
-            },
-            createdBy: true
-          }
+        // 5. Validar que el creador existe
+        const receiptCreator = await tx.user.findUnique({
+          where: { id: data.createdBy }
         });
 
-        // 6. Crear registro de auditoría
-        await createAuditLog(
-          data.createdBy || 'system', 
-          `Recibo creado #${receiptNumber}`, 
-          `Monto: ${data.amount} - Tipo: ${data.type}`
-        );
+        console.log('👤 Creator found:', receiptCreator ? `Yes - ${receiptCreator.name}` : `NO - USER NOT FOUND (${data.createdBy})`);
+
+        if (!receiptCreator) {
+          throw new Error(`Usuario creador con id ${data.createdBy} no encontrado en BD`);
+        }
+
+        // 6. Crear el recibo
+const receipt = await tx.receipt.create({
+  data: {
+    number: receiptNumber,
+    amount: new Decimal(data.amount),
+    concept: concept,
+    method: data.method,
+    type: data.type,
+    paymentType: data.paymentType,
+    plan: data.plan || null,
+    patient: {
+      connect: { userId: data.patientUserId }  // ← ESTE ESTÁ BIEN (es userId string)
+    },
+    createdBy: {
+      connect: { id: data.createdBy }  // ← CAMBIAR: id en vez de userId
+    },
+    // Doctor condicional
+    ...(data.doctorId && {
+      doctor: {
+        connect: { id: data.doctorId }  // ← CAMBIAR: id en vez de userId
+      }
+    })
+  },
+  include: {
+    patient: {
+      include: {
+        patientInfo: true,
+        affiliations: {
+          include: { company: true }
+        }
+      }
+    },
+    doctor: {
+      include: { doctorInfo: true }
+    },
+    createdBy: true
+  }
+});
+
+        // 6. Registro de auditoría eliminado temporalmente
 
         return {
           ...receipt,
@@ -4038,63 +4115,96 @@ interface ReceiptResult {
   doctorEmail: string | null;
 }
 
+type ReceiptWithRelations = Prisma.ReceiptGetPayload<{
+  include: {
+    patient: {
+      include: {
+        patientInfo: true;
+      };
+    };
+    doctor: {
+      include: {
+        doctorInfo: true,
+        user: true; // This is the correct way to include the user relation
+      };
+    };
+    createdBy: true; // This is the correct way to include the createdBy relation
+  };
+}>;
+
 export async function getReceipts(): Promise<any[]> {
   try {
+    // ... (rest of the code remains the same)
     if (!isDatabaseAvailable()) {
       return [];
     }
 
     const prisma = getPrisma();
     
-    // Using raw query to get all necessary data in one go
-    const receipts = await prisma.$queryRaw<ReceiptResult[]>`
-      SELECT 
-        r.*,
-        u.name as "patientName",
-        pi.cedula as "patientCedula",
-        u.email as "patientEmail",
-        cu.name as "createdByName",
-        cu.email as "createdByEmail",
-        du.name as "doctorName",
-        du.email as "doctorEmail"
-      FROM "receipts" r
-      LEFT JOIN users u ON r."patientId" = u.id
-      LEFT JOIN "patient_info" pi ON u.id = pi."userId"
-      LEFT JOIN users cu ON r."createdById" = cu.id
-      LEFT JOIN "doctor_info" d ON r."doctorId" = d.id
-      LEFT JOIN users du ON d."userId" = du.id
-      ORDER BY r."createdAt" DESC
-    `;
+    const receipts = await prisma.receipt.findMany({
+      include: {
+        patient: {
+          include: {
+            patientInfo: true
+          }
+        },
+        doctor: {
+          include: {
+            doctorInfo: true
+          }
+        },
+        createdBy: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    }) as unknown as ReceiptWithRelations[];
 
     return receipts.map(receipt => {
       // Get patient data with fallbacks
-      const patientName = receipt.patientName || 'Paciente no especificado';
-      const patientCedula = receipt.patientCedula || 'No especificada';
+      const patient = receipt.patient;
+      const patientName = patient?.name || 'Sin paciente asignado';
+      const patientCedula = patient?.patientInfo?.cedula || 'No especificada';
+      const patientEmail = (patient as any)?.email || null;
       
       // Get doctor data with fallbacks
-      const doctorName = receipt.doctorName ? `Dr. ${receipt.doctorName}` : 'Dr. No especificado';
+      const doctor = receipt.doctor;
+      const doctorUser = doctor?.user as { name?: string; email?: string } | null | undefined;
+      const doctorName = doctorUser?.name || 'Sin doctor asignado';
+      const doctorEmail = doctorUser?.email || null;
       
       // Get creator data with fallbacks
-      const createdByName = receipt.createdByName || 'Sistema UroVital';
+      const createdBy = receipt.createdBy as { name?: string; email?: string } | null | undefined;
+      const createdByName = createdBy?.name || 'Sistema UroVital';
+      const createdByEmail = createdBy?.email || null;
       
       // Ensure amount is a number
       const amount = typeof receipt.amount === 'string' 
         ? parseFloat(receipt.amount) 
         : Number(receipt.amount);
       
-      // Ensure createdAt is a string
-      const createdAt = receipt.createdAt instanceof Date 
-        ? receipt.createdAt.toISOString() 
-        : new Date(receipt.createdAt || new Date()).toISOString();
+      // Ensure dates are properly formatted
+      const formatDate = (date: Date | string | null | undefined) => {
+        if (!date) return new Date().toISOString();
+        return date instanceof Date ? date.toISOString() : new Date(date).toISOString();
+      };
       
       return {
         ...receipt,
         amount,
-        createdAt,
-        patientName,
+        createdAt: formatDate(receipt.createdAt),
+        updatedAt: formatDate(receipt.updatedAt),
+patientName,
         patientCedula,
+        patientEmail,
         doctorName,
-        createdBy: { name: createdByName }
+        doctorEmail,
+        createdBy: { name: createdByName, email: createdByEmail },
+        createdByName,
+        createdByEmail,
+        // Include the full patient and doctor objects for debugging
+        patient: receipt.patient,
+        doctor: receipt.doctor
       };
     });
   } catch (error) {

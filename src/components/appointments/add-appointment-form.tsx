@@ -37,20 +37,72 @@ export function AddAppointmentForm({ onFormSubmit }: AddAppointmentFormProps) {
   const { currentUser } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [isLoading, setIsLoading] = useState({
+    patients: true,
+    doctors: true
+  });
+  const [error, setError] = useState<{
+    patients: string | null;
+    doctors: string | null;
+  }>({ patients: null, doctors: null });
+  
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const isPatient = currentUser?.role === ROLES.USER;
 
+  // Fetch patients and doctors
   useEffect(() => {
-    async function fetchData() {
-        const [patientsData, doctorsData] = await Promise.all([
-            getPatients(),
-            getDoctors()
-        ]);
-        setPatients(patientsData);
-        setDoctors(doctorsData);
-    }
+    const fetchData = async () => {
+      try {
+        // Only fetch patients if not a patient user
+        if (!isPatient) {
+          try {
+            const patientsData = await getPatients();
+            setPatients(Array.isArray(patientsData) ? patientsData : []);
+            setError(prev => ({ ...prev, patients: null }));
+          } catch (err) {
+            console.error('Error loading patients:', err);
+            setError(prev => ({ ...prev, patients: 'Error al cargar los pacientes' }));
+          } finally {
+            setIsLoading(prev => ({ ...prev, patients: false }));
+          }
+        } else {
+          setIsLoading(prev => ({ ...prev, patients: false }));
+        }
+
+        // Always fetch doctors
+        try {
+          const doctorsData = await getDoctors();
+          // Mapear datos al formato correcto
+          const formattedDoctors = Array.isArray(doctorsData) 
+            ? doctorsData.map(doctor => ({
+                id: doctor.id,
+                userId: doctor.userId || doctor.id, // Usar userId si existe, sino usar id
+                nombre: doctor.nombre || doctor.name || 'Sin nombre',
+                especialidad: doctor.especialidad || doctor.doctorInfo?.especialidad || 'General',
+                area: doctor.area || doctor.doctorInfo?.area || '',
+                contacto: doctor.contacto || doctor.phone || '',
+                avatarUrl: doctor.avatarUrl
+              }))
+            : [];
+          
+          console.log('Doctores cargados:', formattedDoctors);
+          setDoctors(formattedDoctors);
+          setError(prev => ({ ...prev, doctors: null }));
+        } catch (err) {
+          console.error('Error loading doctors:', err);
+          setError(prev => ({ ...prev, doctors: 'Error al cargar los doctores' }));
+          setDoctors([]);
+        } finally {
+          setIsLoading(prev => ({ ...prev, doctors: false }));
+        }
+      } catch (error) {
+        console.error('Unexpected error:', error);
+      }
+    };
+
     fetchData();
-  }, []);
+  }, [isPatient]);
 
   const form = useForm<AddAppointmentFormValues>({
     resolver: zodResolver(formSchema),
@@ -85,7 +137,19 @@ export function AddAppointmentForm({ onFormSubmit }: AddAppointmentFormProps) {
                         </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                        {patients.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                      {isLoading.patients ? (
+                        <div className="px-4 py-2 text-sm text-muted-foreground">Cargando pacientes...</div>
+                      ) : error.patients ? (
+                        <div className="px-4 py-2 text-sm text-destructive">{error.patients}</div>
+                      ) : patients.length === 0 ? (
+                        <div className="px-4 py-2 text-sm text-muted-foreground">No hay pacientes disponibles</div>
+                      ) : (
+                        patients.map(patient => (
+                          <SelectItem key={patient.id} value={patient.id}>
+                            {patient.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                     </Select>
                     <FormMessage />
@@ -106,7 +170,23 @@ export function AddAppointmentForm({ onFormSubmit }: AddAppointmentFormProps) {
                     </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                    {doctors.map(d => <SelectItem key={d.id} value={d.id}>{d.nombre}</SelectItem>)}
+                  {isLoading.doctors ? (
+                    <div className="px-4 py-2 text-sm text-muted-foreground">Cargando doctores...</div>
+                  ) : error.doctors ? (
+                    <div className="px-4 py-2 text-sm text-destructive">{error.doctors}</div>
+                  ) : doctors.length === 0 ? (
+                    <div className="px-4 py-2 text-sm text-muted-foreground">No hay doctores disponibles</div>
+                  ) : (
+                    doctors.map(doctor => {
+                      const displayName = doctor.nombre || `Doctor ${doctor.userId?.substring(0, 4) || 'Doc'}`;
+                      const specialty = doctor.especialidad ? ` - ${doctor.especialidad}` : '';
+                      return (
+                        <SelectItem key={doctor.userId || doctor.id} value={doctor.userId || doctor.id}>
+                          {displayName}{specialty}
+                        </SelectItem>
+                      );
+                    })
+                  )}
                 </SelectContent>
                 </Select>
                 <FormMessage />
@@ -119,7 +199,7 @@ export function AddAppointmentForm({ onFormSubmit }: AddAppointmentFormProps) {
             render={({ field }) => (
             <FormItem className="flex flex-col">
                 <FormLabel>Fecha y Hora</FormLabel>
-                <Popover>
+                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                 <PopoverTrigger asChild>
                     <FormControl>
                     <Button
@@ -136,10 +216,14 @@ export function AddAppointmentForm({ onFormSubmit }: AddAppointmentFormProps) {
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    initialFocus
+                      mode="single"
+                      selected={field.value}
+                      onSelect={(date) => {
+                        field.onChange(date);
+                        setIsCalendarOpen(false);
+                      }}
+                      disabled={(date) => date < new Date()}
+                      initialFocus
                     />
                 </PopoverContent>
                 </Popover>

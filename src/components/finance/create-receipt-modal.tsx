@@ -100,8 +100,14 @@ export function CreateReceiptModal({
         const date = new Date(data.date).toLocaleDateString();
         const concept = `${label} - ${date}`;
         
+        // Get the full patient data to access the userId
+        const patient = patients.find(p => p.id === data.userId);
+        if (!patient) {
+          throw new Error('No se pudo encontrar el paciente seleccionado');
+        }
+
         const receiptData = {
-          userId: data.userId,
+          patientUserId: patient.id, // Use the patient's id as patientUserId
           amount: data.amount,
           concept,
           method: data.method,

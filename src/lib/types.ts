@@ -175,6 +175,7 @@ export const ROLE_PERMISSIONS = {
 export interface Patient {
   id: string;
   name: string;
+  nombre?: string;  // Adding this line to support both name and nombre
   cedula: string;
   age: number;
   fechaNacimiento?: string;
@@ -338,6 +339,7 @@ export interface Payment {
 
 export interface Doctor {
   id: string;
+  userId: string;
   nombre: string;
   especialidad: string;
   area: string;

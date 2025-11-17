@@ -96,6 +96,19 @@ export function FinanceTable({
     try {
       const { getReceipts } = await import('@/lib/actions');
       const receiptsData = await getReceipts();
+      
+      // Debug log
+      console.log('Receipts data loaded:', receiptsData);
+      receiptsData.forEach((receipt: any, index: number) => {
+        console.log(`Receipt ${index + 1}:`, {
+          id: receipt.id,
+          patient: receipt.patient || null,
+          doctor: receipt.doctor || null,
+          patientName: receipt.patientName,
+          doctorName: receipt.doctorName
+        });
+      });
+      
       setReceipts(receiptsData);
     } catch (error) {
       console.error('Error loading receipts:', error);
@@ -525,23 +538,31 @@ export function FinanceTable({
                             <div className="flex items-center space-x-3">
                               <Avatar className="h-8 w-8">
                                 <AvatarFallback className="text-xs">
-                                  {getInitials(receipt.patientName || 'N/A')}
+                                  {receipt.patientName ? getInitials(receipt.patientName) : '?'}
                                 </AvatarFallback>
                               </Avatar>
                               <div>
-                                <div className="font-medium">{receipt.patientName || 'N/A'}</div>
-                                <div className="text-sm text-muted-foreground">{receipt.patientCedula || 'N/A'}</div>
+                                <div className="font-medium">{receipt.patientName || 'Sin paciente asignado'}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {receipt.patientCedula || 'N/A'}
+                                </div>
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-2">
-                              <Avatar className="h-6 w-6">
-                                <AvatarFallback className="text-xs">
-                                  {getInitials('Dr.')}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="text-sm">Dr. {receipt.doctorName || 'N/A'}</span>
+                              {receipt.doctorName ? (
+                                <>
+                                  <Avatar className="h-6 w-6">
+                                    <AvatarFallback className="text-xs">
+                                      {getInitials(receipt.doctorName)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span className="text-sm">Dr. {receipt.doctorName}</span>
+                                </>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">Sin doctor asignado</span>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">

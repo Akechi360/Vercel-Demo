@@ -36,25 +36,36 @@ const formSchema = z.object({
   type: z.enum(['Consulta', 'Afiliación'], {
     required_error: 'Debe seleccionar un tipo de comprobante.',
   }),
-  amount: z.string().min(1, 'El monto es requerido.').refine((val) => {
-    const num = parseFloat(val);
-    return !isNaN(num) && num > 0;
-  }, 'El monto debe ser un número válido mayor a 0.'),
+  amount: z.string().min(1, 'El monto es requerido.').refine(
+    (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0,
+    'El monto debe ser un número válido mayor a 0.'
+  ),
   concept: z.string().min(3, 'El concepto debe tener al menos 3 caracteres.'),
   method: z.string().min(1, 'Debe seleccionar un método de pago.'),
   paymentType: z.enum(['Contado', 'Crédito'], {
     required_error: 'Debe seleccionar un tipo de pago.',
   }),
-  doctorId: z.string().min(1, 'Debe seleccionar un doctor.'),
+  doctorId: z.string().optional(),
   plan: z.string().optional(),
-}).refine((data) => {
-  if (data.type === 'Afiliación') {
-    return !!data.plan;
+  companyId: z.string().optional()
+}).superRefine((data, ctx) => {
+  if (data.type === 'Consulta' && !data.doctorId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Debe seleccionar un doctor para consultas',
+      path: ['doctorId']
+    });
   }
-  return true;
-}, {
-  message: 'Debe seleccionar un plan para afiliaciones',
-  path: ['plan'],
+  
+  if (data.type === 'Afiliación') {
+    if (!data.companyId || !data.plan) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Las afiliaciones requieren empresa y plan',
+        path: ['companyId']
+      });
+    }
+  }
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -99,6 +110,10 @@ export function CreateReceiptForm({ patients, onSuccess }: CreateReceiptFormProp
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loadingDoctors, setLoadingDoctors] = useState(true);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const [showDoctorField, setShowDoctorField] = useState<boolean>(true);
+  const [companyPlans, setCompanyPlans] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -109,12 +124,12 @@ export function CreateReceiptForm({ patients, onSuccess }: CreateReceiptFormProp
       method: "",
       paymentType: "Contado",
       doctorId: "",
-      plan: ""
+      plan: "",
+      companyId: ""
     }
   });
   
-  // Initialize state and hooks
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Initialize hooks
   const { toast } = useToast();
   const { currentUser } = useAuth();
   
@@ -124,6 +139,37 @@ export function CreateReceiptForm({ patients, onSuccess }: CreateReceiptFormProp
   const selectedDoctor = doctors.find(d => d.id === formValues.doctorId);
   const receiptType = form.watch('type');
 
+  // Load company plans when company is selected
+  const loadCompanyPlans = async (companyId: string) => {
+    // Simulate loading plans based on company
+    // In a real app, you would fetch these from your API
+    if (companyId === '1') { // Example company ID
+      setCompanyPlans(['Plan Básico', 'Plan Premium', 'Plan Familiar']);
+    } else if (companyId === '2') { // Another example company ID
+      setCompanyPlans(['Plan Oro', 'Plan Platino']);
+    } else {
+      setCompanyPlans(['Plan Estándar']);
+    }
+  };
+
+  // Update form based on receipt type
+  useEffect(() => {
+    if (receiptType === 'Afiliación') {
+      setShowDoctorField(false);
+      form.setValue('doctorId', '');
+      
+      // If patient has a company, load its plans
+      if (selectedPatient?.companyId) {
+        form.setValue('companyId', selectedPatient.companyId);
+        loadCompanyPlans(selectedPatient.companyId);
+      }
+    } else {
+      setShowDoctorField(true);
+      form.setValue('plan', '');
+      setCompanyPlans([]);
+    }
+  }, [receiptType, selectedPatient?.companyId]);
+
   // Update company when patient changes
   useEffect(() => {
     if (selectedPatient) {
@@ -132,13 +178,21 @@ export function CreateReceiptForm({ patients, onSuccess }: CreateReceiptFormProp
       
       if (selectedPatient.companyId) {
         setSelectedCompany(selectedPatient.companyId);
+        form.setValue('companyId', selectedPatient.companyId);
+        
+        // If it's an Afiliación, load plans for this company
+        if (receiptType === 'Afiliación') {
+          loadCompanyPlans(selectedPatient.companyId);
+        }
       } else {
         setSelectedCompany(null);
+        form.setValue('companyId', '');
       }
     } else {
       setSelectedCompany(null);
+      form.setValue('companyId', '');
     }
-  }, [selectedPatient]);
+  }, [selectedPatient, receiptType]);
 
   // Update form validation based on receipt type and company selection
   useEffect(() => {
@@ -322,30 +376,41 @@ export function CreateReceiptForm({ patients, onSuccess }: CreateReceiptFormProp
         throw new Error('Paciente no encontrado');
       }
 
-      const selectedDoctor = doctors.find(d => d.id === data.doctorId);
-  
-      // Create receipt data with all required fields
-      if (!data.userId) {
-        throw new Error('Debe seleccionar un paciente');
+      // Validate required fields based on receipt type
+      if (data.type === 'Afiliación' && !selectedPatient.companyId) {
+        throw new Error('El paciente debe estar asociado a una empresa para crear una afiliación');
       }
       
-      if (!data.doctorId) {
-        throw new Error('Debe seleccionar un doctor');
+      if (data.type === 'Consulta' && !data.doctorId) {
+        throw new Error('Debe seleccionar un doctor para la consulta');
       }
 
+      console.log('📋 Datos del formulario:', {
+        type: data.type,
+        patient: selectedPatient.name,
+        patientId: data.userId,
+        companyId: selectedPatient.companyId,
+        plan: data.plan,
+        amount: data.amount,
+        method: data.method,
+        paymentType: data.paymentType
+      });
+
+      // Create receipt data with all required fields
       const receiptData = {
         patientUserId: data.userId,
         amount: parseFloat(data.amount),
         method: data.method,
         type: data.type,
         paymentType: data.paymentType,
-        doctorId: data.doctorId,
+        doctorId: data.type === 'Consulta' ? data.doctorId : undefined,
+        companyId: selectedPatient.companyId || undefined,
         plan: data.plan,
         createdBy: currentUser?.id || 'system',
-        notes: data.concept
+        notes: data.concept || `${data.type} - ${data.plan ? `Plan: ${data.plan}` : ''}`
       };
 
-      // Call the API
+      // Call the API to create receipt and handle affiliation if needed
       const result = await createReceipt(receiptData);
 
       // Generate PDF
@@ -506,21 +571,31 @@ export function CreateReceiptForm({ patients, onSuccess }: CreateReceiptFormProp
               )}
             />
 
-            <FormItem>
-              <FormLabel className="font-semibold">Empresa</FormLabel>
-              <div className="flex items-center h-10 px-3 py-2 text-sm border rounded-md bg-gray-50">
-                {selectedCompany ? (
-                  <span className="text-foreground">
-                    {patients.find(p => p.companyId === selectedCompany)?.companyName || 'Empresa no encontrada'}
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground">Paciente Particular</span>
-                )}
-              </div>
-              <input type="hidden" name="companyId" value={selectedCompany || ''} />
-            </FormItem>
+            <FormField
+              control={form.control}
+              name="companyId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="font-semibold">Empresa</FormLabel>
+                  <div className="flex items-center h-10 px-3 py-2 text-sm border rounded-md bg-gray-50">
+                    {selectedPatient?.companyId ? (
+                      <span className="text-foreground">
+                        {patients.find(p => p.companyId === selectedPatient.companyId)?.companyName || 'Empresa no encontrada'}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {receiptType === 'Afiliación' ? 'Seleccione un paciente con empresa' : 'Paciente Particular'}
+                      </span>
+                    )}
+                  </div>
+                  {receiptType === 'Afiliación' && !selectedPatient?.companyId && (
+                    <p className="text-xs text-red-500">Para afiliaciones, el paciente debe estar asociado a una empresa</p>
+                  )}
+                </FormItem>
+              )}
+            />
 
-            {receiptType === 'Consulta' && (
+            {showDoctorField && (
               <FormField
                 control={form.control}
                 name="doctorId"
@@ -563,7 +638,7 @@ export function CreateReceiptForm({ patients, onSuccess }: CreateReceiptFormProp
               />
             )}
 
-            {receiptType === 'Afiliación' && (
+            {receiptType === 'Afiliación' && selectedPatient?.companyId && (
               <FormField
                 control={form.control}
                 name="plan"
@@ -577,8 +652,17 @@ export function CreateReceiptForm({ patients, onSuccess }: CreateReceiptFormProp
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Tarjeta Saludable">Tarjeta Saludable</SelectItem>
-                        <SelectItem value="Fondo Espíritu Santo">Fondo Espíritu Santo</SelectItem>
+                        {companyPlans.length > 0 ? (
+                          companyPlans.map((plan) => (
+                            <SelectItem key={plan} value={plan}>
+                              {plan}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="" disabled>
+                            No hay planes disponibles
+                          </SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -616,7 +700,7 @@ export function CreateReceiptForm({ patients, onSuccess }: CreateReceiptFormProp
             </Button>
             <Button 
               type="submit" 
-              disabled={isSubmitting || !form.watch('userId') || !form.watch('doctorId')}
+              disabled={isSubmitting || !form.watch('userId') || (form.watch('type') === 'Consulta' && !form.watch('doctorId')) || (form.watch('type') === 'Afiliación' && (!selectedPatient?.companyId || !form.watch('plan')))}
               className="min-w-[160px] bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
             >
               {isSubmitting ? 'Generando...' : 'Crear Comprobante'}

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -33,12 +33,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { 
-  Users, 
-  Search, 
-  Plus, 
-  Edit, 
-  Trash2, 
+import {
+  Users,
+  Search,
+  Plus,
+  Edit,
+  Trash2,
   Shield,
   Mail,
   Phone,
@@ -55,21 +55,21 @@ import { User, UserRole } from "@prisma/client";
 export default function UsersManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User & { specialty?: string; cedula?: string; telefono?: string } | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  
+
   // Estados de paginación
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize] = useState(50);
   const [totalPages, setTotalPages] = useState(0);
   const [totalUsers, setTotalUsers] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const { currentUser } = useAuth();
   const { isAdmin, isSecretaria } = usePermissions();
   const MySwal = withReactContent(Swal);
-  
+
   // Hook para cargar detalles de usuario (lazy loading) - solo se inicializa cuando se necesita
   const { userDetails, isLoading: isLoadingDetails, error: detailsError, loadUserDetails, clearUserDetails } = useUserDetails();
 
@@ -79,12 +79,12 @@ export default function UsersManagementPage() {
       setIsLoading(true);
       const startTime = performance.now();
       console.log(`🔄 Loading users - page: ${page}, size: ${pageSize}`);
-      
+
       const result = await getUsers(page, pageSize);
-      
+
       const endTime = performance.now();
       const loadTime = endTime - startTime;
-      
+
       console.log(`✅ Users loaded in ${loadTime.toFixed(2)}ms:`, {
         users: result.users.length,
         total: result.total,
@@ -92,7 +92,7 @@ export default function UsersManagementPage() {
         currentPage: result.currentPage,
         loadTime: `${loadTime.toFixed(2)}ms`,
       });
-      
+
       setUsers(result.users);
       setTotalPages(result.totalPages);
       setTotalUsers(result.total);
@@ -205,11 +205,23 @@ export default function UsersManagementPage() {
 
   const handleEditUser = async (user: User) => {
     console.log(`🔄 Opening edit dialog for user: ${user.id}`);
-    
+
     // Cargar detalles completos del usuario (lazy loading)
-    await loadUserDetails(user.id);
-    
-    setSelectedUser(user);
+    // Cargar detalles completos del usuario (lazy loading)
+    const details = await loadUserDetails(user.id);
+
+    // Si es doctor, intentar obtener la especialidad y otros datos de los detalles cargados
+    let specialty = '';
+    let cedula = '';
+    let telefono = '';
+
+    if (user.role === 'DOCTOR' && details?.doctorInfo) {
+      specialty = details.doctorInfo.especialidad || '';
+      cedula = details.doctorInfo.cedula || '';
+      telefono = details.doctorInfo.telefono || '';
+    }
+
+    setSelectedUser({ ...user, specialty, cedula, telefono });
     setIsEditDialogOpen(true);
   };
 
@@ -223,37 +235,40 @@ export default function UsersManagementPage() {
           role: selectedUser.role,
           status: selectedUser.status,
         });
-        
+
         console.log('📞 Calling updateUser function...');
         const updatedUser = await updateUser(selectedUser.id, {
           name: selectedUser.name,
           email: selectedUser.email,
           role: selectedUser.role, // Sin cast, se normaliza en actions.ts
           status: selectedUser.status,
-          userId: selectedUser.userId
+          userId: selectedUser.userId,
+          specialty: selectedUser.specialty,
+          cedula: selectedUser.cedula,
+          telefono: selectedUser.telefono
         });
-        
+
         console.log('✅ User updated successfully:', updatedUser);
         console.log('🔍 Updated user type:', typeof updatedUser);
         console.log('🔍 Updated user keys:', Object.keys(updatedUser));
         console.log('Current users before update:', users);
-        
-        const updatedUsers = users.map(user => 
+
+        const updatedUsers = users.map(user =>
           user.id === selectedUser.id ? updatedUser : user
         );
-        
+
         console.log('Updated users array:', updatedUsers);
         setUsers(updatedUsers);
         setIsEditDialogOpen(false);
         setSelectedUser(null);
-        
+
         // Sync user data in localStorage if this affects the current user
         console.log('🔄 About to call syncUserData with:', updatedUser);
         console.log('🔄 Updated user ID:', updatedUser.id);
         console.log('🔄 Updated user status:', updatedUser.status);
         console.log('🔄 Updated user role:', updatedUser.role);
         console.log('🔄 Updated user userId:', updatedUser.userId);
-        
+
         try {
           console.log('📞 Calling syncUserData function...');
           syncUserData(updatedUser);
@@ -265,7 +280,7 @@ export default function UsersManagementPage() {
           console.error('❌ Error details:', errorMessage);
           console.error('❌ Error stack:', errorStack);
         }
-        
+
         // Usuario actualizado exitosamente
       } catch (error) {
         console.error('Error updating user:', error);
@@ -279,7 +294,7 @@ export default function UsersManagementPage() {
   const cambiarEstadoUsuario = async (userId: string, nuevoEstado: 'ACTIVE' | 'INACTIVE') => {
     try {
       console.log('🔄 Cambiando estado de usuario:', userId, 'a:', nuevoEstado);
-      
+
       const response = await fetch('/api/user/status', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -295,7 +310,7 @@ export default function UsersManagementPage() {
       console.log('✅ Estado actualizado exitosamente:', updatedUser);
 
       // Actualizar la lista de usuarios localmente
-      const updatedUsers = users.map(user => 
+      const updatedUsers = users.map(user =>
         user.id === userId ? { ...user, status: nuevoEstado } : user
       );
       setUsers(updatedUsers);
@@ -314,7 +329,7 @@ export default function UsersManagementPage() {
       console.error('❌ Error al cambiar estado del usuario:', error);
       const errorMessage = error instanceof Error ? error.message : 'Error al cambiar estado del usuario';
       console.error('Error details:', errorMessage);
-      
+
       const isDarkMode = document.documentElement.classList.contains('dark');
       MySwal.fire({
         title: 'Error',
@@ -339,7 +354,7 @@ export default function UsersManagementPage() {
         userId: `U${Date.now().toString().slice(-6)}`,
         avatarUrl: null // Se usará el valor por defecto de Prisma
       });
-      
+
       setUsers([...users, userData]);
       setNewUser({ name: '', email: '', role: 'secretaria', phone: '' });
       setIsCreateDialogOpen(false);
@@ -354,7 +369,7 @@ export default function UsersManagementPage() {
   const handleDeleteUser = (userId: string) => {
     const userToDelete = users.find(user => user.id === userId);
     const isDarkMode = document.documentElement.classList.contains('dark');
-    
+
     MySwal.fire({
       title: '¿Eliminar usuario?',
       text: `Esta acción eliminará permanentemente a ${userToDelete?.name} y todos sus datos asociados del sistema.`,
@@ -422,7 +437,7 @@ export default function UsersManagementPage() {
                 <Input
                   id="newUserName"
                   value={newUser.name}
-                  onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
                   placeholder="Ej: Dr. Juan Pérez"
                 />
               </div>
@@ -432,7 +447,7 @@ export default function UsersManagementPage() {
                   id="newUserEmail"
                   type="email"
                   value={newUser.email}
-                  onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                   placeholder="usuario@urovital.com"
                 />
               </div>
@@ -441,13 +456,13 @@ export default function UsersManagementPage() {
                 <Input
                   id="newUserPhone"
                   value={newUser.phone}
-                  onChange={(e) => setNewUser({...newUser, phone: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
                   placeholder="+58 412-1234567"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="newUserRole">Rol</Label>
-                <Select value={newUser.role} onValueChange={(value: 'admin' | 'doctor' | 'secretaria' | 'patient' | 'promotora') => setNewUser({...newUser, role: value})}>
+                <Select value={newUser.role} onValueChange={(value: 'admin' | 'doctor' | 'secretaria' | 'patient' | 'promotora') => setNewUser({ ...newUser, role: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -563,83 +578,83 @@ export default function UsersManagementPage() {
               </TableHeader>
               <TableBody>
                 {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{user.name}</div>
-                      <div className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Mail className="h-3 w-3" />
-                        {user.email}
-                      </div>
-                      {user.phone && (
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{user.name}</div>
                         <div className="text-sm text-muted-foreground flex items-center gap-1">
-                          <Phone className="h-3 w-3" />
-                          {user.phone}
+                          <Mail className="h-3 w-3" />
+                          {user.email}
                         </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getRoleBadgeVariant(user.role)}>
-                      {user.role === 'ADMIN' ? 'Administrador' : 
-                       user.role === 'DOCTOR' ? 'Doctor' : 
-                       user.role === 'SECRETARIA' ? 'Secretaria' :
-                       user.role === 'USER' ? 'Paciente' :
-                       user.role === 'PROMOTORA' ? 'Promotora' : 'Desconocido'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusBadgeVariant(user.status)}>
-                      {user.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {user.lastLogin ? formatDate(user.lastLogin.toISOString()) : 'Nunca'}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      {formatDate(user.createdAt.toISOString())}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      {/* Botón para cambiar estado */}
-                      {canEditUser(user) && (
-                        <Button
-                          variant={user.status === 'ACTIVE' ? 'destructive' : 'default'}
-                          size="sm"
-                          onClick={() => cambiarEstadoUsuario(user.id, user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE')}
-                        >
-                          {user.status === 'ACTIVE' ? 'Desactivar' : 'Activar'}
-                        </Button>
-                      )}
-                      {canEditUser(user) && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditUser(user)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {canDeleteUser(user) && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteUser(user.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                        {user.phone && (
+                          <div className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {user.phone}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getRoleBadgeVariant(user.role)}>
+                        {user.role === 'ADMIN' ? 'Administrador' :
+                          user.role === 'DOCTOR' ? 'Doctor' :
+                            user.role === 'SECRETARIA' ? 'Secretaria' :
+                              user.role === 'USER' ? 'Paciente' :
+                                user.role === 'PROMOTORA' ? 'Promotora' : 'Desconocido'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusBadgeVariant(user.status)}>
+                        {user.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {user.lastLogin ? formatDate(user.lastLogin.toISOString()) : 'Nunca'}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        {formatDate(user.createdAt.toISOString())}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        {/* Botón para cambiar estado */}
+                        {canEditUser(user) && (
+                          <Button
+                            variant={user.status === 'ACTIVE' ? 'destructive' : 'default'}
+                            size="sm"
+                            onClick={() => cambiarEstadoUsuario(user.id, user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE')}
+                          >
+                            {user.status === 'ACTIVE' ? 'Desactivar' : 'Activar'}
+                          </Button>
+                        )}
+                        {canEditUser(user) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditUser(user)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canDeleteUser(user) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteUser(user.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           )}
-          
+
           {/* Controles de paginación */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-4 border-t">
@@ -665,15 +680,15 @@ export default function UsersManagementPage() {
                 >
                   Anterior
                 </Button>
-                
+
                 {/* Números de página */}
                 <div className="flex items-center space-x-1">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     const startPage = Math.max(0, Math.min(currentPage - 2, totalPages - 5));
                     const pageNum = startPage + i;
-                    
+
                     if (pageNum >= totalPages) return null;
-                    
+
                     return (
                       <Button
                         key={pageNum}
@@ -688,7 +703,7 @@ export default function UsersManagementPage() {
                     );
                   })}
                 </div>
-                
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -718,140 +733,189 @@ export default function UsersManagementPage() {
           clearUserDetails();
         }
       }}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[425px] max-h-[85vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="p-6 pb-2">
             <DialogTitle>Editar Usuario</DialogTitle>
             <DialogDescription>
               Modifica la información y permisos del usuario.
             </DialogDescription>
           </DialogHeader>
-          
-          {isLoadingDetails ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                <p className="text-sm text-muted-foreground">Cargando detalles del usuario...</p>
-              </div>
-            </div>
-          ) : detailsError ? (
-            <div className="text-center py-8">
-              <p className="text-red-600">Error al cargar detalles: {detailsError}</p>
-            </div>
-          ) : selectedUser && (
-            <div className="space-y-4">
-              {/* Información adicional del usuario (lazy loaded) */}
-              {userDetails && (
-                <div className="space-y-3">
-                  <h4 className="font-medium text-sm text-muted-foreground">Información Adicional</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Último acceso</label>
-                      <div className="text-sm">
-                        {userDetails.lastLogin 
-                          ? new Date(userDetails.lastLogin).toLocaleDateString()
-                          : 'Nunca'
-                        }
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Registrado</label>
-                      <div className="text-sm">
-                        {new Date(userDetails.createdAt).toLocaleDateString()}
-                      </div>
-                    </div>
-                    {userDetails.patient && (
-                      <div className="col-span-2">
-                        <span className="text-gray-600">Paciente:</span>
-                        <span className="ml-2">
-                          {userDetails.patient.nombre} {userDetails.patient.apellido} (C.I: {userDetails.patient.cedula})
-                        </span>
-                      </div>
-                    )}
-                    {userDetails.payments && userDetails.payments.length > 0 && (
-                      <div className="col-span-2">
-                        <span className="text-gray-600">Últimos pagos:</span>
-                        <span className="ml-2">
-                          {userDetails.payments.length} pagos registrados
-                        </span>
-                      </div>
-                    )}
-                    {userDetails.appointments && userDetails.appointments.length > 0 && (
-                      <div className="col-span-2">
-                        <span className="text-gray-600">Citas:</span>
-                        <span className="ml-2">
-                          {userDetails.appointments.length} citas registradas
-                        </span>
-                      </div>
-                    )}
-                  </div>
+
+          <div className="overflow-y-auto flex-1 p-6 pt-2">
+            {isLoadingDetails ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                  <p className="text-sm text-muted-foreground">Cargando detalles del usuario...</p>
                 </div>
-              )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="editUserName">Nombre Completo</Label>
-                <Input
-                  id="editUserName"
-                  value={selectedUser.name}
-                  onChange={(e) => setSelectedUser({...selectedUser, name: e.target.value})}
-                />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="editUserEmail">Email</Label>
-                <Input
-                  id="editUserEmail"
-                  type="email"
-                  value={selectedUser.email}
-                  onChange={(e) => setSelectedUser({...selectedUser, email: e.target.value})}
-                />
+            ) : detailsError ? (
+              <div className="text-center py-8">
+                <p className="text-red-600">Error al cargar detalles: {detailsError}</p>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="editUserPhone">Teléfono</Label>
-                <Input
-                  id="editUserPhone"
-                  value={selectedUser.phone || ''}
-                  onChange={(e) => setSelectedUser({...selectedUser, phone: e.target.value})}
-                />
+            ) : selectedUser && (
+              <div className="space-y-4">
+                {/* Información adicional del usuario (lazy loaded) */}
+                {userDetails && (
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm text-muted-foreground">Información Adicional</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground">Último acceso</label>
+                        <div className="text-sm">
+                          {userDetails.lastLogin
+                            ? new Date(userDetails.lastLogin).toLocaleDateString()
+                            : 'Nunca'
+                          }
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground">Registrado</label>
+                        <div className="text-sm">
+                          {new Date(userDetails.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                      {userDetails.patient && (
+                        <div className="col-span-2">
+                          <span className="text-gray-600">Paciente:</span>
+                          <span className="ml-2">
+                            {userDetails.patient.nombre} {userDetails.patient.apellido} (C.I: {userDetails.patient.cedula})
+                          </span>
+                        </div>
+                      )}
+                      {userDetails.payments && userDetails.payments.length > 0 && (
+                        <div className="col-span-2">
+                          <span className="text-gray-600">Últimos pagos:</span>
+                          <span className="ml-2">
+                            {userDetails.payments.length} pagos registrados
+                          </span>
+                        </div>
+                      )}
+                      {userDetails.appointments && userDetails.appointments.length > 0 && (
+                        <div className="col-span-2">
+                          <span className="text-gray-600">Citas:</span>
+                          <span className="ml-2">
+                            {userDetails.appointments.length} citas registradas
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="editUserName">Nombre Completo</Label>
+                  <Input
+                    id="editUserName"
+                    value={selectedUser.name}
+                    onChange={(e) => setSelectedUser({ ...selectedUser, name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editUserEmail">Email</Label>
+                  <Input
+                    id="editUserEmail"
+                    type="email"
+                    value={selectedUser.email}
+                    onChange={(e) => setSelectedUser({ ...selectedUser, email: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editUserPhone">Teléfono</Label>
+                  <Input
+                    id="editUserPhone"
+                    value={selectedUser.phone || ''}
+                    onChange={(e) => setSelectedUser({ ...selectedUser, phone: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editUserRole">Rol</Label>
+                  <Select
+                    value={selectedUser.role}
+                    onValueChange={(value: 'ADMIN' | 'DOCTOR' | 'SECRETARIA' | 'USER' | 'PROMOTORA') =>
+                      setSelectedUser({ ...selectedUser, role: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ADMIN">Administrador</SelectItem>
+                      <SelectItem value="DOCTOR">Doctor</SelectItem>
+                      <SelectItem value="SECRETARIA">Secretaria</SelectItem>
+                      <SelectItem value="USER">Paciente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Campos específicos para doctores */}
+                {selectedUser.role === 'DOCTOR' && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="editUserSpecialty">Especialidad</Label>
+                      <Select
+                        value={selectedUser.specialty || ''}
+                        onValueChange={(value) => setSelectedUser({ ...selectedUser, specialty: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar especialidad" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Urología">Urología</SelectItem>
+                          <SelectItem value="Ginecología">Ginecología</SelectItem>
+                          <SelectItem value="Oncología">Oncología</SelectItem>
+                          <SelectItem value="Uroginecología">Uroginecología</SelectItem>
+                          <SelectItem value="Medicina General">Medicina General</SelectItem>
+                          <SelectItem value="Pediatría">Pediatría</SelectItem>
+                          <SelectItem value="Cardiología">Cardiología</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="editUserCedula">Cédula Profesional</Label>
+                      <Input
+                        id="editUserCedula"
+                        value={selectedUser.cedula || ''}
+                        onChange={(e) => setSelectedUser({ ...selectedUser, cedula: e.target.value })}
+                        placeholder="Ej: MD-123456"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="editUserPhone">Teléfono de Contacto</Label>
+                      <Input
+                        id="editUserPhone"
+                        value={selectedUser.telefono || ''}
+                        onChange={(e) => setSelectedUser({ ...selectedUser, telefono: e.target.value })}
+                        placeholder="Ej: +58 412-1234567"
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="editUserStatus">Estado</Label>
+                  <Select
+                    value={selectedUser.status}
+                    onValueChange={(value: 'ACTIVE' | 'INACTIVE') =>
+                      setSelectedUser({ ...selectedUser, status: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ACTIVE">Activo</SelectItem>
+                      <SelectItem value="INACTIVE">Inactivo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="editUserRole">Rol</Label>
-                <Select 
-                  value={selectedUser.role} 
-                  onValueChange={(value: UserRole) => 
-                    setSelectedUser({...selectedUser, role: value})
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Administrador</SelectItem>
-                    <SelectItem value="doctor">Doctor</SelectItem>
-                    <SelectItem value="secretaria">Secretaria</SelectItem>
-                    <SelectItem value="patient">Paciente</SelectItem>
-                    <SelectItem value="promotora">Promotora</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="editUserStatus">Estado</Label>
-                <Select 
-                  value={selectedUser.status} 
-                  onValueChange={(value: 'ACTIVE' | 'INACTIVE') => 
-                    setSelectedUser({...selectedUser, status: value})
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ACTIVE">Activo</SelectItem>
-                    <SelectItem value="INACTIVE">Inactivo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
+            )}
+          </div>
+
+          <DialogFooter className="p-6 pt-2">
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               Cancelar
             </Button>
@@ -861,6 +925,6 @@ export default function UsersManagementPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   );
 }

@@ -158,9 +158,6 @@ model User {
   ipssCreated                IpssScore[]                 @relation("DoctorIpssScores")
   ipssScores                 IpssScore[]                 @relation("PatientIpssScores")
   doctorLabResults           LabResult[]                 @relation("DoctorLabResults")
-  patientLabResults          LabResult[]                 @relation("PatientLabResults")
-  notifications              Notification[]
-  patientInfo                PatientInfo?
   createdPayments            Payment[]                   @relation("CreatedPayments")
   patientPayments            Payment[]                   @relation("PatientPayments")
   prescriptions              Prescription[]
@@ -171,8 +168,35 @@ model User {
   patientReports             Report[]                    @relation("PatientReports")
   secretariaInfo             SecretariaInfo?
   notificationPreference     UserNotificationPreference?
+  notifications              Notification[]
+  patientInfo                PatientInfo?
+  patientLabResults          LabResult[]                 @relation("PatientLabResults")
+
+  // Doctor-Patient Assignments
+  doctorAssignments   DoctorPatient[] @relation("DoctorAssignments")
+  patientAssignments  DoctorPatient[] @relation("PatientAssignments")
+  createdAssignments  DoctorPatient[] @relation("AssignmentCreator")
 
   @@map("users")
+}
+
+model DoctorPatient {
+  id          String   @id @default(cuid())
+  doctorId    String
+  patientId   String
+  assignedAt  DateTime @default(now())
+  assignedBy  String   // userId of who created the assignment
+  active      Boolean  @default(true)
+  notes       String?  // Optional notes
+
+  doctor         User @relation("DoctorAssignments", fields: [doctorId], references: [id], onDelete: Cascade)
+  patient        User @relation("PatientAssignments", fields: [patientId], references: [id], onDelete: Cascade)
+  assignedByUser User @relation("AssignmentCreator", fields: [assignedBy], references: [id], onDelete: Cascade)
+
+  @@unique([doctorId, patientId])
+  @@index([doctorId])
+  @@index([patientId])
+  @@map("doctor_patient")
 }
 
 model PatientInfo {

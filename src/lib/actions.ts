@@ -44,7 +44,7 @@ export const withDatabase = async <T>(operation: (prisma: any) => Promise<T>, fa
   }
 
   const prisma = getPrismaClient();
-  
+
   try {
     return await operation(prisma);
   } catch (error) {
@@ -73,9 +73,9 @@ function normalizeRole(role: string): 'ADMIN' | 'DOCTOR' | 'SECRETARIA' | 'PROMO
     'patient': 'USER',
     'user': 'USER',
   };
-  
+
   const normalizedRole = roleMap[role.toLowerCase()] || 'USER';
-  
+
   // Type assertion is safe because we've provided all possible values in the map
   return normalizedRole as 'ADMIN' | 'DOCTOR' | 'SECRETARIA' | 'PROMOTORA' | 'USER';
 }
@@ -94,7 +94,7 @@ function normalizeStatus(status: string): 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' {
     'inactivo': 'INACTIVE',
     'suspendido': 'SUSPENDED'
   };
-  
+
   const normalizedStatus = statusMap[status.toLowerCase()] || 'ACTIVE';
   return normalizedStatus;
 }
@@ -154,7 +154,7 @@ async function getCurrentUserRoleFromRequest(prisma: PrismaClient): Promise<stri
     // Método 1: Header X-User-ID (desarrollo)
     const headerStore = await headers();
     const userIdFromHeader = headerStore.get('X-User-ID') || headerStore.get('x-user-id');
-    
+
     if (userIdFromHeader) {
       if (process.env.NODE_ENV === 'development' && userIdFromHeader === 'admin-master-001') {
         console.log('[AUTH] Backdoor admin detectado');
@@ -217,301 +217,206 @@ export async function updateReport(reportId: string, currentUserId: string, data
         throw new Error('No tienes permisos para editar informes');
       }
 
-      console.log('✏️ Updating report:', reportId);
-
-      const updatedReport = await prisma.report.update({
+      // Update report
+      await prisma.report.update({
         where: { id: reportId },
         data: {
-          titulo: data.titulo || data.title,  // Accept both frontend and backend field names
-          tipo: data.tipo || data.type,        // Accept both frontend and backend field names
-          fecha: new Date(data.fecha || data.date || new Date().toISOString()),  // Accept both frontend and backend field names with fallback to current date
-          notas: data.notas || data.notes || '',     // Accept both frontend and backend field names
-          descripcion: data.descripcion || '',
-          archivoNombre: data.archivoNombre ?? null,
-          archivoTipo: data.archivoTipo ?? null,
-          archivoContenido: data.archivoContenido ?? null,
-          archivoTamaño: data.archivoTamaño ?? null,
-        },
+          titulo: data.title || data.titulo,
+          tipo: data.type || data.tipo,
+          fecha: data.date ? new Date(data.date) : (data.fecha ? new Date(data.fecha) : undefined),
+          notas: data.notes || data.notas,
+          descripcion: data.descripcion,
+          archivoNombre: data.archivoNombre,
+          archivoTipo: data.archivoTipo,
+          archivoContenido: data.archivoContenido,
+          archivoTamaño: data.archivoTamaño,
+        }
       });
 
-      console.log('✅ Report updated successfully');
-      return updatedReport;
-    } catch (error: any) {
-      console.error('❌ Error updating report:', error);
-      const message = (error && (error.message || error.code || error.name)) ? `${error.message || error.code || error.name}` : 'Error al actualizar el informe';
-      throw new Error(message);
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating report:', error);
+      throw new Error('Error al actualizar el reporte');
+    }
+  });
+}
+
+export async function deleteReport(reportId: string) {
+  return withDatabase(async (prisma) => {
+    try {
+      await prisma.report.delete({
+        where: { id: reportId }
+      });
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      throw new Error('Error al eliminar el reporte');
+    }
+  });
+}
+
+export async function getPatients(currentUserId?: string) {
+  return withDatabase(async (prisma) => {
+    try {
+      console.log('🔍 getPatients called with currentUserId:', currentUserId);
+
+      let whereClause: any = {
+        role: 'USER', // Using string literal instead of ROLES.USER to avoid import issues if ROLES is not available in this scope (though it should be)
+        status: 'ACTIVE'
+      };
+
+      if (currentUserId) {
+        const currentUser = await prisma.user.findUnique({
+          where: { id: currentUserId },
+          select: { role: true, userId: true }
+        });
+
+        console.log('👤 Current user role:', currentUser?.role);
+
+        if (currentUser?.role === 'DOCTOR') {
+          // Doctors see patients assigned to them
+          whereClause = {
+            ...whereClause,
+            patientAssignments: {
+              some: {
+                doctorId: currentUserId,
+                active: true
+              }
+            }
+          };
+        } else if (currentUser?.role === 'USER') {
+          // Patients see only themselves
+          whereClause = {
+            ...whereClause,
+            id: currentUserId
+          };
+        }
+        // Admins/Secretarias see all (default whereClause)
+      }
+
+      console.log('📋 Prisma where clause:', JSON.stringify(whereClause, null, 2));
+
+      const patients = await prisma.user.findMany({
+        where: whereClause,
+        include: {
+          patientInfo: true,
+          affiliations: {
+            where: { estado: 'ACTIVA' },
+            include: { company: true }
+          },
+          patientAssignments: {
+            where: { active: true },
+            include: {
+              doctor: {
+                include: {
+                  doctorInfo: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: { name: 'asc' }
+      });
+
+      return patients.map((user: any) => {
+        const patientInfo = user.patientInfo;
+        const age = patientInfo?.fechaNacimiento
+          ? Math.floor((Date.now() - new Date(patientInfo.fechaNacimiento).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+          : 0;
+
+        // Get assigned doctor info
+        const assignment = user.patientAssignments?.[0];
+        const assignedDoctor = assignment?.doctor;
+        const doctorName = assignedDoctor ? assignedDoctor.name : undefined;
+        const doctorId = assignedDoctor ? assignedDoctor.id : undefined;
+
+        return {
+          id: user.userId, // Use userId as the stable ID
+          name: user.name,
+          cedula: patientInfo?.cedula || '',
+          age,
+          gender: patientInfo?.gender || 'Otro',
+          bloodType: patientInfo?.bloodType || 'O+',
+          status: user.status === 'ACTIVE' ? 'Activo' : 'Inactivo',
+          lastVisit: user.lastLogin?.toISOString() || user.createdAt.toISOString(),
+          contact: {
+            phone: user.phone || '',
+            email: user.email || ''
+          },
+          companyId: user.affiliations?.[0]?.companyId,
+          companyName: user.affiliations?.[0]?.company?.nombre,
+          assignedDoctorId: doctorId,
+          assignedDoctorName: doctorName
+        };
+      });
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+      return [];
     }
   }, []);
 }
 
-// REPORT DELETE with role validation
-// Delete report recibiendo currentUserId explícitamente
-export async function deleteReport(reportId: string, currentUserId: string): Promise<{ success: boolean; error?: string }> {
+export async function addPatient(patientData: any) {
   return withDatabase(async (prisma) => {
     try {
-      const user = await prisma.user.findUnique({ 
-        where: { id: currentUserId }, 
-        select: { role: true } 
-      });
-      
-      const normalizedRole = user?.role ? user.role.toUpperCase() : null;
-      if (!normalizedRole || !['DOCTOR', 'ADMIN', 'ADMINISTRATOR'].includes(normalizedRole)) {
-        throw new Error('No tienes permisos para eliminar informes');
-      }
-      
-      await prisma.report.delete({ where: { id: reportId } });
-      return { success: true };
-    } catch (error: any) {
-      console.error('Error deleting report:', error);
-      return { 
-        success: false, 
-        error: error?.message || 'Error al eliminar el informe' 
-      };
-    }
-  }, { success: false, error: 'Database not available' });
-}
+      // Create user first
+      const userId = `U${Date.now().toString().slice(-6)}`;
+      const hashedPassword = await bcrypt.hash('123456', 10); // Default password
 
-// USER ACTIONS (Patients)
-export async function getPatients(): Promise<Patient[]> {
-  try {
-    const isAvailable = await isDatabaseAvailable();
-    if (!isAvailable) {
-      return [];
-    }
-    const prisma = getPrisma();
-    
-    // Obtener usuarios con rol 'USER' que tengan información de paciente
-    const patients = await prisma.user.findMany({
-      where: { 
-        role: ROLES.USER, // Usar el rol USER para pacientes
-        patientInfo: {
-          isNot: null  // Asegurarse de que tengan información de paciente
-        }
-      },
-      include: {
-        patientInfo: true
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-    
-    return patients.map(user => {
-      // ✅ LOGS DE DEPURACIÓN - Verificar datos del usuario
-
-      // ✅ FUNCIÓN DE VALIDACIÓN Y CORRECCIÓN DE ID
-      const getValidPatientId = (user: any): string => {
-        // Prioridad 1: userId si es válido
-        if (user.userId && typeof user.userId === 'string' && user.userId.trim() !== '') {
-          return user.userId;
-        }
-        
-        // Prioridad 2: id como fallback
-        if (user.id && typeof user.id === 'string' && user.id.trim() !== '') {
-          return user.id;
-        }
-        
-        // Prioridad 3: generar ID único
-        const fallbackId = `patient-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        return fallbackId;
-      };
-
-      const validPatientId = getValidPatientId(user);
-      
-      // ✅ LOGS DE VALIDACIÓN
-      if (!user.userId || typeof user.userId !== 'string' || user.userId.trim() === '') {
-        console.error('❌ getPatients - user.userId inválido, usando ID corregido:', {
-          originalUserId: user.userId,
-          originalId: user.id,
-          correctedId: validPatientId,
-          name: user.name
-        });
-      }
-
-      const patientInfo = user.patientInfo;
-      if (!patientInfo) {
-        // Si no tiene patientInfo, crear datos por defecto
-        return {
-          id: validPatientId, // Usar ID validado y corregido
-          name: user.name,
-          cedula: 'No especificada',
-          age: 0,
-        gender: 'Otro' as const,
-        bloodType: 'O+' as const,
-          status: user.status === 'ACTIVE' ? 'Activo' as const : 'Inactivo' as const,
-          lastVisit: user.lastLogin?.toISOString() || user.createdAt.toISOString(),
-          contact: {
-            phone: user.phone || '',
-            email: user.email || '',
-          },
-          companyId: undefined,
-        };
-      }
-      
-      const age = Math.floor((Date.now() - patientInfo.fechaNacimiento.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-      return {
-        id: validPatientId, // Usar ID validado y corregido
-        name: user.name,
-        cedula: patientInfo.cedula,
-        age,
-        gender: (patientInfo.gender as 'Masculino' | 'Femenino' | 'Otro') || 'Otro',
-        bloodType: (patientInfo.bloodType as 'O+' | 'O-' | 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-') || 'O+',
-        status: user.status === 'ACTIVE' ? 'Activo' as const : 'Inactivo' as const,
-        lastVisit: user.lastLogin?.toISOString() || user.createdAt.toISOString(),
-        contact: {
-          phone: patientInfo.telefono || user.phone || '',
-          email: user.email || '',
-        },
-        companyId: undefined,
-      };
-    });
-  } catch (error) {
-    console.error('Error fetching patients:', error);
-    return [];
-  }
-}
-
-export async function addPatient(patientData: {
-  name: string;
-  age: number;
-  gender: 'Masculino' | 'Femenino' | 'Otro';
-  bloodType: string;
-  cedula: string;
-  contact: {
-    phone: string;
-    email: string;
-  };
-  companyId?: string;
-}, userContext?: UserContext): Promise<Patient> {
-  try {
-    console.log('addPatient called with data:', JSON.stringify(patientData, null, 2));
-    
-    const isAvailable = await isDatabaseAvailable();
-    if (!isAvailable) {
-      throw new Error('Database not available. Please configure DATABASE_URL in your environment variables.');
-    }
-    
-    // Validate required fields
-    if (!patientData.name || patientData.name.trim().length === 0) {
-      throw new Error('El nombre es requerido');
-    }
-    if (!patientData.age || patientData.age <= 0) {
-      throw new Error('La edad debe ser mayor a 0');
-    }
-    if (!patientData.gender) {
-      throw new Error('El género es requerido');
-    }
-    
-    const [nombre, apellido] = patientData.name.split(' ', 2);
-    const fechaNacimiento = new Date(Date.now() - patientData.age * 365.25 * 24 * 60 * 60 * 1000);
-    
-    // Create user and patientInfo using withTransaction - atomicidad asegurada
-    const result = await withTransaction(async (prisma) => {
-      // Generate dynamic user ID and email
-      const currentTime = userContext?.currentTime || new Date();
-      const dynamicUserId = `U${currentTime.getTime().toString().slice(-6)}`;
-      const dynamicEmail = patientData.contact.email || `patient-${currentTime.getTime()}@local.com`;
-      
-      // Create user for the patient
       const user = await prisma.user.create({
         data: {
-          name: patientData.name,
-          email: dynamicEmail,
-          password: `temp-password-${currentTime.getTime()}`, // Dynamic temporary password
-          role: ROLES.USER, // Validación de roles estandarizada
+          userId,
+          name: `${patientData.firstName} ${patientData.lastName}`,
+          email: patientData.email,
+          password: hashedPassword,
+          role: 'USER',
           status: 'ACTIVE',
-          phone: patientData.contact.phone,
-          userId: dynamicUserId,
-        },
+          phone: patientData.phone
+        }
       });
 
-      // Create patientInfo for the user
-      const patientInfo = await prisma.patientInfo.create({
+      // Create patient info
+      await prisma.patientInfo.create({
         data: {
-          userId: user.id,
+          userId: user.userId,
           cedula: patientData.cedula,
-          fechaNacimiento,
-          telefono: patientData.contact.phone,
-          direccion: '', // Default empty address
-          bloodType: patientData.bloodType,
+          fechaNacimiento: new Date(patientData.birthDate),
           gender: patientData.gender,
-        },
+          bloodType: patientData.bloodType,
+          telefono: patientData.phone,
+          direccion: patientData.address
+        }
       });
 
-      // If companyId is provided, create affiliation
-      if (patientData.companyId) {
-        const affiliation = await prisma.affiliation.create({
+      // Handle doctor assignment if provided
+      if (patientData.assignedDoctorId) {
+        await prisma.doctorPatient.create({
           data: {
-            planId: `plan-${currentTime.getFullYear()}`, // Dynamic plan ID based on year
-            estado: 'ACTIVA', // This should match the enum value
-            fechaInicio: currentTime, // Use dynamic time
-            monto: 0, // Default amount
-            beneficiarios: undefined,
-            companyId: patientData.companyId,
-            userId: user.id,
-          },
+            doctorId: patientData.assignedDoctorId,
+            patientId: user.id, // Use internal ID for relation
+            active: true,
+            assignedAt: new Date(),
+            assignedBy: 'SYSTEM' // Should ideally be currentUserId
+          }
         });
-      } else {
       }
 
-      return {
-        id: user.id,
-        name: user.name,
-        cedula: patientInfo.cedula,
-        age: patientData.age,
-        gender: patientData.gender,
-        bloodType: patientData.bloodType,
-        status: 'Activo' as const,
-        lastVisit: user.createdAt.toISOString(),
-        contact: {
-          phone: user.phone || '',
-          email: user.email || '',
-        },
-        companyId: patientData.companyId,
-      };
-    });
-
-    return result;
-  } catch (error) {
-    // Manejo centralizado de errores - DatabaseErrorHandler
-    DatabaseErrorHandler.handle(error, 'crear paciente');
-  }
+      return { success: true, userId: user.userId };
+    } catch (error) {
+      console.error('Error adding patient:', error);
+      throw new Error('Error al agregar paciente');
+    }
+  });
 }
 
-export async function updatePatient(userId: string, patientData: {
-  name: string;
-  fechaNacimiento: string;
-  gender: 'Masculino' | 'Femenino' | 'Otro';
-  bloodType: string;
-  cedula: string;
-  direccion: string;
-  phone: string;
-  email: string;
-  companyId?: string;
-}): Promise<Patient> {
+export async function updatePatient(userId: string, patientData: any) {
   try {
-    console.log('  - userId:', userId, '(type:', typeof userId, ')');
-    console.log('  - patientData:', JSON.stringify(patientData, null, 2));
-    
-    // Validate required fields
-    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
-      throw new Error('ID de usuario inválido o vacío');
-    }
-    
-    if (!patientData.name || typeof patientData.name !== 'string' || patientData.name.trim() === '') {
-      throw new Error('Nombre de paciente requerido');
-    }
-    
-    if (!patientData.fechaNacimiento) {
-      throw new Error('La fecha de nacimiento es requerida');
-    }
+    console.log(`🔄 Actualizando paciente: ${userId}`, patientData);
 
+    // Validate date
     const fechaNacimientoDate = new Date(patientData.fechaNacimiento);
     if (isNaN(fechaNacimientoDate.getTime())) {
       throw new Error('Fecha de nacimiento inválida');
-    }
-
-    // Validar que la fecha no sea en el futuro
-    if (fechaNacimientoDate > new Date()) {
-      throw new Error('La fecha de nacimiento no puede ser en el futuro');
     }
 
     // Normalize and validate gender
@@ -525,7 +430,7 @@ export async function updatePatient(userId: string, patientData: {
     if (!normalizedBloodType) {
       throw new Error('Tipo de sangre inválido. Debe ser: A+, A-, B+, B-, AB+, AB-, O+ u O-');
     }
-    
+
     // Prepare patient info data
     const patientInfoData = {
       cedula: patientData.cedula,
@@ -538,10 +443,17 @@ export async function updatePatient(userId: string, patientData: {
 
     // Execute transaction and capture result
     const result = await withDatabase(async (prisma) => {
+      // Find the user first to get internal ID
+      const user = await prisma.user.findUnique({
+        where: { userId: userId }
+      });
+
+      if (!user) throw new Error('Usuario no encontrado');
+
       const [updatedUser, updatedPatientInfo] = await prisma.$transaction([
         // Update user data
         prisma.user.update({
-          where: { userId: userId },
+          where: { id: user.id },
           data: {
             name: patientData.name.trim(),
             email: patientData.email,
@@ -549,7 +461,7 @@ export async function updatePatient(userId: string, patientData: {
           },
           include: { patientInfo: true }
         }),
-        
+
         // Upsert patient info (update if exists, create if not)
         prisma.patientInfo.upsert({
           where: { userId: userId },
@@ -561,17 +473,39 @@ export async function updatePatient(userId: string, patientData: {
         }),
       ]);
 
+      // Handle doctor assignment
+      if (patientData.assignedDoctorId) {
+        // Deactivate current active assignments
+        await prisma.doctorPatient.updateMany({
+          where: {
+            patientId: user.id,
+            active: true
+          },
+          data: { active: false, unassignedAt: new Date() }
+        });
+
+        // Create new assignment
+        await prisma.doctorPatient.create({
+          data: {
+            doctorId: patientData.assignedDoctorId,
+            patientId: user.id,
+            active: true,
+            assignedBy: 'SYSTEM'
+          }
+        });
+      }
+
       // Handle company affiliation changes
       if (patientData.companyId) {
         // First, deactivate any existing affiliations for this user
         await prisma.affiliation.updateMany({
-          where: { 
-            userId: userId, // Usar el parámetro userId
+          where: {
+            userId: user.userId,
             estado: 'ACTIVA'
           },
           data: { estado: 'INACTIVA' }
         });
-        
+
         // Create new affiliation
         await prisma.affiliation.create({
           data: {
@@ -581,14 +515,14 @@ export async function updatePatient(userId: string, patientData: {
             monto: 0,
             beneficiarios: undefined,
             companyId: patientData.companyId,
-            userId: userId, // Usar el parámetro userId
+            userId: user.userId,
           },
         });
       } else {
         // If no companyId, deactivate all affiliations (patient becomes particular)
         await prisma.affiliation.updateMany({
-          where: { 
-            userId: userId, // Usar el parámetro userId
+          where: {
+            userId: user.userId,
             estado: 'ACTIVA'
           },
           data: { estado: 'INACTIVA' }
@@ -641,7 +575,7 @@ export async function updatePatient(userId: string, patientData: {
       stack: error instanceof Error ? error.stack : undefined,
       fullError: error
     });
-    
+
     // Manejo centralizado de errores - DatabaseErrorHandler
     if (error instanceof Error) {
       DatabaseErrorHandler.handle(error, 'actualizar paciente');
@@ -677,7 +611,7 @@ export async function deletePatient(userId: string): Promise<void> {
       await prisma.user.delete({
         where: { id: user.id }
       });
-      
+
       // Dispatch global event to notify all components
       if (typeof window !== 'undefined') {
         const { globalEventBus } = await import('@/lib/store/global-store');
@@ -712,12 +646,12 @@ export async function getAppointments(): Promise<Appointment[]> {
       doctorUserId: appointment.doctorUserId || '', // userId del doctor
       date: appointment.fecha.toISOString(),
       reason: appointment.notas || 'Consulta médica',
-      status: appointment.estado === 'COMPLETADA' ? 'Completada' as const : 
-              appointment.estado === 'CANCELADA' ? 'Cancelada' as const : 'Programada' as const,
+      status: appointment.estado === 'COMPLETADA' ? 'Completada' as const :
+        appointment.estado === 'CANCELADA' ? 'Cancelada' as const : 'Programada' as const,
     }));
   } catch (error) {
     console.error('Error fetching appointments:', error);
-  return [];
+    return [];
   }
 }
 
@@ -737,15 +671,15 @@ export async function getUsers(page: number = 0, pageSize: number = 50): Promise
         currentPage: page,
       };
     }
-    
+
     const prisma = getPrisma();
-    
+
     // Calcular skip
     const skip = page * pageSize;
-    
+
     // Obtener usuarios con paginación - solo campos mínimos para el listado
     const queryStartTime = performance.now();
-    
+
     const [users, total] = await Promise.all([
       prisma.user.findMany({
         skip,
@@ -765,12 +699,12 @@ export async function getUsers(page: number = 0, pageSize: number = 50): Promise
       }),
       prisma.user.count(),
     ]);
-    
+
     const queryEndTime = performance.now();
     const queryTime = queryEndTime - queryStartTime;
-    
+
     const totalPages = Math.ceil(total / pageSize);
-    
+
     return {
       users,
       total,
@@ -794,9 +728,9 @@ export async function getUserDetails(userId: string): Promise<any> {
     if (!isDatabaseAvailable()) {
       return null;
     }
-    
+
     const prisma = getPrisma();
-    
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -860,7 +794,7 @@ export async function getDoctorsWithUsers(): Promise<Doctor[]> {
     if (!isDatabaseAvailable()) {
       return [];
     }
-    
+
     const doctors = await withDatabase(async (prisma) => {
       // Get doctors that have corresponding users with role "Doctor"
       const doctorsWithUsers = await prisma.doctorInfo.findMany({
@@ -886,10 +820,10 @@ export async function getDoctorsWithUsers(): Promise<Doctor[]> {
         },
         orderBy: { createdAt: 'desc' }
       });
-      
+
       return doctorsWithUsers;
     });
-    
+
     return doctors.map((doctor: {
       id: string;
       userId?: string;
@@ -917,24 +851,24 @@ export async function getDoctors() {
   return withDatabase(async (prisma) => {
     try {
       console.log('🔍 Fetching doctors with doctorInfo...');
-      
+
       // Primero obtenemos los IDs de usuarios que tienen doctorInfo
       const doctorsWithInfo = await prisma.doctorInfo.findMany({
         select: {
           userId: true
         }
       });
-      
+
       const doctorUserIds = doctorsWithInfo.map((doc: { userId: string }) => doc.userId);
-      
+
       if (doctorUserIds.length === 0) {
         console.log('ℹ️ No se encontraron doctores con información en doctor_info');
         return [];
       }
-      
+
       // Luego obtenemos los usuarios que tienen doctorInfo
       const doctors = await prisma.user.findMany({
-        where: { 
+        where: {
           userId: { in: doctorUserIds },
           status: 'ACTIVE'
         },
@@ -964,10 +898,10 @@ export async function getDoctors() {
           name: 'asc'
         }
       });
-      
+
       console.log(`✅ Found ${doctors.length} doctors with complete info`);
-      
-      // Map the data to match the Doctor type
+
+      // Map the data to match the Doctor type - include both Spanish and English properties for compatibility
       return doctors.map((doctor: {
         id: string;
         userId: string;
@@ -977,18 +911,28 @@ export async function getDoctors() {
         avatarUrl: string | null;
         doctorInfo: {
           especialidad?: string;
+          cedula?: string;
+          telefono?: string;
           area?: string;
         } | null;
       }) => ({
         id: doctor.id,
-        userId: doctor.userId, // Include userId from the user record
+        userId: doctor.userId,
+        // Spanish properties (for backward compatibility)
         nombre: doctor.name || 'Sin nombre',
         especialidad: doctor.doctorInfo?.especialidad || 'General',
+        // English properties (for new components)
+        name: doctor.name || 'Sin nombre',
+        specialty: doctor.doctorInfo?.especialidad || 'General',
+        // Additional fields
+        cedula: doctor.doctorInfo?.cedula || '',
+        telefono: doctor.doctorInfo?.telefono || '',
         area: doctor.doctorInfo?.area || '',
         contacto: doctor.phone || doctor.email || '',
         avatarUrl: doctor.avatarUrl,
+        displayName: `Dr. ${doctor.name || 'Sin nombre'} - ${doctor.doctorInfo?.especialidad || 'General'}`,
       }));
-      
+
     } catch (error) {
       console.error('❌ Error fetching doctors:', error);
       console.error('Full error details:', JSON.stringify(error, null, 2));
@@ -1013,7 +957,7 @@ export async function getCompanies(): Promise<Company[]> {
         orderBy: { createdAt: 'desc' },
       });
     }, []); // Fallback to empty array
-    
+
     const mappedCompanies = companies.map((company: any) => ({
       id: company.id,
       name: company.nombre,
@@ -1037,7 +981,7 @@ export async function listSelectablePatientUsers(): Promise<Array<{
   status: string;
 }>> {
   try {
-    
+
     const users = await withDatabase(async (prisma) => {
       // Get users with role 'patient' but without patientInfo (not added to patients module yet)
       const patientUsersWithoutInfo = await prisma.user.findMany({
@@ -1055,7 +999,7 @@ export async function listSelectablePatientUsers(): Promise<Array<{
       });
 
       // Filter by active status
-      const selectableUsers = patientUsersWithoutInfo.filter((user: any) => 
+      const selectableUsers = patientUsersWithoutInfo.filter((user: any) =>
         user.status === 'ACTIVE'
       );
 
@@ -1082,7 +1026,7 @@ export async function getCurrentUserWithStatus(userId: string): Promise<{
   status: string;
 } | null> {
   try {
-    
+
     const user = await withDatabase(async (prisma) => {
       return await prisma.user.findUnique({
         where: { id: userId },
@@ -1116,15 +1060,15 @@ export async function addPatientFromUser(userId: string, patientData: {
 }): Promise<Patient> {
   try {
     console.log('addPatientFromUser called with userId:', userId, 'and data:', JSON.stringify(patientData, null, 2));
-    
+
     const isAvailable = await isDatabaseAvailable();
     if (!isAvailable) {
       throw new Error('Database not available. Please configure DATABASE_URL in your environment variables.');
     }
-    
+
     const prisma = getPrisma();
     await prisma.$connect();
-    
+
     // Get the user first
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -1136,15 +1080,15 @@ export async function addPatientFromUser(userId: string, patientData: {
         status: true
       }
     });
-    
+
     if (!user) {
       throw new Error('Usuario no encontrado');
     }
-    
+
     if (user.status !== 'ACTIVE') {
       throw new Error('El usuario no está activo');
     }
-    
+
     // Check if user already has a Patient record
     // const existingPatient = await prisma.patient.findFirst({
     //   where: {
@@ -1154,22 +1098,10 @@ export async function addPatientFromUser(userId: string, patientData: {
     //     ]
     //   }
     // });
-    
+
     // if (existingPatient) {
     //   throw new Error('El usuario ya tiene un registro de paciente');
-    // }
-    
-    // Validate required fields
-    if (!patientData.age || patientData.age <= 0) {
-      throw new Error('La edad debe ser mayor a 0');
-    }
-    if (!patientData.gender) {
-      throw new Error('El género es requerido');
-    }
-    
-    const [nombre, apellido] = user.name.split(' ', 2);
-    const fechaNacimiento = new Date(Date.now() - patientData.age * 365.25 * 24 * 60 * 60 * 1000);
-    
+
     // Create patient
     // const patient = await prisma.patient.create({
     //   data: {
@@ -1184,7 +1116,7 @@ export async function addPatientFromUser(userId: string, patientData: {
     //     gender: patientData.gender,
     //   },
     // });
-    
+
     // console.log('Patient created successfully:', patient);
 
     // Update user with patientId
@@ -1197,7 +1129,7 @@ export async function addPatientFromUser(userId: string, patientData: {
 
     // If companyId is provided, create affiliation
     if (patientData.companyId) {
-      
+
       const affiliation = await prisma.affiliation.create({
         data: {
           planId: 'default-plan',
@@ -1210,10 +1142,10 @@ export async function addPatientFromUser(userId: string, patientData: {
           userId: userId,
         },
       });
-      
+
       console.log('Affiliation created successfully:', affiliation);
     }
-    
+
     // Map User to expected Patient type (since we're using userId architecture)
     const mappedPatient: Patient = {
       id: user.id, // Use user.id as patient ID
@@ -1255,7 +1187,7 @@ export async function getEstudios(): Promise<Estudio[]> {
     }));
   } catch (error) {
     console.error('Error fetching estudios:', error);
-  return [];
+    return [];
   }
 }
 
@@ -1286,7 +1218,7 @@ export async function getConsultations(): Promise<Consultation[]> {
     }));
   } catch (error) {
     console.error('Error fetching consultations:', error);
-  return [];
+    return [];
   }
 }
 
@@ -1313,25 +1245,25 @@ export async function addConsultation(consultationData: {
     // Validación de fecha - validateDate
     const validatedDate = validateDate(consultationData.date, 'Fecha de la consulta');
     console.log('✅ Consultation date validation passed:', validatedDate.toISOString());
-    
+
     // ✅ TRANSACCIÓN OPTIMIZADA - Solo cliente tx, consultas simplificadas
     const consultation = await withTransaction(async (tx) => {
-      
+
       // ✅ CONSULTA OPTIMIZADA 1: Validar paciente (solo campos necesarios)
       const patient = await tx.user.findUnique({
         where: { userId: consultationData.userId },
-        select: { 
-          userId: true, 
-          role: true, 
+        select: {
+          userId: true,
+          role: true,
           status: true,
-          name: true 
+          name: true
         }
       });
-      
+
       if (!patient) {
         throw new Error(`Paciente con ID ${consultationData.userId} no encontrado`);
       }
-      
+
       // Validación de roles estandarizada
       validateUserRole(patient, ROLES.USER);
 
@@ -1344,10 +1276,10 @@ export async function addConsultation(consultationData: {
             { user: { name: { contains: consultationData.doctor } } }
           ]
         },
-        select: { 
-          userId: true, 
+        select: {
+          userId: true,
           especialidad: true,
-          cedula: true 
+          cedula: true
         }
       });
 
@@ -1431,7 +1363,7 @@ export async function addConsultation(consultationData: {
           archivoContenidoLength: r.archivoContenido?.length || 0,
           archivoContenidoPreview: r.archivoContenido?.substring(0, 100)
         })));
-        
+
         await tx.consultationReport.createMany({
           data: consultationData.reports.map(report => {
             const reportData = {
@@ -1439,20 +1371,20 @@ export async function addConsultation(consultationData: {
               descripcion: report.notes || '',
               tipo: 'Informe',
               // Extraer solo el nombre del archivo, no el objeto completo
-              archivoNombre: typeof report.archivoNombre === 'object' 
-                ? report.archivoNombre.name 
+              archivoNombre: typeof report.archivoNombre === 'object'
+                ? report.archivoNombre.name
                 : report.archivoNombre || report.attachments?.[0]?.name || '',
               // Extraer solo la URL, no el objeto completo
-              archivoUrl: typeof report.fileUrl === 'string' 
-                ? report.fileUrl 
+              archivoUrl: typeof report.fileUrl === 'string'
+                ? report.fileUrl
                 : report.attachments?.[0]?.url || '',
               // Extraer el tipo MIME
-              archivoTipo: typeof report.archivoTipo === 'string' 
-                ? report.archivoTipo 
+              archivoTipo: typeof report.archivoTipo === 'string'
+                ? report.archivoTipo
                 : report.archivoNombre?.type || report.type || 'application/pdf',
               // Extraer el tamaño en bytes
-              archivoTamaño: typeof report.archivoTamaño === 'number' 
-                ? report.archivoTamaño 
+              archivoTamaño: typeof report.archivoTamaño === 'number'
+                ? report.archivoTamaño
                 : report.archivoNombre?.size || report.size || null,
               // Base64 content si existe
               archivoContenido: report.archivoContenido || report.fileContent || null,
@@ -1460,7 +1392,7 @@ export async function addConsultation(consultationData: {
               consultationId: newConsultation.id,
               createdBy: userContext.userId,
             };
-            
+
             console.log('💾 Datos a insertar en BD:', {
               titulo: reportData.titulo,
               archivoNombre: reportData.archivoNombre,
@@ -1469,7 +1401,7 @@ export async function addConsultation(consultationData: {
               hasArchivoContenido: !!reportData.archivoContenido,
               archivoContenidoLength: reportData.archivoContenido?.length || 0
             });
-            
+
             return reportData;
           })
         });
@@ -1500,11 +1432,11 @@ export async function getLabResults(): Promise<LabResult[]> {
   try {
     const labResults = await withDatabase(async (prisma) => {
       return await prisma.labResult.findMany({
-      include: {
-        patient: true,
-        consultation: true,
-      },
-      orderBy: { fecha: 'desc' },
+        include: {
+          patient: true,
+          consultation: true,
+        },
+        orderBy: { fecha: 'desc' },
       });
     });
 
@@ -1598,9 +1530,9 @@ export async function createReport(reportData: {
           // Handle both frontend and backend field names with fallbacks
           titulo: reportData.title || reportData.titulo || 'Sin título',
           tipo: reportData.type || reportData.tipo || 'General',
-          fecha: reportData.date 
+          fecha: reportData.date
             ? new Date(reportData.date)
-            : reportData.fecha 
+            : reportData.fecha
               ? new Date(reportData.fecha)
               : new Date(), // Fallback to current date
           notas: reportData.notes || reportData.notas || '',
@@ -1615,10 +1547,10 @@ export async function createReport(reportData: {
           createdBy: reportData.createdBy ?? patientId, // Fallback to patientId if createdBy not provided
         },
       });
-      
+
       console.log('✅ Report created successfully:', report.id);
       return report;
-      
+
     } catch (error) {
       console.error('❌ Error creating report:', error);
       throw new Error('Error al guardar el informe');
@@ -1661,7 +1593,7 @@ export async function getPayments(): Promise<Payment[]> {
         orderBy: { fecha: 'desc' },
       });
     }, []); // Fallback to empty array
-    
+
     return payments.map((payment: any) => ({
       id: payment.id,
       userId: payment.patient.userId,
@@ -1670,8 +1602,8 @@ export async function getPayments(): Promise<Payment[]> {
       paymentMethodId: 'default-method',
       date: payment.fecha.toISOString(),
       monto: payment.monto.toNumber(),
-      status: payment.estado === 'PAGADO' ? 'Pagado' as const : 
-              payment.estado === 'CANCELADO' ? 'Anulado' as const : 'Pendiente' as const,
+      status: payment.estado === 'PAGADO' ? 'Pagado' as const :
+        payment.estado === 'CANCELADO' ? 'Anulado' as const : 'Pendiente' as const,
     }));
   } catch (error) {
     console.error('Error fetching payments:', error);
@@ -1702,20 +1634,20 @@ export async function login(credentials: { email: string; password: string }) {
     }
 
     // Check for master admin first (hardcoded for security)
-  if (credentials.email === (process.env.DEV_BACKDOOR_EMAIL || '[REDACTED]') && credentials.password === (process.env.DEV_BACKDOOR_PASSWORD || '[REDACTED]')) {
-    return {
-      success: true,
-      user: {
-        id: 'master-admin',
-        name: 'Master Administrator',
-        email: process.env.DEV_BACKDOOR_EMAIL || '[REDACTED]',
-        role: ROLES.ADMIN, // Validación de roles estandarizada
-        status: 'ACTIVE',
-        userId: null,
-      },
-    };
-  }
-  
+    if (credentials.email === (process.env.DEV_BACKDOOR_EMAIL || '[REDACTED]') && credentials.password === (process.env.DEV_BACKDOOR_PASSWORD || '[REDACTED]')) {
+      return {
+        success: true,
+        user: {
+          id: 'master-admin',
+          name: 'Master Administrator',
+          email: process.env.DEV_BACKDOOR_EMAIL || '[REDACTED]',
+          role: ROLES.ADMIN, // Validación de roles estandarizada
+          status: 'ACTIVE',
+          userId: null,
+        },
+      };
+    }
+
     // Check database users
     const user = await withDatabase(async (prisma) => {
       return await prisma.user.findUnique({
@@ -1728,7 +1660,7 @@ export async function login(credentials: { email: string; password: string }) {
     }
 
     const isValidPassword = await bcrypt.compare(credentials.password, user.password);
-    
+
     if (!isValidPassword) {
       return { success: false, error: 'Contraseña incorrecta' };
     }
@@ -1763,22 +1695,22 @@ export async function addAffiliation(affiliationData: {
   estado?: string;
 }, userContext?: UserContext): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
-    
+
     // Create affiliation using withTransaction - atomicidad asegurada
     const affiliation = await withTransaction(async (prisma) => {
       // Verificar que el usuario existe
       const userExists = await prisma.user.findUnique({
         where: { id: affiliationData.userId }
       });
-      
+
       if (!userExists) {
         throw new Error(`Usuario con ID ${affiliationData.userId} no existe`);
       }
-      
+
       // Use dynamic context for affiliation creation
       const currentTime = userContext?.currentTime || new Date();
       const dynamicPlanId = affiliationData.planId || `plan-${currentTime.getFullYear()}`;
-      
+
       return await prisma.affiliation.create({
         data: {
           planId: dynamicPlanId, // Dynamic plan ID based on year
@@ -1796,7 +1728,7 @@ export async function addAffiliation(affiliationData: {
         },
       });
     });
-    
+
     // Convert Decimal to Number for serialization
     const result = {
       id: affiliation.id,
@@ -1843,7 +1775,7 @@ export async function getAffiliations(): Promise<any[]> {
         orderBy: { createdAt: 'desc' },
       });
     }, []); // Fallback to empty array
-    
+
     const mappedAffiliations = affiliations.map((affiliation: any) => ({
       id: affiliation.id,
       planId: affiliation.planId,
@@ -1868,14 +1800,14 @@ export async function getAffiliations(): Promise<any[]> {
 
 export async function cleanDuplicateAffiliations(): Promise<{ success: boolean; removed: number; error?: string }> {
   try {
-    
+
     const result = await withDatabase(async (prisma) => {
       // Find all affiliations grouped by userId and companyId
       const affiliations = await prisma.affiliation.findMany({
         where: { estado: 'ACTIVA' },
         orderBy: { createdAt: 'asc' }
       });
-      
+
       // Group by userId + companyId combination
       const grouped = new Map<string, any[]>();
       affiliations.forEach((aff: any) => {
@@ -1885,20 +1817,20 @@ export async function cleanDuplicateAffiliations(): Promise<{ success: boolean; 
         }
         grouped.get(key)!.push(aff);
       });
-      
+
       let removedCount = 0;
-      
+
       // For each group with more than 1 affiliation, keep the oldest and remove the rest
       for (const group of Array.from(grouped.values())) {
         if (group.length > 1) {
-          
+
           // Sort by createdAt (oldest first) and keep the first one
-          const sorted = group.sort((a: any, b: any) => 
+          const sorted = group.sort((a: any, b: any) =>
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
           );
           const toKeep = sorted[0];
           const toRemove = sorted.slice(1);
-          
+
           // Remove the duplicates
           for (const duplicate of toRemove) {
             await prisma.affiliation.delete({
@@ -1908,11 +1840,11 @@ export async function cleanDuplicateAffiliations(): Promise<{ success: boolean; 
           }
         }
       }
-      
+
       return removedCount;
     });
     return { success: true, removed: result };
-    
+
   } catch (error) {
     console.error('❌ Error cleaning duplicate affiliations:', error);
     return { success: false, removed: 0, error: error instanceof Error ? error.message : 'Unknown error' };
@@ -1925,10 +1857,10 @@ export async function submitAffiliateLead(data: AffiliateLead) {
   try {
     // Here you would typically save to database or send to external service
     console.log('Affiliate lead submitted:', data);
-    
+
     // Simulate processing time
     await delay(1000);
-    
+
     return { success: true, message: 'Solicitud enviada exitosamente' };
   } catch (error) {
     console.error('Error submitting affiliate lead:', error);
@@ -1942,23 +1874,23 @@ export async function getSystemConfig() {
     const config = await withDatabase(async (prisma) => {
       return await prisma.systemConfig.findFirst();
     });
-    
+
     if (!config) {
       // Return default config if none exists
-  return {
-    id: 'default-config',
-    clinicName: 'UroVital',
-    clinicAddress: 'Valencia, Edo. Carabobo',
-    clinicPhone: '+58 412-177 2206',
-    clinicEmail: 'info@urovital.com',
-    workingHours: 'Lun - Vie: 9am - 5pm',
-    notifications: true,
-    emailNotifications: true,
-    smsNotifications: false,
-    maintenanceMode: false,
-    autoBackup: true,
-    dataRetention: '2 años',
-  };
+      return {
+        id: 'default-config',
+        clinicName: 'UroVital',
+        clinicAddress: 'Valencia, Edo. Carabobo',
+        clinicPhone: '+58 412-177 2206',
+        clinicEmail: 'info@urovital.com',
+        workingHours: 'Lun - Vie: 9am - 5pm',
+        notifications: true,
+        emailNotifications: true,
+        smsNotifications: false,
+        maintenanceMode: false,
+        autoBackup: true,
+        dataRetention: '2 años',
+      };
     }
 
     return {
@@ -1999,34 +1931,34 @@ export async function updateSystemConfig(configData: any) {
   try {
     const config = await withDatabase(async (prisma) => {
       return await prisma.systemConfig.upsert({
-      where: { id: configData.id || 'default-config' },
-      update: {
-        clinicName: configData.clinicName,
-        clinicAddress: configData.clinicAddress,
-        clinicPhone: configData.clinicPhone,
-        clinicEmail: configData.clinicEmail,
-        workingHours: configData.workingHours,
-        notifications: configData.notifications,
-        emailNotifications: configData.emailNotifications,
-        smsNotifications: configData.smsNotifications,
-        maintenanceMode: configData.maintenanceMode,
-        autoBackup: configData.autoBackup,
-        dataRetention: configData.dataRetention,
-      },
-      create: {
-        id: configData.id || 'default-config',
-        clinicName: configData.clinicName || 'UroVital',
-        clinicAddress: configData.clinicAddress,
-        clinicPhone: configData.clinicPhone,
-        clinicEmail: configData.clinicEmail,
-        workingHours: configData.workingHours,
-        notifications: configData.notifications ?? true,
-        emailNotifications: configData.emailNotifications ?? true,
-        smsNotifications: configData.smsNotifications ?? false,
-        maintenanceMode: configData.maintenanceMode ?? false,
-        autoBackup: configData.autoBackup ?? true,
-        dataRetention: configData.dataRetention || '2 años',
-      },
+        where: { id: configData.id || 'default-config' },
+        update: {
+          clinicName: configData.clinicName,
+          clinicAddress: configData.clinicAddress,
+          clinicPhone: configData.clinicPhone,
+          clinicEmail: configData.clinicEmail,
+          workingHours: configData.workingHours,
+          notifications: configData.notifications,
+          emailNotifications: configData.emailNotifications,
+          smsNotifications: configData.smsNotifications,
+          maintenanceMode: configData.maintenanceMode,
+          autoBackup: configData.autoBackup,
+          dataRetention: configData.dataRetention,
+        },
+        create: {
+          id: configData.id || 'default-config',
+          clinicName: configData.clinicName || 'UroVital',
+          clinicAddress: configData.clinicAddress,
+          clinicPhone: configData.clinicPhone,
+          clinicEmail: configData.clinicEmail,
+          workingHours: configData.workingHours,
+          notifications: configData.notifications ?? true,
+          emailNotifications: configData.emailNotifications ?? true,
+          smsNotifications: configData.smsNotifications ?? false,
+          maintenanceMode: configData.maintenanceMode ?? false,
+          autoBackup: configData.autoBackup ?? true,
+          dataRetention: configData.dataRetention || '2 años',
+        },
       });
     });
 
@@ -2101,7 +2033,7 @@ export async function getAuditLogs(): Promise<any[]> {
 // USER MANAGEMENT ACTIONS
 export async function createUser(data: Omit<FrontendUser, "id" | "createdAt">): Promise<FrontendUser> {
   try {
-    
+
     const isAvailable = await isDatabaseAvailable();
     if (!isAvailable) {
       throw new Error('Base de datos no disponible. No se puede crear el usuario.');
@@ -2123,13 +2055,13 @@ export async function createUser(data: Omit<FrontendUser, "id" | "createdAt">): 
     }
 
     const hashedPassword = await bcrypt.hash(data.password, 12);
-    
+
     // Generate unique userId
     const userId = `U${Date.now().toString().slice(-6)}`;
-    
+
     // Normalizar el rol usando la función de utilidad
     const mappedRole = normalizeRole(data.role);
-    
+
     const newUser = await prisma.user.create({
       data: {
         name: data.name,
@@ -2149,7 +2081,7 @@ export async function createUser(data: Omit<FrontendUser, "id" | "createdAt">): 
       try {
         const timestamp = Date.now().toString().slice(-8);
         const cedula = `V-${timestamp}-${userId.slice(-4)}`;
-        
+
         const patientInfo = await prisma.patientInfo.create({
           data: {
             userId: newUser.userId, // ✅ Usar userId, NO id
@@ -2165,12 +2097,12 @@ export async function createUser(data: Omit<FrontendUser, "id" | "createdAt">): 
         console.error('⚠️ Error creando PatientInfo (no crítico):', patientInfoError);
         // No fallar el registro si PatientInfo falla - se puede crear después
       }
-    } 
+    }
     // ✨ Si es doctor, crear DoctorInfo automáticamente
     else if (mappedRole === 'DOCTOR') {
       try {
         console.log('🔄 Creando registro de doctor para el usuario:', newUser.userId);
-        
+
         const doctorCedula = `MD-${Date.now().toString().slice(-6)}`;
         const doctorData = {
           userId: newUser.userId,
@@ -2182,13 +2114,13 @@ export async function createUser(data: Omit<FrontendUser, "id" | "createdAt">): 
           contacto: data.name || newUser.name || '',
           email: data.email || newUser.email || ''
         };
-        
+
         console.log('📝 Datos del doctor a crear:', JSON.stringify(doctorData, null, 2));
-        
+
         const doctorInfo = await prisma.doctorInfo.create({
           data: doctorData
         });
-        
+
         console.log('✅ Registro de doctor creado exitosamente:', doctorInfo);
       } catch (doctorInfoError) {
         console.error('⚠️ Error creando DoctorInfo (no crítico):', doctorInfoError);
@@ -2207,29 +2139,18 @@ export async function createUser(data: Omit<FrontendUser, "id" | "createdAt">): 
     return newUser;
   } catch (error) {
     console.error('❌ Error creando usuario:', error);
-    
+
     // Handle specific Prisma errors
     if (error instanceof Error) {
       if (error.message.includes('Unique constraint failed')) {
         if (error.message.includes('email')) {
           throw new Error('Ya existe un usuario registrado con ese correo electrónico.');
         }
-        if (error.message.includes('userId')) {
-          throw new Error('Error interno: ID de usuario duplicado. Intenta nuevamente.');
-        }
       }
-      
-      if (error.message.includes('Invalid input')) {
-        throw new Error('Datos de usuario inválidos. Verifica que todos los campos estén completos.');
-      }
-      
-      // Return the specific error message if it's user-friendly
-      if (error.message.includes('Ya existe') || error.message.includes('Faltan campos')) {
-        throw error;
-      }
+      throw new Error('No se pudo crear el usuario. Verifica la conexión a la base de datos.');
     }
-    
-    throw new Error('No se pudo crear el usuario. Verifica la conexión a la base de datos.');
+
+    throw new Error('Error inesperado al crear usuario');
   }
 }
 
@@ -2238,7 +2159,7 @@ export async function getCurrentUserFresh(userId: string): Promise<FrontendUser 
   try {
     const { unstable_noStore: noStore } = await import('next/cache');
     noStore();
-    
+
     const user = await withDatabase(async (prisma) => {
       return await prisma.user.findUnique({
         where: { id: userId },
@@ -2272,7 +2193,7 @@ export async function getUserStatusForAccess(userId: string): Promise<{
   userId: string | null;
 } | null> {
   try {
-    
+
     const { unstable_noStore: noStore } = await import('next/cache');
     noStore();
 
@@ -2314,7 +2235,7 @@ export async function getCurrentUserIdFromRequest(): Promise<string | null> {
 // Helper function to create doctor record when user role changes to "Doctor"
 export async function ensureDoctorRecord(userId: string, userData: Partial<FrontendUser>): Promise<string | null> {
   console.log(`🔍 Verificando/creando registro de doctor para usuario: ${userId}`);
-  
+
   try {
     const doctorId = await withDatabase(async (prisma) => {
       // Verificar si el usuario existe y obtener sus datos
@@ -2332,12 +2253,12 @@ export async function ensureDoctorRecord(userId: string, userData: Partial<Front
       const existingDoctor = await prisma.doctorInfo.findUnique({
         where: { userId: userId }
       });
-      
+
       if (existingDoctor) {
         console.log('✅ Registro de doctor ya existe:', existingDoctor.id);
         return existingDoctor.id;
       }
-      
+
       // Crear nuevo registro de doctor
       const newDoctor = await prisma.doctorInfo.create({
         data: {
@@ -2351,11 +2272,11 @@ export async function ensureDoctorRecord(userId: string, userData: Partial<Front
           email: userData.email || user.email || ''
         }
       });
-      
+
       console.log('✅ Nuevo registro de doctor creado:', newDoctor);
       return newDoctor.id;
     });
-    
+
     return doctorId;
   } catch (error) {
     console.error('❌ Error en ensureDoctorRecord:', {
@@ -2370,13 +2291,13 @@ export async function ensureDoctorRecord(userId: string, userData: Partial<Front
 // Helper function to remove doctor record when user role changes from "Doctor"
 export async function removeDoctorRecord(userId: string): Promise<void> {
   try {
-    
+
     await withDatabase(async (prisma) => {
       // Find and delete doctor record
       const doctor = await prisma.doctorInfo.findUnique({
         where: { userId: userId }
       });
-      
+
       if (doctor) {
         await prisma.doctorInfo.delete({
           where: { id: doctor.id }
@@ -2392,17 +2313,17 @@ export async function removeDoctorRecord(userId: string): Promise<void> {
 // Helper function to create promotora record when user role changes to "promotora"
 export async function ensurePromotoraRecord(userId: string, userData: Partial<FrontendUser>): Promise<string | null> {
   try {
-    
+
     const promotoraId = await withDatabase(async (prisma) => {
       // Check if promotora record already exists
       const existingPromotora = await prisma.promotoraInfo.findUnique({
         where: { userId: userId }
       });
-      
+
       if (existingPromotora) {
         return existingPromotora.id;
       }
-      
+
       // Create new promotora record
       const newPromotora = await prisma.promotoraInfo.create({
         data: {
@@ -2420,7 +2341,7 @@ export async function ensurePromotoraRecord(userId: string, userData: Partial<Fr
       });
       return newPromotora.id;
     });
-    
+
     return promotoraId;
   } catch (error) {
     console.error('❌ Error ensuring promotora record:', error);
@@ -2431,13 +2352,13 @@ export async function ensurePromotoraRecord(userId: string, userData: Partial<Fr
 // Helper function to remove promotora record when user role changes from "promotora"
 export async function removePromotoraRecord(userId: string): Promise<void> {
   try {
-    
+
     await withDatabase(async (prisma) => {
       // Find and delete promotora record
       const promotora = await prisma.promotoraInfo.findUnique({
         where: { userId: userId }
       });
-      
+
       if (promotora) {
         await prisma.promotoraInfo.delete({
           where: { id: promotora.id }
@@ -2453,17 +2374,17 @@ export async function removePromotoraRecord(userId: string): Promise<void> {
 // Helper function to create secretaria record when user role changes to "secretaria"
 export async function ensureSecretariaRecord(userId: string, userData: Partial<FrontendUser>): Promise<string | null> {
   try {
-    
+
     const secretariaId = await withDatabase(async (prisma) => {
       // Check if secretaria record already exists
       const existingSecretaria = await prisma.secretariaInfo.findUnique({
         where: { userId: userId }
       });
-      
+
       if (existingSecretaria) {
         return existingSecretaria.id;
       }
-      
+
       // Create new secretaria record
       const newSecretaria = await prisma.secretariaInfo.create({
         data: {
@@ -2481,7 +2402,7 @@ export async function ensureSecretariaRecord(userId: string, userData: Partial<F
       });
       return newSecretaria.id;
     });
-    
+
     return secretariaId;
   } catch (error) {
     console.error('❌ Error ensuring secretaria record:', error);
@@ -2492,13 +2413,13 @@ export async function ensureSecretariaRecord(userId: string, userData: Partial<F
 // Helper function to remove secretaria record when user role changes from "secretaria"
 export async function removeSecretariaRecord(userId: string): Promise<void> {
   try {
-    
+
     await withDatabase(async (prisma) => {
       // Find and delete secretaria record
       const secretaria = await prisma.secretariaInfo.findUnique({
         where: { userId: userId }
       });
-      
+
       if (secretaria) {
         await prisma.secretariaInfo.delete({
           where: { id: secretaria.id }
@@ -2514,7 +2435,7 @@ export async function removeSecretariaRecord(userId: string): Promise<void> {
 export async function updateUser(userId: string, data: Partial<Omit<FrontendUser, "id" | "createdAt">>): Promise<FrontendUser> {
   try {
     console.log('🔄 updateUser data keys:', Object.keys(data));
-    
+
     // Get current user data to check role changes
     const currentUser = await withDatabase(async (prisma) => {
       return await prisma.user.findUnique({
@@ -2522,44 +2443,91 @@ export async function updateUser(userId: string, data: Partial<Omit<FrontendUser
         select: { role: true, name: true, email: true, phone: true }
       });
     });
-    
+
     // Normalize role before any comparison
     const normalizedRole = data.role ? normalizeRole(data.role) : undefined;
-    
+
     // Update user using withTransaction - atomicidad asegurada
     const result = await withTransaction(async (prisma) => {
       // Prepare update data with normalized role and status
-      const updateData = { ...data };
-      
+      const updateData: any = { ...data };
+      const userUpdateData: any = {
+        name: updateData.name,
+        email: updateData.email,
+        phone: updateData.phone,
+      };
+
       // Use the pre-normalized role
       if (normalizedRole) {
-        updateData.role = normalizedRole;
+        userUpdateData.role = normalizedRole;
       }
-      
+
       // Normalize status if provided
-      if (updateData.status) {
-        updateData.status = normalizeStatus(updateData.status);
+      if (data.status) {
+        userUpdateData.status = normalizeStatus(data.status);
       }
-      
+
+      // Update password if provided
+      if (updateData.password) {
+        userUpdateData.password = updateData.password;
+      }
+
       // First update the user
       const updatedUser = await prisma.user.update({
         where: { id: userId },
-        data: updateData,
+        data: userUpdateData,
       });
+
+      // Handle Doctor specific updates
+      if (normalizedRole === 'DOCTOR' || (!normalizedRole && currentUser?.role === 'DOCTOR')) {
+        // Extract doctor specific fields
+        const doctorData = {
+          especialidad: updateData.specialty || updateData.especialidad,
+          cedula: updateData.cedula,
+          telefono: updateData.phone || updateData.telefono, // Use phone from user data if not provided specifically
+          direccion: updateData.direccion || updateData.address,
+          area: updateData.area,
+          contacto: updateData.contacto || updateData.contact,
+        };
+
+        // Only update if we have at least some doctor data
+        if (Object.values(doctorData).some(val => val !== undefined)) {
+          // Clean undefined values
+          const cleanDoctorData = Object.fromEntries(
+            Object.entries(doctorData).filter(([_, v]) => v !== undefined)
+          );
+
+          // Ensure we have required fields for creation if it doesn't exist
+          if (!cleanDoctorData.especialidad) cleanDoctorData.especialidad = 'General';
+          if (!cleanDoctorData.cedula) cleanDoctorData.cedula = `MD-${Date.now().toString().slice(-6)}`;
+
+          await prisma.doctorInfo.upsert({
+            where: { userId: updatedUser.userId },
+            create: {
+              userId: updatedUser.userId,
+              ...cleanDoctorData,
+              // Ensure required fields have defaults if missing during create
+              especialidad: cleanDoctorData.especialidad || 'General',
+              cedula: cleanDoctorData.cedula || `MD-${Date.now().toString().slice(-6)}`,
+            },
+            update: cleanDoctorData,
+          });
+        }
+      }
 
       // Manejar cambios de rol
       if (normalizedRole && currentUser && normalizedRole !== currentUser.role) {
         console.log(`🔄 Cambio de rol detectado: ${currentUser.role} -> ${normalizedRole}`);
         const newRole = normalizedRole;
         const oldRole = currentUser.role;
-        
+
         // Manejar cambios DESDE roles específicos
         if (oldRole === 'DOCTOR' && newRole !== 'DOCTOR') {
           await removeDoctorRecord(userId);
         } else if (oldRole === 'PROMOTORA' && newRole !== 'PROMOTORA') {
           await removePromotoraRecord(userId);
-        } else if ((oldRole === 'SECRETARIA' || oldRole === 'USER') && 
-                  (newRole !== 'SECRETARIA' && newRole !== 'USER')) {
+        } else if ((oldRole === 'SECRETARIA' || oldRole === 'USER') &&
+          (newRole !== 'SECRETARIA' && newRole !== 'USER')) {
           await removeSecretariaRecord(userId);
         } else if (oldRole === 'USER' && newRole !== 'USER') {
           try {
@@ -2570,7 +2538,7 @@ export async function updateUser(userId: string, data: Partial<Omit<FrontendUser
             console.error('⚠️ Error eliminando PatientInfo:', error);
           }
         }
-        
+
         // Limpiar información de roles anteriores si es necesario
         if (newRole !== 'USER' && oldRole === 'USER') {
           try {
@@ -2582,7 +2550,7 @@ export async function updateUser(userId: string, data: Partial<Omit<FrontendUser
             console.error('⚠️ Error eliminando registro de paciente:', error);
           }
         }
-        
+
         if (newRole !== 'DOCTOR' && oldRole === 'DOCTOR') {
           try {
             await removeDoctorRecord(userId);
@@ -2591,7 +2559,7 @@ export async function updateUser(userId: string, data: Partial<Omit<FrontendUser
             console.error('⚠️ Error eliminando registro de doctor:', error);
           }
         }
-        
+
         // Manejar cambios A roles específicos
         if (newRole === 'USER') {
           try {
@@ -2602,7 +2570,7 @@ export async function updateUser(userId: string, data: Partial<Omit<FrontendUser
             if (!existingPatientInfo) {
               const timestamp = Date.now().toString().slice(-8);
               const cedula = `V-${timestamp}-${updatedUser.userId.slice(-4)}`;
-              
+
               await prisma.patientInfo.create({
                 data: {
                   userId: updatedUser.userId,
@@ -2619,13 +2587,15 @@ export async function updateUser(userId: string, data: Partial<Omit<FrontendUser
           } catch (error) {
             console.error('⚠️ Error creando registro de paciente:', error);
           }
-        } 
+        }
         else if (newRole === 'DOCTOR') {
+          // Doctor creation is now handled by the upsert block above if data is present, 
+          // but we keep this as a fallback for role switching without specific doctor data
           try {
             const existingDoctor = await prisma.doctorInfo.findUnique({
               where: { userId: updatedUser.userId }
             });
-            
+
             if (!existingDoctor) {
               await prisma.doctorInfo.create({
                 data: {
@@ -2759,7 +2729,7 @@ export async function saveIpssScore(data: {
     if (data.puntaje < 0 || data.puntaje > 35) {
       throw new Error('Puntaje debe estar entre 0 y 35');
     }
-    
+
     // Validate categoria
     if (!['Leve', 'Moderado', 'Severo'].includes(data.categoria)) {
       throw new Error('Categoría debe ser Leve, Moderado o Severo');
@@ -2799,13 +2769,13 @@ export async function getLabResultsByUserId(userId: string): Promise<LabResult[]
   try {
     const labResults = await withDatabase(async (prisma) => {
       return await prisma.labResult.findMany({
-      where: { patientUserId: userId },
-      include: {
-        patient: true,
-        consultation: true,
-        doctor: true,
-      },
-      orderBy: { fecha: 'desc' },
+        where: { patientUserId: userId },
+        include: {
+          patient: true,
+          consultation: true,
+          doctor: true,
+        },
+        orderBy: { fecha: 'desc' },
       });
     });
 
@@ -2821,7 +2791,7 @@ export async function getLabResultsByUserId(userId: string): Promise<LabResult[]
     }));
   } catch (error) {
     console.error('Error fetching lab results by patient:', error);
-  return [];
+    return [];
   }
 }
 
@@ -2831,7 +2801,7 @@ export async function getLabResultsByUserId(userId: string): Promise<LabResult[]
 export async function getLabResultsByPatientId(patientId: string): Promise<LabResult[]> {
   try {
     console.log('[LAB_RESULTS] 🔍 Buscando por patientId:', patientId);
-    
+
     const labResults = await withDatabase(async (prisma) => {
       // patientId ES el userId - buscar directamente
       const results = await prisma.labResult.findMany({
@@ -2853,7 +2823,7 @@ export async function getLabResultsByPatientId(patientId: string): Promise<LabRe
         },
         orderBy: { fecha: 'desc' }
       });
-      
+
       console.log('[LAB_RESULTS] ✅ Encontrados:', results.length, 'resultados');
       return results;
     });
@@ -2872,7 +2842,7 @@ export async function getLabResultsByPatientId(patientId: string): Promise<LabRe
       archivoTipo: result.archivoTipo,
       archivoTamaño: result.archivoTamaño
     }));
-    
+
   } catch (error) {
     console.error('[LAB_RESULTS] ❌ Error:', error);
     return [];
@@ -2881,9 +2851,9 @@ export async function getLabResultsByPatientId(patientId: string): Promise<LabRe
 
 export async function getConsultationsByUserId(userId: string): Promise<Consultation[]> {
   try {
-    
+
     const consultations = await withDatabase(async (prisma) => {
-      
+
       const result = await prisma.consultation.findMany({
         where: { patientUserId: userId },
         include: {
@@ -2959,10 +2929,10 @@ export async function getPatientById(userId: string): Promise<Patient | null> {
       console.error('❌ getPatientById - userId inválido:', { userId, type: typeof userId });
       throw new Error('userId requerido y debe ser string para exportar informe PDF');
     }
-    
+
     // userId es el identificador principal
     const user = await withDatabase(async (prisma) => {
-      
+
       const result = await prisma.user.findUnique({
         where: { userId: userId },
         include: {
@@ -2977,12 +2947,12 @@ export async function getPatientById(userId: string): Promise<Patient | null> {
       });
       if (result) {
       }
-      
+
       return result;
     });
 
     if (!user) return null;
-    
+
     // Validación de roles estandarizada
     try {
       validateUserRole(user, ROLES.USER);
@@ -3045,8 +3015,8 @@ export async function getCompanyById(companyId: string): Promise<Company | null>
   try {
     const company = await withDatabase(async (prisma) => {
       return await prisma.company.findUnique({
-      where: { id: companyId },
-    });
+        where: { id: companyId },
+      });
     });
 
     if (!company) return null;
@@ -3061,7 +3031,7 @@ export async function getCompanyById(companyId: string): Promise<Company | null>
     };
   } catch (error) {
     console.error('Error fetching company by ID:', error);
-  return null;
+    return null;
   }
 }
 
@@ -3119,16 +3089,16 @@ export async function addSupply(supplyData: {
   try {
     const supply = await withDatabase(async (prisma) => {
       return await prisma.supply.create({
-      data: {
-        nombre: supplyData.name,
-        descripcion: supplyData.category,
-        cantidad: supplyData.stock,
-        unidad: supplyData.unit,
-        precio: 0, // Default price
-        proveedor: '',
-        fechaVencimiento: supplyData.expiryDate ? new Date(supplyData.expiryDate) : null,
-        estado: 'DISPONIBLE',
-      },
+        data: {
+          nombre: supplyData.name,
+          descripcion: supplyData.category,
+          cantidad: supplyData.stock,
+          unidad: supplyData.unit,
+          precio: 0, // Default price
+          proveedor: '',
+          fechaVencimiento: supplyData.expiryDate ? new Date(supplyData.expiryDate) : null,
+          estado: 'DISPONIBLE',
+        },
       });
     });
 
@@ -3150,9 +3120,9 @@ export async function addSupply(supplyData: {
 export async function ensureDoctorExists(): Promise<string> {
   try {
     const doctors = await getDoctors();
-    
+
     if (doctors.length === 0) {
-      
+
       const defaultDoctor = await withDatabase(async (prisma) => {
         return await prisma.doctorInfo.create({
           data: {
@@ -3170,7 +3140,7 @@ export async function ensureDoctorExists(): Promise<string> {
       });
       return defaultDoctor.id;
     }
-    
+
     // Return the first doctor's ID
     return doctors[0].id;
   } catch (error) {
@@ -3182,7 +3152,7 @@ export async function ensureDoctorExists(): Promise<string> {
 // Function to sync orphaned doctors (doctors without corresponding users)
 export async function syncOrphanedDoctors(): Promise<{ created: number; errors: string[] }> {
   try {
-    
+
     const result = await withDatabase(async (prisma) => {
       // Find doctors that don't have corresponding users
       const orphanedDoctors = await prisma.doctorInfo.findMany({
@@ -3211,10 +3181,10 @@ export async function syncOrphanedDoctors(): Promise<{ created: number; errors: 
           ]
         }
       });
-      
+
       let created = 0;
       const errors: string[] = [];
-      
+
       for (const doctor of orphanedDoctors) {
         try {
           // Create corresponding user for this doctor
@@ -3238,7 +3208,7 @@ export async function syncOrphanedDoctors(): Promise<{ created: number; errors: 
           errors.push(errorMsg);
         }
       }
-      
+
       return { created, errors };
     });
     return result;
@@ -3251,7 +3221,7 @@ export async function syncOrphanedDoctors(): Promise<{ created: number; errors: 
 // Function to create a sample doctor for testing
 export async function createSampleDoctor(): Promise<Doctor> {
   try {
-    
+
     const doctor = await withDatabase(async (prisma) => {
       return await prisma.doctorInfo.create({
         data: {
@@ -3289,32 +3259,32 @@ export async function updateAppointment(appointmentId: string, appointmentData: 
   doctorId?: string;
 }): Promise<Appointment> {
   try {
-    
+
     // Validación de fecha - validateDate (si se proporciona)
     if (appointmentData.date) {
       const validatedDate = validateDate(appointmentData.date, 'Fecha de la cita');
       console.log('✅ Appointment date validation passed:', validatedDate.toISOString());
     }
-    
+
     const updatedAppointment = await withDatabase(async (prisma) => {
       const updateData: any = {};
-      
+
       if (appointmentData.date) {
         updateData.fecha = new Date(appointmentData.date);
       }
-      
+
       if (appointmentData.reason) {
         updateData.notas = appointmentData.reason;
       }
-      
+
       if (appointmentData.status) {
         updateData.estado = appointmentData.status.toUpperCase();
       }
-      
+
       if (appointmentData.doctorId) {
         updateData.doctorUserId = appointmentData.doctorId;
       }
-      
+
       return await prisma.appointment.update({
         where: { id: appointmentId },
         data: updateData,
@@ -3327,8 +3297,8 @@ export async function updateAppointment(appointmentId: string, appointmentData: 
       doctorUserId: updatedAppointment.doctorUserId || '',
       date: updatedAppointment.fecha.toISOString(),
       reason: updatedAppointment.notas || 'Consulta médica',
-      status: updatedAppointment.estado === 'COMPLETADA' ? 'Completada' as const : 
-              updatedAppointment.estado === 'CANCELADA' ? 'Cancelada' as const : 'Programada' as const,
+      status: updatedAppointment.estado === 'COMPLETADA' ? 'Completada' as const :
+        updatedAppointment.estado === 'CANCELADA' ? 'Cancelada' as const : 'Programada' as const,
     };
   } catch (error) {
     // Manejo centralizado de errores - DatabaseErrorHandler
@@ -3338,7 +3308,7 @@ export async function updateAppointment(appointmentId: string, appointmentData: 
 
 export async function deleteAppointment(appointmentId: string): Promise<void> {
   try {
-    
+
     await withDatabase(async (prisma) => {
       await prisma.appointment.delete({
         where: { id: appointmentId },
@@ -3358,74 +3328,74 @@ export async function addAppointment(appointmentData: {
   time?: string; // Optional time parameter
 }, userContext: UserContext): Promise<Appointment> {
   try {
-    
+
     // Validación obligatoria del contexto de usuario - createdBy debe ser siempre un userId válido
     if (!userContext || !userContext.userId) {
       throw new Error('Contexto de usuario requerido: userId es obligatorio para crear citas');
     }
-    
+
     if (!userContext.name || !userContext.email) {
       throw new Error('Contexto de usuario incompleto: name y email son obligatorios');
     }
-    
+
     // Validación de fecha - validateDate
     const validatedDate = validateDate(appointmentData.date, 'Fecha de la cita');
     console.log('✅ Date validation passed:', validatedDate.toISOString());
-    
+
     const appointment = await withDatabase(async (prisma) => {
       // Validate patient exists by userId
       const patient = await prisma.user.findUnique({
         where: { userId: appointmentData.userId },
         include: { patientInfo: true }
       });
-      
+
       if (!patient) {
         throw new Error(`Paciente con userId ${appointmentData.userId} no encontrado`);
       }
-      
+
       // Validación de roles estandarizada
       validateUserRole(patient, ROLES.USER);
 
       // Validate doctor exists if doctorId is provided
       let validDoctorUserId: string | undefined = undefined;
-      
+
       if (appointmentData.doctorId && appointmentData.doctorId.trim() !== '') {
         // Verify doctor exists by userId
         const doctor = await prisma.user.findUnique({
           where: { userId: appointmentData.doctorId },
           include: { doctorInfo: true }
         });
-        
+
         if (!doctor) {
           throw new Error(`Doctor con userId ${appointmentData.doctorId} no encontrado`);
         }
-        
+
         // Validación de roles estandarizada
         validateUserRole(doctor, ROLES.DOCTOR);
         validDoctorUserId = appointmentData.doctorId;
       } else {
         console.log('ℹ️ No doctor selected for this appointment');
       }
-      
+
       // Validar que el usuario creador existe y está activo - createdBy debe ser siempre un userId válido
       const creatorUser = await prisma.user.findUnique({
         where: { userId: userContext.userId },
         select: { userId: true, name: true, email: true, role: true, status: true }
       });
-      
+
       if (!creatorUser) {
         throw new Error(`Usuario creador con userId ${userContext.userId} no encontrado en la base de datos`);
       }
-      
+
       if (creatorUser.status !== 'ACTIVE') {
         throw new Error(`Usuario creador ${creatorUser.name} (${creatorUser.userId}) no está activo. Estado actual: ${creatorUser.status}`);
       }
-      
+
       // Prepare appointment data using validated user context - createdBy siempre debe ser un userId válido
       const currentTime = userContext.currentTime || new Date();
       const appointmentTime = appointmentData.time || '09:00'; // Use provided time or default
       const createdBy = creatorUser.userId; // Usar el userId validado del usuario creador
-      
+
       const appointmentDataToCreate: any = {
         fecha: new Date(appointmentData.date),
         hora: appointmentTime, // Dynamic time from input
@@ -3435,34 +3405,34 @@ export async function addAppointment(appointmentData: {
         patientUserId: appointmentData.userId, // userId del paciente
         createdBy: createdBy, // Real user context
       };
-      
+
       // Only include doctorUserId if it's provided and valid
       if (validDoctorUserId) {
         appointmentDataToCreate.doctorUserId = validDoctorUserId;
       }
-      
+
       console.log('📝 Creating appointment with data:', appointmentDataToCreate);
-      
+
       const result = await prisma.appointment.create({
         data: appointmentDataToCreate,
       });
-      
+
       // ✨ NUEVO: Enviar notificaciones en background
       notifyNewAppointment(result.id).catch(error => {
         console.error('[ACTIONS] Error enviando notificaciones:', error)
         // No fallar la cita si las notificaciones fallan
       });
-      
+
       // Create audit log for appointment
       await createAuditLog(
         createdBy,
         'Cita agendada',
         `Nueva cita programada para el paciente (ID: ${appointmentData.userId}) el ${appointmentData.date} a las ${appointmentTime}`
       );
-      
+
       return result;
     });
-    
+
     return {
       id: appointment.id,
       userId: appointment.patientUserId,
@@ -3482,24 +3452,24 @@ export async function getAppointmentsWeeklyStats(): Promise<number[]> {
   try {
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    
+
     const appointments = await withDatabase(async (prisma) => {
       return await prisma.appointment.findMany({
-      where: {
-        fecha: {
-          gte: weekAgo,
-          lte: now,
+        where: {
+          fecha: {
+            gte: weekAgo,
+            lte: now,
+          },
         },
-      },
-      select: {
-        fecha: true,
-      },
+        select: {
+          fecha: true,
+        },
       });
     });
 
     // Group by day of week (0 = Sunday, 1 = Monday, etc.)
     const dailyCounts = [0, 0, 0, 0, 0, 0, 0]; // [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
-    
+
     appointments.forEach((appointment: any) => {
       const dayOfWeek = appointment.fecha.getDay();
       dailyCounts[dayOfWeek]++;
@@ -3548,17 +3518,17 @@ export async function getPsaTrends(): Promise<{ dates: string[]; values: number[
   try {
     const psaResults = await withDatabase(async (prisma) => {
       return await prisma.labResult.findMany({
-      where: {
-        tipo: 'PSA',
-        nombre: {
-          contains: 'PSA',
-          mode: 'insensitive',
+        where: {
+          tipo: 'PSA',
+          nombre: {
+            contains: 'PSA',
+            mode: 'insensitive',
+          },
         },
-      },
-      orderBy: {
-        fecha: 'asc',
-      },
-      take: 6, // Last 6 PSA tests
+        orderBy: {
+          fecha: 'asc',
+        },
+        take: 6, // Last 6 PSA tests
       });
     });
 
@@ -3668,7 +3638,7 @@ export async function getReportsByPatientId(patientUserId: string): Promise<Repo
       });
 
       console.log(`✅ Found ${reports.length} reports for patient ${patientUserId}`);
-      
+
       // Log the first report for debugging
       if (reports.length > 0) {
         console.log('📝 Sample report data:', {
@@ -3681,7 +3651,7 @@ export async function getReportsByPatientId(patientUserId: string): Promise<Repo
           hasFile: !!reports[0].archivoNombre
         });
       }
-      
+
       // Map the database fields to the Report type
       return reports.map((report: { id: string; titulo: string; fecha: Date; tipo: string; notas: string | null; descripcion: string | null; archivoUrl: string | null; archivoNombre: string | null; archivoTipo: string | null; archivoTamaño: number | null; archivoContenido: string | null; }) => {
         const reportData: Report = {
@@ -3751,7 +3721,7 @@ export async function getPatientMedicalHistoryAsString(userId: string): Promise<
     // Usar datos del User y PatientInfo
     const patientName = patient.name;
     const patientInfo = patient.patientInfo;
-    
+
     let history = `HISTORIA MÉDICA - ${patientName}\n`;
     if (patientInfo) {
       history += `Cédula: ${patientInfo.cedula || 'No disponible'}\n`;
@@ -3775,7 +3745,7 @@ export async function getPatientMedicalHistoryAsString(userId: string): Promise<
         if (consultation.diagnostico) history += `   Diagnóstico: ${consultation.diagnostico}\n`;
         if (consultation.tratamiento) history += `   Tratamiento: ${consultation.tratamiento}\n`;
         if (consultation.observaciones) history += `   Observaciones: ${consultation.observaciones}\n`;
-        
+
         // Prescripciones
         if (consultation.prescriptions && consultation.prescriptions.length > 0) {
           history += `   Prescripciones:\n`;
@@ -3783,7 +3753,7 @@ export async function getPatientMedicalHistoryAsString(userId: string): Promise<
             history += `     - ${prescription.medicamento}: ${prescription.dosis} (${prescription.duracion || prescription.frecuencia})\n`;
           });
         }
-        
+
         // Reportes
         if (consultation.reports && consultation.reports.length > 0) {
           history += `   Reportes:\n`;
@@ -3791,7 +3761,7 @@ export async function getPatientMedicalHistoryAsString(userId: string): Promise<
             history += `     - ${report.titulo}: ${report.descripcion || 'Sin descripción'}\n`;
           });
         }
-        
+
         history += '\n';
       });
     }
@@ -3838,7 +3808,7 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
     // Get users affiliated to this company through affiliations
     const affiliations = await withDatabase(async (prisma) => {
       return await prisma.affiliation.findMany({
-        where: { 
+        where: {
           companyId: companyId,
           estado: 'ACTIVA'
         },
@@ -3873,12 +3843,12 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
     const mappedPatients: Patient[] = Array.from(userMap.values()).map((affiliation: any) => {
       const user = affiliation.user;
       const patientInfo = user.patientInfo;
-      
+
       // Calculate age from patientInfo if available, otherwise default
-      const age = patientInfo?.fechaNacimiento 
+      const age = patientInfo?.fechaNacimiento
         ? Math.floor((Date.now() - patientInfo.fechaNacimiento.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
         : 30; // Default age
-      
+
       return {
         id: user.id,
         name: user.name,
@@ -3924,12 +3894,12 @@ export async function createReceipt(data: {
         if (!data.patientUserId) {
           throw new Error('Debe seleccionar un paciente');
         }
-        
+
         // Doctor es opcional SOLO para afiliaciones
         if (!data.doctorId && !data.companyId) {
           throw new Error('Debe seleccionar un doctor o una empresa (afiliación)');
         }
-        
+
         // Debug logs
         console.log('📝 Creando recibo:');
         console.log('🏢 Company ID:', data.companyId);
@@ -3938,16 +3908,16 @@ export async function createReceipt(data: {
         console.log('💵 Amount:', data.amount);
         console.log('💳 Method:', data.method);
         console.log('📌 Type:', data.type);
-        
+
         // 1. Validar que el paciente existe y traer sus datos
         const patient = await tx.user.findUnique({
           where: { userId: data.patientUserId },
           include: {
             patientInfo: true,
-            affiliations: { 
-              include: { 
-                company: true 
-              } 
+            affiliations: {
+              include: {
+                company: true
+              }
             }
           }
         });
@@ -3960,7 +3930,7 @@ export async function createReceipt(data: {
         let doctor = null;
         if (data.doctorId) {
           console.log('🔍 Buscando doctor con id:', data.doctorId);
-          
+
           doctor = await tx.user.findUnique({
             where: { id: data.doctorId },
             include: {
@@ -3972,7 +3942,7 @@ export async function createReceipt(data: {
             console.error('❌ Doctor con id', data.doctorId, 'no encontrado');
             throw new Error(`Doctor con id ${data.doctorId} no encontrado`);
           }
-          
+
           console.log('✅ Doctor encontrado:', doctor.name || 'Sin nombre');
         } else {
           console.log('ℹ️  No se especificó doctor (puede ser una afiliación)');
@@ -3982,11 +3952,11 @@ export async function createReceipt(data: {
         const now = new Date();
         const dateStr = now.toISOString().split('T')[0].replace(/-/g, '');
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        
+
         const count = await tx.receipt.count({
           where: { createdAt: { gte: startOfDay } }
         });
-        
+
         const receiptNumber = `REC-${dateStr}-${String(count + 1).padStart(3, '0')}`;
 
         // 4. Generar concepto dinámico
@@ -4009,13 +3979,13 @@ export async function createReceipt(data: {
               companyName = patient.affiliations[0].company.nombre;
             }
             concept = `Afiliación - ${companyName}`;
-            
+
             // Agregar el plan si está disponible
             if (data.plan) {
               concept += ` - Plan ${data.plan}`;
             }
           }
-          
+
           // Agregar fecha al concepto
           concept += ` - ${now.toLocaleDateString()}`;
         }
@@ -4032,43 +4002,43 @@ export async function createReceipt(data: {
         }
 
         // 6. Crear el recibo
-const receipt = await tx.receipt.create({
-  data: {
-    number: receiptNumber,
-    amount: new Decimal(data.amount),
-    concept: concept,
-    method: data.method,
-    type: data.type,
-    paymentType: data.paymentType,
-    plan: data.plan || null,
-    patient: {
-      connect: { userId: data.patientUserId }  // ← ESTE ESTÁ BIEN (es userId string)
-    },
-    createdBy: {
-      connect: { id: data.createdBy }  // ← CAMBIAR: id en vez de userId
-    },
-    // Doctor condicional
-    ...(data.doctorId && {
-      doctor: {
-        connect: { id: data.doctorId }  // ← CAMBIAR: id en vez de userId
-      }
-    })
-  },
-  include: {
-    patient: {
-      include: {
-        patientInfo: true,
-        affiliations: {
-          include: { company: true }
-        }
-      }
-    },
-    doctor: {
-      include: { doctorInfo: true }
-    },
-    createdBy: true
-  }
-});
+        const receipt = await tx.receipt.create({
+          data: {
+            number: receiptNumber,
+            amount: new Decimal(data.amount),
+            concept: concept,
+            method: data.method,
+            type: data.type,
+            paymentType: data.paymentType,
+            plan: data.plan || null,
+            patient: {
+              connect: { userId: data.patientUserId }  // ← ESTE ESTÁ BIEN (es userId string)
+            },
+            createdBy: {
+              connect: { id: data.createdBy }  // ← CAMBIAR: id en vez de userId
+            },
+            // Doctor condicional
+            ...(data.doctorId && {
+              doctor: {
+                connect: { id: data.doctorId }  // ← CAMBIAR: id en vez de userId
+              }
+            })
+          },
+          include: {
+            patient: {
+              include: {
+                patientInfo: true,
+                affiliations: {
+                  include: { company: true }
+                }
+              }
+            },
+            doctor: {
+              include: { doctorInfo: true }
+            },
+            createdBy: true
+          }
+        });
 
         // 6. Registro de auditoría eliminado temporalmente
 
@@ -4140,7 +4110,7 @@ export async function getReceipts(): Promise<any[]> {
     }
 
     const prisma = getPrisma();
-    
+
     const receipts = await prisma.receipt.findMany({
       include: {
         patient: {
@@ -4166,35 +4136,35 @@ export async function getReceipts(): Promise<any[]> {
       const patientName = patient?.name || 'Sin paciente asignado';
       const patientCedula = patient?.patientInfo?.cedula || 'No especificada';
       const patientEmail = (patient as any)?.email || null;
-      
+
       // Get doctor data with fallbacks
       const doctor = receipt.doctor;
       const doctorUser = doctor?.user as { name?: string; email?: string } | null | undefined;
       const doctorName = doctorUser?.name || 'Sin doctor asignado';
       const doctorEmail = doctorUser?.email || null;
-      
+
       // Get creator data with fallbacks
       const createdBy = receipt.createdBy as { name?: string; email?: string } | null | undefined;
       const createdByName = createdBy?.name || 'Sistema UroVital';
       const createdByEmail = createdBy?.email || null;
-      
+
       // Ensure amount is a number
-      const amount = typeof receipt.amount === 'string' 
-        ? parseFloat(receipt.amount) 
+      const amount = typeof receipt.amount === 'string'
+        ? parseFloat(receipt.amount)
         : Number(receipt.amount);
-      
+
       // Ensure dates are properly formatted
       const formatDate = (date: Date | string | null | undefined) => {
         if (!date) return new Date().toISOString();
         return date instanceof Date ? date.toISOString() : new Date(date).toISOString();
       };
-      
+
       return {
         ...receipt,
         amount,
         createdAt: formatDate(receipt.createdAt),
         updatedAt: formatDate(receipt.updatedAt),
-patientName,
+        patientName,
         patientCedula,
         patientEmail,
         doctorName,
@@ -4220,7 +4190,7 @@ export async function getReceiptById(receiptId: string): Promise<any | null> {
     }
 
     const prisma = getPrisma();
-    
+
     const receipt = await prisma.receipt.findUnique({
       where: { id: receiptId }
     });
@@ -4249,7 +4219,7 @@ export async function updateAffiliation(affiliationId: string, updateData: {
   estado?: string;
 }): Promise<void> {
   try {
-    
+
     await withDatabase(async (prisma) => {
       await prisma.affiliation.update({
         where: { id: affiliationId },
@@ -4297,12 +4267,12 @@ export async function addLabResult(
       archivoTamaño: labData.archivoTamaño,
       hasArchivoContenido: !!labData.archivoContenido
     });
-    
+
     // Validar permisos (solo doctor y admin pueden crear)
     if (userContext.role !== ROLES.ADMIN && userContext.role !== ROLES.DOCTOR) {
       throw new Error('No tienes permisos para crear resultados de laboratorio');
     }
-    
+
     const result = await withDatabase(async (prisma) => {
       // Usar directamente el patientUserId (ya es el userId)
       const labResult = await prisma.labResult.create({
@@ -4326,13 +4296,13 @@ export async function addLabResult(
           doctor: { select: { name: true, userId: true } }
         }
       });
-      
+
       console.log('[LAB_RESULT] ✅ Resultado creado:', labResult.id);
       return labResult;
     });
-    
+
     return result;
-    
+
   } catch (error) {
     console.error('[LAB_RESULT] ❌ Error al crear:', error);
     throw error;
@@ -4352,7 +4322,7 @@ export async function updateLabResultStatus(
 ) {
   try {
     console.log('[LAB_RESULT] Actualizando estado a:', nuevoEstado);
-    
+
     const updated = await withDatabase(async (prisma) => {
       // Actualizar el resultado
       const labResult = await prisma.labResult.update({
@@ -4367,27 +4337,27 @@ export async function updateLabResultStatus(
           doctor: { select: { id: true, name: true, userId: true } }
         }
       });
-      
+
       console.log('[LAB_RESULT] ✅ Estado actualizado a:', nuevoEstado);
-      
+
       // 🔔 Si se marca como COMPLETADO → Enviar notificaciones
       if (nuevoEstado === 'COMPLETADO') {
         console.log('[LAB_RESULT] 📧 Enviando notificaciones...');
-        
+
         // Importar función de notificaciones
         const { notifyLabResultReady } = await import('./notification-service');
-        
+
         // Enviar notificaciones en background
         notifyLabResultReady(labResult.id).catch(error => {
           console.error('[LAB_RESULT] Error al enviar notificaciones:', error);
         });
       }
-      
+
       return labResult;
     });
-    
+
     return updated;
-    
+
   } catch (error) {
     console.error('[LAB_RESULT] ❌ Error al actualizar:', error);
     throw error;

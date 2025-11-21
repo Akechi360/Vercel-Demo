@@ -191,6 +191,7 @@ export interface Patient {
   companyId?: string;
   companyName?: string;
   direccion?: string;
+  assignedDoctors?: { id: string; name: string; specialty?: string }[];
 }
 
 export interface Appointment {
@@ -327,14 +328,14 @@ export interface PaymentType {
 }
 
 export interface Payment {
-    id: string;
-    userId: string;
-    doctorId?: string;
-    paymentTypeId: string;
-    paymentMethodId: string;
-    date: string;
-    monto: number;
-    status: 'Pagado' | 'Pendiente' | 'Anulado';
+  id: string;
+  userId: string;
+  doctorId?: string;
+  paymentTypeId: string;
+  paymentMethodId: string;
+  date: string;
+  monto: number;
+  status: 'Pagado' | 'Pendiente' | 'Anulado';
 }
 
 export interface Doctor {
@@ -354,40 +355,40 @@ export interface Estudio {
 }
 
 export interface Affiliation {
+  id: string;
+  planId: string;
+  tipoPago?: string;
+  estado: string;
+  fechaInicio: string;
+  fechaFin?: string | null;
+  monto: number;
+  beneficiarios?: any;
+  companyId?: string | null;
+  userId: string;
+  createdAt: string;
+  company?: {
     id: string;
-    planId: string;
-    tipoPago?: string;
-    estado: string;
-    fechaInicio: string;
-    fechaFin?: string | null;
-    monto: number;
-    beneficiarios?: any;
-    companyId?: string | null;
-    userId: string;
+    nombre: string;
+    rif: string;
+    direccion?: string;
+    telefono?: string;
+    email?: string;
+    contacto?: string;
     createdAt: string;
-    company?: {
-        id: string;
-        nombre: string;
-        rif: string;
-        direccion?: string;
-        telefono?: string;
-        email?: string;
-        contacto?: string;
-        createdAt: string;
-        updatedAt: string;
-    } | null;
-    user?: {
-        id: string;
-        email: string;
-        name: string;
-        role: string;
-        status: string;
-        createdAt: string;
-        phone?: string | null;
-        lastLogin?: string | null;
-        userId?: string | null;
-        avatarUrl?: string | null;
-    } | null;
+    updatedAt: string;
+  } | null;
+  user?: {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+    status: string;
+    createdAt: string;
+    phone?: string | null;
+    lastLogin?: string | null;
+    userId?: string | null;
+    avatarUrl?: string | null;
+  } | null;
 }
 
 export interface AffiliateLead {

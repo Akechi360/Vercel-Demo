@@ -12,13 +12,14 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { addPatient, addPatientFromUser, getCompanies, listSelectablePatientUsers, testDatabaseConnection } from '@/lib/actions';
+import { addPatient, addPatientFromUser, getCompanies, listSelectablePatientUsers, testDatabaseConnection, getDoctors } from '@/lib/actions';
 import { usePatients } from '@/lib/store/global-store';
-import type { Company } from '@/lib/types';
+import type { Company, User } from '@/lib/types';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 
@@ -35,6 +36,7 @@ const formSchema = z.object({
   phone: z.string().optional(),
   email: z.string().email('Dirección de correo inválida.').optional().or(z.literal('')),
   companyId: z.string().optional(),
+  assignedDoctorId: z.string({ required_error: "Debes asignar un médico al paciente" }).min(1, "Debes asignar un médico al paciente"),
 }).refine((data) => {
   if (data.userSelection === 'existing' && !data.userId) {
     return false;
@@ -58,6 +60,7 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
   console.log('🎯 AddPatientForm component rendered');
   const { addPatient: addPatientToStore } = usePatients();
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [doctors, setDoctors] = useState<User[]>([]);
   const [selectableUsers, setSelectableUsers] = useState<Array<{
     id: string;
     name: string;
@@ -70,20 +73,22 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
     const loadData = async () => {
       try {
         setIsLoadingData(true);
-        const [companiesData, usersData] = await Promise.all([
+        const [companiesData, usersData, doctorsData] = await Promise.all([
           getCompanies(),
-          listSelectablePatientUsers()
+          listSelectablePatientUsers(),
+          getDoctors()
         ]);
-        
+
         console.log('🏢 Available companies:', companiesData);
         console.log('👥 Available users:', usersData);
-        
+
+        setDoctors(doctorsData);
         setCompanies(companiesData);
         setSelectableUsers(usersData);
       } catch (error) {
         console.error('❌ Error loading data:', error);
         const errorMessage = error instanceof Error ? error.message : 'Error desconocido al cargar los datos';
-        
+
         const isDarkMode = document.documentElement.classList.contains('dark');
         MySwal.fire({
           title: 'Error de Carga',
@@ -98,7 +103,7 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
         setIsLoadingData(false);
       }
     };
-    
+
     loadData();
   }, []);
 
@@ -116,7 +121,7 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
     };
 
     window.addEventListener('patientDeleted', handlePatientDeleted as unknown as EventListener);
-    
+
     return () => {
       window.removeEventListener('patientDeleted', handlePatientDeleted as unknown as EventListener);
     };
@@ -135,10 +140,11 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
       phone: '',
       email: '',
       companyId: '',
+      assignedDoctorId: '',
     },
   });
 
-  const {formState: { isSubmitting } } = form;
+  const { formState: { isSubmitting } } = form;
 
   const onSubmit = async (values: FormValues) => {
     console.log('🚀 onSubmit function called with values:', values);
@@ -167,9 +173,9 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
       console.log('🔍 Form values:', values);
       console.log('🔍 CompanyId from form:', values.companyId);
       console.log('🔍 Processed companyId:', values.companyId === 'none' ? undefined : values.companyId);
-      
+
       let newPatient;
-      
+
       if (values.userSelection === 'existing' && values.userId) {
         // Create patient from existing user
         newPatient = await addPatientFromUser(values.userId, {
@@ -188,16 +194,17 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
           bloodType: values.bloodType,
           cedula: values.cedula,
           contact: {
-              phone: values.phone || '',
-              email: values.email || '',
+            phone: values.phone || '',
+            email: values.email || '',
           },
           companyId: values.companyId === 'none' ? undefined : values.companyId,
+          assignedDoctorId: values.assignedDoctorId,
         });
       }
-      
+
       addPatientToStore(newPatient);
       console.log('✅ Patient added successfully:', newPatient);
-      
+
       // Mostrar mensaje de éxito
       const isDarkMode = document.documentElement.classList.contains('dark');
       await MySwal.fire({
@@ -223,7 +230,7 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
     } catch (error) {
       console.error('❌ Error in onSubmit:', error);
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido al agregar el paciente';
-      
+
       const isDarkMode = document.documentElement.classList.contains('dark');
       await MySwal.fire({
         title: 'Error',
@@ -278,7 +285,7 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
             </FormItem>
           )}
         />
-        
+
         {form.watch('userSelection') === 'existing' && (
           <FormField
             control={form.control}
@@ -310,7 +317,7 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
             )}
           />
         )}
-        
+
         {form.watch('userSelection') === 'new' && (
           <FormField
             control={form.control}
@@ -363,7 +370,7 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
             )}
           />
         </div>
-        
+
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -406,7 +413,7 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
             )}
           />
         </div>
-        
+
         <FormField
           control={form.control}
           name="phone"
@@ -434,33 +441,69 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
           )}
         />
         <FormField
-            control={form.control}
-            name="companyId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Empresa Afiliada (Opcional)</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccione una empresa..." />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="none">Ninguna</SelectItem>
-                    {companies.map(company => (
-                        <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          control={form.control}
+          name="companyId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Empresa Afiliada (Opcional)</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccione una empresa..." />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="none">Ninguna</SelectItem>
+                  {companies.map(company => (
+                    <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Doctor Assignment - REQUIRED */}
+        <FormField
+          control={form.control}
+          name="assignedDoctorId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="font-semibold">Médico Asignado *</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger className="border-primary bg-primary/5">
+                    <SelectValue placeholder="Seleccionar médico (requerido)" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {doctors.map((doctor) => (
+                    <SelectItem key={doctor.id} value={doctor.id}>
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">Dr. {doctor.name}</span>
+                        {(doctor as any).doctorInfo?.especialidad && (
+                          <span className="text-xs text-muted-foreground">
+                            {(doctor as any).doctorInfo.especialidad}
+                          </span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                El médico asignado podrá ver y gestionar este paciente
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="flex justify-end gap-2 pt-4">
           <Button type="button" variant="secondary" onClick={onSuccess}>Cancelar</Button>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={isSubmitting}
             onClick={() => {
               console.log('🔘 Button clicked!');
@@ -472,6 +515,6 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
           </Button>
         </div>
       </form>
-    </Form>
+    </Form >
   );
 }

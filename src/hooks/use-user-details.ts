@@ -36,13 +36,19 @@ interface UserDetails {
     type: string;
     createdAt: Date;
   }>;
+  doctorInfo?: {
+    especialidad: string | null;
+    area: string | null;
+    cedula: string | null;
+    telefono: string | null;
+  } | null;
 }
 
 interface UseUserDetailsReturn {
   userDetails: UserDetails | null;
   isLoading: boolean;
   error: string | null;
-  loadUserDetails: (userId: string) => Promise<void>;
+  loadUserDetails: (userId: string) => Promise<UserDetails | null>;
   clearUserDetails: () => void;
 }
 
@@ -55,22 +61,25 @@ export function useUserDetails(): UseUserDetailsReturn {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       console.log(`🔄 Loading user details for: ${userId}`);
-      
+
       const details = await getUserDetails(userId);
-      
+
       if (details) {
         setUserDetails(details);
         console.log(`✅ User details loaded successfully for: ${userId}`);
+        return details;
       } else {
         setError('Usuario no encontrado');
         console.log(`❌ User not found: ${userId}`);
+        return null;
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al cargar detalles del usuario';
       setError(errorMessage);
       console.error('❌ Error loading user details:', err);
+      return null;
     } finally {
       setIsLoading(false);
     }

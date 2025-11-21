@@ -18,11 +18,11 @@ export default function PatientsPage() {
 
   useEffect(() => {
     async function fetchData() {
-        setLoading(true);
-        const [patients, companies] = await Promise.all([getPatients(), getCompanies()]);
-        setInitialPatients(patients);
-        setInitialCompanies(companies);
-        setLoading(false);
+      setLoading(true);
+      const [patients, companies] = await Promise.all([getPatients(currentUser?.id), getCompanies()]);
+      setInitialPatients(patients);
+      setInitialCompanies(companies);
+      setLoading(false);
     }
     fetchData();
   }, []);

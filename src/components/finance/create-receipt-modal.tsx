@@ -14,23 +14,46 @@ import { FileText, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { Patient, User } from '@/lib/types';
 
+const AVAILABLE_PLANS = [
+  {
+    id: 'tarjeta-saludable',
+    name: 'Tarjeta Saludable',
+    description: 'Cobertura esencial'
+  },
+  {
+    id: 'espiritu-santo',
+    name: 'F. Espíritu Santo',
+    description: 'Cobertura completa'
+  }
+];
+
 const formSchema = z.object({
   serviceType: z.enum(['consulta', 'afiliacion'] as const, {
     required_error: 'Debe seleccionar un tipo de servicio',
   }),
   userId: z.string().min(1, 'Debe seleccionar un paciente'),
   doctorId: z.string().optional(),
+  plan: z.string().optional(),
   date: z.string().min(1, 'Debe seleccionar una fecha'),
   amount: z.number().min(0.01, 'El monto debe ser mayor a 0'),
   method: z.string().min(1, 'Debe seleccionar un método de pago'),
   status: z.string().default('Pagado'),
-}).refine(
-  (data) => data.serviceType === 'afiliacion' || (data.serviceType === 'consulta' && data.doctorId),
-  {
-    message: 'Debe seleccionar un doctor para consultas',
-    path: ['doctorId']
+}).superRefine((data, ctx) => {
+  if (data.serviceType === 'consulta' && !data.doctorId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Debe seleccionar un doctor para consultas',
+      path: ['doctorId']
+    });
   }
-);
+  if (data.serviceType === 'afiliacion' && !data.plan) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Debe seleccionar un plan para afiliaciones',
+      path: ['plan']
+    });
+  }
+});
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -60,6 +83,7 @@ export function CreateReceiptModal({
       serviceType: editData?.serviceType || 'consulta',
       userId: editData?.userId || '',
       doctorId: editData?.doctorId || '',
+      plan: editData?.plan || '',
       date: editData?.date || new Date().toISOString().slice(0, 16),
       amount: editData?.amount || 0,
       method: editData?.method || '',
@@ -81,7 +105,7 @@ export function CreateReceiptModal({
       } else {
         // Crear nuevo comprobante
         const { createReceipt } = await import('@/lib/actions');
-        
+
         // Obtener el usuario actual del localStorage
         let createdBy = 'system'; // Valor por defecto seguro
         try {
@@ -95,11 +119,14 @@ export function CreateReceiptModal({
         } catch (error) {
           console.error('Error getting current user:', error);
         }
-        
+
         const label = data.serviceType === 'consulta' ? 'Consulta' : 'Afiliación';
         const date = new Date(data.date).toLocaleDateString();
-        const concept = `${label} - ${date}`;
-        
+        let concept = `${label} - ${date}`;
+        if (data.plan) {
+          concept += ` - Plan ${data.plan}`;
+        }
+
         // Get the full patient data to access the userId
         const patient = patients.find(p => p.id === data.userId);
         if (!patient) {
@@ -115,11 +142,12 @@ export function CreateReceiptModal({
           type: (data.serviceType === 'consulta' ? 'Consulta' : 'Afiliación') as 'Consulta' | 'Afiliación',
           paymentType: 'Contado' as const,
           doctorId: data.serviceType === 'consulta' ? data.doctorId : undefined,
-          plan: '' // Add empty plan as it's optional in the type
+          plan: data.plan,
+          companyId: patient.companyId || undefined
         };
 
         await createReceipt(receiptData);
-        
+
         toast({
           title: "Comprobante creado correctamente",
           description: "El comprobante ha sido guardado exitosamente.",
@@ -169,7 +197,7 @@ export function CreateReceiptModal({
               {editData ? 'Editar Comprobante' : 'Crear Comprobante'}
             </DialogTitle>
             <DialogDescription>
-              {editData 
+              {editData
                 ? 'Modifica los datos del comprobante seleccionado.'
                 : 'Completa los datos para crear un nuevo comprobante de pago.'
               }
@@ -232,13 +260,41 @@ export function CreateReceiptModal({
                 <FormItem>
                   <FormLabel>Empresa</FormLabel>
                   <FormControl>
-                    <Input 
-                      value={selectedPatient?.companyName || 'Paciente Particular'} 
-                      disabled 
+                    <Input
+                      value={selectedPatient?.companyName || 'Paciente Particular'}
+                      disabled
                       className="bg-muted cursor-not-allowed"
                     />
                   </FormControl>
                 </FormItem>
+
+                {/* Plan (solo para afiliaciones) */}
+                {form.watch('serviceType') === 'afiliacion' && (
+                  <FormField
+                    control={form.control}
+                    name="plan"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Plan de Afiliación *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar plan" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="z-[9999]">
+                            {AVAILABLE_PLANS.map((plan) => (
+                              <SelectItem key={plan.id} value={plan.name}>
+                                {plan.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 {/* Doctor (solo para consultas) */}
                 {form.watch('serviceType') === 'consulta' && (

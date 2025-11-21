@@ -26,7 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MoreHorizontal, Edit, Trash2, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
-import { deletePatient, updatePatient, getCompanies } from '@/lib/actions';
+import { deletePatient, updatePatient, getCompanies, getDoctors } from '@/lib/actions';
 import { useSweetAlertTheme, getSweetAlertConfig, getSweetAlertWarningConfig } from '@/hooks/use-sweetalert-theme';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -44,6 +44,7 @@ const editPatientSchema = z.object({
   phone: z.string().optional(),
   email: z.string().email('Dirección de correo inválida').optional().or(z.literal('')),
   companyId: z.string().optional(),
+  assignedDoctorId: z.string().min(1, 'Debe seleccionar un médico asignado'),
 });
 
 type EditPatientFormValues = z.infer<typeof editPatientSchema>;
@@ -69,6 +70,7 @@ const calculateAge = (birthDate: string | Date): number => {
 export default function PatientActions({ patient, onPatientUpdated, onPatientDeleted }: PatientActionsProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [doctors, setDoctors] = useState<Array<{ id: string; name: string; specialty: string }>>([]);
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -79,13 +81,13 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
     const currentYear = new Date().getFullYear();
     return Array.from({ length: 100 }, (_, i) => currentYear - i);
   }, []);
-  
+
   // Months in Spanish
   const months = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
-  
+
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
 
   // Calcular fechaNacimiento desde la edad actual o usar fechaNacimiento si existe
@@ -97,11 +99,11 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
     const today = new Date();
     const ageNum = Number(patient.age);
     if (!Number.isFinite(ageNum) || ageNum <= 0) return '';
-    
+
     const year = today.getFullYear() - ageNum;
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
-    
+
     return `${year}-${month}-${day}`;
   };
 
@@ -117,6 +119,7 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
       phone: patient.contact.phone,
       email: patient.contact.email,
       companyId: patient.companyId || '',
+      assignedDoctorId: (patient as any).assignedDoctorId || '',
     },
   });
 
@@ -134,7 +137,7 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
         try {
           await deletePatient(patient.id);
           onPatientDeleted?.(patient.id);
-          
+
           MySwal.fire({
             title: 'Eliminado',
             text: 'El paciente ha sido eliminado exitosamente.',
@@ -159,10 +162,14 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
   const handleEdit = async () => {
     setIsLoadingCompanies(true);
     try {
-      const companiesData = await getCompanies();
+      const [companiesData, doctorsData] = await Promise.all([
+        getCompanies(),
+        getDoctors()
+      ]);
       setCompanies(companiesData);
+      setDoctors(doctorsData);
     } catch (error) {
-      console.error('Error loading companies:', error);
+      console.error('Error loading data:', error);
     } finally {
       setIsLoadingCompanies(false);
     }
@@ -275,7 +282,7 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
                     {(() => {
                       const fecha = form.watch('fechaNacimiento');
                       if (!fecha) return <span>Seleccione una fecha</span>;
-                      
+
                       const [y, m, d] = fecha.split('-').map(Number);
                       const localDate = new Date(y, m - 1, d);
                       return localDate.toLocaleDateString('es-ES', {
@@ -301,8 +308,8 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
                           >
                             <ChevronLeft className="h-4 w-4" />
                           </button>
-                          
-                          <div 
+
+                          <div
                             className="w-full text-center border rounded-md py-2 px-8 bg-background"
                             onWheel={(e) => {
                               e.preventDefault();
@@ -314,7 +321,7 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
                           >
                             {months[selectedMonth]}
                           </div>
-                          
+
                           <button
                             type="button"
                             className="absolute right-0 top-0 bottom-0 px-2 flex items-center justify-center text-muted-foreground hover:text-foreground"
@@ -326,7 +333,7 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
                           </button>
                         </div>
                       </div>
-                      
+
                       <div className="space-y-2">
                         <h4 className="text-sm font-medium">Año:</h4>
                         <div className="relative">
@@ -342,8 +349,8 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
                           >
                             <ChevronLeft className="h-4 w-4" />
                           </button>
-                          
-                          <div 
+
+                          <div
                             className="w-full text-center border rounded-md py-2 px-8 bg-background"
                             onWheel={(e) => {
                               e.preventDefault();
@@ -357,7 +364,7 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
                           >
                             {selectedYear}
                           </div>
-                          
+
                           <button
                             type="button"
                             className="absolute right-0 top-0 bottom-0 px-2 flex items-center justify-center text-muted-foreground hover:text-foreground"
@@ -410,22 +417,22 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
                         selected={
                           form.watch('fechaNacimiento')
                             ? (() => {
-                                const dateStr = form.watch('fechaNacimiento');
-                                if (!dateStr) return undefined;
-                                
-                                // Parse manual evitando timezone
-                                const parts = dateStr.split('-');
-                                if (parts.length !== 3) return undefined;
-                                
-                                const y = parseInt(parts[0], 10);
-                                const m = parseInt(parts[1], 10) - 1;
-                                const d = parseInt(parts[2], 10);
-                                
-                                // Crear fecha en UTC para evitar problemas de zona horaria
-                                const utcDate = new Date(Date.UTC(y, m, d, 12, 0, 0));
-                                console.log('🔵 Fecha seleccionada (UTC):', utcDate.toISOString());
-                                return utcDate;
-                              })()
+                              const dateStr = form.watch('fechaNacimiento');
+                              if (!dateStr) return undefined;
+
+                              // Parse manual evitando timezone
+                              const parts = dateStr.split('-');
+                              if (parts.length !== 3) return undefined;
+
+                              const y = parseInt(parts[0], 10);
+                              const m = parseInt(parts[1], 10) - 1;
+                              const d = parseInt(parts[2], 10);
+
+                              // Crear fecha en UTC para evitar problemas de zona horaria
+                              const utcDate = new Date(Date.UTC(y, m, d, 12, 0, 0));
+                              console.log('🔵 Fecha seleccionada (UTC):', utcDate.toISOString());
+                              return utcDate;
+                            })()
                             : undefined
                         }
                         onSelect={(date) => {
@@ -433,11 +440,11 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
                             const year = date.getFullYear();
                             const month = date.getMonth() + 1;
                             const day = date.getDate();
-                            
+
                             const formattedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                            
+
                             console.log('✅ Click en día:', day, '→ Guardando:', formattedDate);
-                            
+
                             form.setValue('fechaNacimiento', formattedDate, { shouldValidate: true });
                             setSelectedYear(year);
                             setSelectedMonth(month - 1);
@@ -598,6 +605,29 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
                   )}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="assignedDoctorId">Médico Asignado *</Label>
+              <Select onValueChange={(value) => form.setValue('assignedDoctorId', value)} defaultValue={form.watch('assignedDoctorId')}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccione un médico" />
+                </SelectTrigger>
+                <SelectContent>
+                  {isLoadingCompanies ? (
+                    <SelectItem value="loading" disabled>Cargando médicos...</SelectItem>
+                  ) : (
+                    doctors.map((doctor) => (
+                      <SelectItem key={doctor.id} value={doctor.id}>
+                        Dr. {doctor.name} - {doctor.specialty}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              {form.formState.errors.assignedDoctorId && (
+                <p className="text-sm text-red-500">{form.formState.errors.assignedDoctorId.message}</p>
+              )}
             </div>
 
             <DialogFooter>

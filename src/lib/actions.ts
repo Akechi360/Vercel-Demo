@@ -4437,3 +4437,78 @@ export async function updateLabResultStatus(
     throw error;
   }
 }
+
+// Migration function to assign unassigned patients to Dr. Juan Carlos
+export async function migrateExistingPatientsToJuanCarlos() {
+  return withDatabase(async (prisma) => {
+    try {
+      console.log('🚀 Starting migration: Assigning patients to Dr. Juan Carlos');
+
+      // 1. Find Dr. Juan Carlos
+      const doctor = await prisma.user.findFirst({
+        where: {
+          role: 'DOCTOR',
+          name: { contains: 'Juan Carlos', mode: 'insensitive' }
+        }
+      });
+
+      if (!doctor) {
+        console.error('❌ Dr. Juan Carlos not found');
+        return { processed: 0, assigned: 0, errors: ['No se encontró al Dr. Juan Carlos'] };
+      }
+      console.log('✅ Found Doctor:', doctor.name, doctor.id);
+
+      // 2. Find Admin for assignedBy (or use doctor himself)
+      const admin = await prisma.user.findFirst({
+        where: { role: 'ADMIN' }
+      });
+      const assignerId = admin?.id || doctor.id;
+
+      // 3. Find patients without active assignment
+      const patientsWithoutDoctor = await prisma.user.findMany({
+        where: {
+          role: 'USER',
+          status: 'ACTIVE',
+          patientAssignments: {
+            none: { active: true }
+          }
+        }
+      });
+
+      console.log(`🔍 Found ${patientsWithoutDoctor.length} patients without active assignment`);
+
+      let assignedCount = 0;
+      const errors: string[] = [];
+
+      // 4. Assign them
+      for (const patient of patientsWithoutDoctor) {
+        try {
+          await prisma.doctorPatient.create({
+            data: {
+              doctorId: doctor.id,
+              patientId: patient.id,
+              active: true,
+              assignedBy: assignerId
+            }
+          });
+          assignedCount++;
+        } catch (err: any) {
+          console.error(`❌ Error assigning ${patient.name}:`, err);
+          errors.push(`Error asignando paciente ${patient.name}: ${err.message}`);
+        }
+      }
+
+      console.log(`🏁 Migration finished. Assigned: ${assignedCount}, Errors: ${errors.length}`);
+
+      return {
+        processed: patientsWithoutDoctor.length,
+        assigned: assignedCount,
+        errors
+      };
+
+    } catch (error: any) {
+      console.error('Migration error:', error);
+      return { processed: 0, assigned: 0, errors: [error.message] };
+    }
+  });
+}

@@ -34,7 +34,7 @@ export default function PatientSummaryPage({ params }: { params: Promise<{ patie
     const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const canView = can('patients:write') || currentUser?.userId === patientId;
+    const canView = can('patients:read') || currentUser?.userId === patientId;
 
     useEffect(() => {
         if (canView) {
@@ -49,7 +49,7 @@ export default function PatientSummaryPage({ params }: { params: Promise<{ patie
                     const upcomingAppointments = appointments.filter(a => new Date(a.date) > new Date() && a.userId === patientId);
                     const latestConsultations = consultations.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3);
                     const latestIpss = ipssScores.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0] || null;
-                    
+
                     setSummaryData({
                         patient,
                         upcomingAppointments,

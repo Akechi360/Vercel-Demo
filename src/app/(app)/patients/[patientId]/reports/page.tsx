@@ -26,8 +26,8 @@ export default function PatientReportsPage({ params }: { params: Promise<{ patie
     const [reports, setReports] = useState<Report[] | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const canView = can('patients:write') || currentUser?.userId === patientId;
-    
+    const canView = can('reports:read') || currentUser?.userId === patientId;
+
     useEffect(() => {
         if (canView) {
             getReportsByPatientId(patientId).then(data => {
@@ -42,7 +42,7 @@ export default function PatientReportsPage({ params }: { params: Promise<{ patie
     if (loading) {
         return <HeartbeatLoader text="Cargando informes..." size="md" />;
     }
-    
+
     if (!canView) {
         return <DeniedAccess />;
     }

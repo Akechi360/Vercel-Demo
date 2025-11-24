@@ -9,15 +9,15 @@ import { ShieldBan } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 function DeniedAccess() {
-    return (
-        <Card>
-            <CardContent className="p-10 flex flex-col items-center justify-center gap-4 text-center">
-                <ShieldBan className="h-12 w-12 text-destructive" />
-                <h3 className="text-xl font-semibold">Acceso Restringido</h3>
-                <p className="text-muted-foreground">No tienes permiso para ver el historial médico detallado de este paciente.</p>
-            </CardContent>
-        </Card>
-    )
+  return (
+    <Card>
+      <CardContent className="p-10 flex flex-col items-center justify-center gap-4 text-center">
+        <ShieldBan className="h-12 w-12 text-destructive" />
+        <h3 className="text-xl font-semibold">Acceso Restringido</h3>
+        <p className="text-muted-foreground">No tienes permiso para ver el historial médico detallado de este paciente.</p>
+      </CardContent>
+    </Card>
+  )
 }
 
 export default function PatientHistoryPage({ params }: { params: Promise<{ patientId: string }> }) {
@@ -30,14 +30,14 @@ export default function PatientHistoryPage({ params }: { params: Promise<{ patie
 
   // Validar que el ID de usuario sea válido
   const isValidUserId = userId && typeof userId === 'string' && userId.trim() !== '';
-  const canViewHistory = can('patients:write') || currentUser?.userId === userId;
+  const canViewHistory = can('medical_history:read') || currentUser?.userId === userId;
 
   // Cargar datos del paciente y su historial
   useEffect(() => {
     if (!isValidUserId || !canViewHistory) return;
 
     let isMounted = true;
-    
+
     const loadData = async () => {
       try {
         const [patientData, medicalHistory] = await Promise.all([
@@ -106,8 +106,8 @@ export default function PatientHistoryPage({ params }: { params: Promise<{ patie
     <div className="space-y-6">
       <Card>
         <CardContent className="p-6">
-          <MedicalHistoryTimeline 
-            history={history} 
+          <MedicalHistoryTimeline
+            history={history}
             userId={userId}
             onNewConsultation={handleNewConsultation}
           />

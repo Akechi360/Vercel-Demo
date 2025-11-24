@@ -223,14 +223,24 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={handleEdit}>
-            <Edit className="mr-2 h-4 w-4" />
-            Editar datos
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleDelete} className="text-red-500">
-            <Trash2 className="mr-2 h-4 w-4" />
-            Eliminar
-          </DropdownMenuItem>
+          {(currentUser?.role === 'ADMIN' || currentUser?.role === 'SECRETARIA') && (
+            <>
+              <DropdownMenuItem onClick={handleEdit}>
+                <Edit className="mr-2 h-4 w-4" />
+                Editar datos
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDelete} className="text-red-500">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Eliminar
+              </DropdownMenuItem>
+            </>
+          )}
+          {currentUser?.role === 'DOCTOR' && (
+            <DropdownMenuItem disabled className="text-muted-foreground">
+              <Edit className="mr-2 h-4 w-4" />
+              Sin permisos de edición
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 

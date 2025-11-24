@@ -211,6 +211,8 @@ model PatientInfo {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
   user            User       @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  companyId       String?
+  company         Company?   @relation(fields: [companyId], references: [id])
 
   @@map("patient_info")
 }
@@ -281,6 +283,7 @@ model Company {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   affiliations Affiliation[]
+  patients     PatientInfo[]
 
   @@map("companies")
 }

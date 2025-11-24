@@ -497,6 +497,7 @@ export async function updatePatient(userId: string, patientData: any, currentUse
       bloodType: normalizedBloodType,
       telefono: patientData.phone || '',
       fechaNacimiento: fechaNacimientoDate,
+      companyId: patientData.companyId || null, // Save company association
     };
 
     // Execute transaction and capture result
@@ -533,65 +534,67 @@ export async function updatePatient(userId: string, patientData: any, currentUse
 
       // Handle doctor assignment
       if (patientData.assignedDoctorId) {
-        // Deactivate current active assignments
-        await prisma.doctorPatient.updateMany({
+        // Check if assignment with this doctor already exists
+        const existingAssignment = await prisma.doctorPatient.findFirst({
           where: {
             patientId: user.id,
-            active: true
-          },
-          data: { active: false }
-        });
-
-        // Create new assignment
-        await prisma.doctorPatient.create({
-          data: {
-            doctorId: patientData.assignedDoctorId,
-            patientId: user.id,
-            active: true,
-            assignedBy: currentUserId || 'SYSTEM'
+            doctorId: patientData.assignedDoctorId
           }
         });
+
+        if (existingAssignment) {
+          // If assignment exists, just make sure it's active and update other active ones
+          await prisma.$transaction([
+            // Deactivate all OTHER active assignments
+            prisma.doctorPatient.updateMany({
+              where: {
+                patientId: user.id,
+                active: true,
+                NOT: {
+                  id: existingAssignment.id
+                }
+              },
+              data: { active: false }
+            }),
+            // Ensure this assignment is active
+            prisma.doctorPatient.update({
+              where: { id: existingAssignment.id },
+              data: { active: true, assignedBy: currentUserId || 'SYSTEM' }
+            })
+          ]);
+        } else {
+          // No existing assignment with this doctor, create new one
+          // First deactivate all current active assignments
+          await prisma.doctorPatient.updateMany({
+            where: {
+              patientId: user.id,
+              active: true
+            },
+            data: { active: false }
+          });
+
+          // Create new assignment
+          await prisma.doctorPatient.create({
+            data: {
+              doctorId: patientData.assignedDoctorId,
+              patientId: user.id,
+              active: true,
+              assignedBy: currentUserId || 'SYSTEM'
+            }
+          });
+        }
       }
 
-      // Handle company affiliation changes
-      if (patientData.companyId) {
-        // First, deactivate any existing affiliations for this user
-        await prisma.affiliation.updateMany({
-          where: {
-            userId: user.userId,
-            estado: 'ACTIVA'
-          },
-          data: { estado: 'INACTIVA' }
-        });
 
-        // Create new affiliation
-        await prisma.affiliation.create({
-          data: {
-            planId: 'default-plan',
-            estado: 'ACTIVA',
-            fechaInicio: new Date(),
-            monto: 0,
-            beneficiarios: undefined,
-            companyId: patientData.companyId,
-            userId: user.userId,
-          },
-        });
-      } else {
-        // If no companyId, deactivate all affiliations (patient becomes particular)
-        await prisma.affiliation.updateMany({
-          where: {
-            userId: user.userId,
-            estado: 'ACTIVA'
-          },
-          data: { estado: 'INACTIVA' }
-        });
-      }
+      // Note: companyId is stored in the patient record, but affiliations
+      // must be created manually through the Affiliations module
 
       // Get updated affiliations for the return data
       const updatedAffiliations = await prisma.affiliation.findMany({
         where: { userId: updatedUser.id },
         include: { company: true }
       });
+
 
       // Calculate age from fechaNacimiento
       const birthDate = new Date(updatedPatientInfo.fechaNacimiento);
@@ -3879,24 +3882,6 @@ export async function getPatientMedicalHistoryAsString(userId: string): Promise<
 
 export async function getPatientsByCompanyId(companyId: string): Promise<Patient[]> {
   try {
-    // Get users affiliated to this company through affiliations
-    const affiliations = await withDatabase(async (prisma) => {
-      return await prisma.affiliation.findMany({
-        where: {
-          companyId: companyId,
-          estado: 'ACTIVA'
-        },
-        include: {
-          user: {
-            include: {
-              patientInfo: true
-            }
-          }
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-    });
-
     // Get company name for display
     const company = await withDatabase(async (prisma) => {
       return await prisma.company.findUnique({
@@ -3904,23 +3889,42 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
       });
     });
 
-    // Group affiliations by user to avoid duplicates
-    const userMap = new Map<string, any>();
-    affiliations.forEach((affiliation: any) => {
-      const userId = affiliation.user.id;
-      if (!userMap.has(userId)) {
-        userMap.set(userId, affiliation);
-      }
+    // Get users affiliated to this company through affiliations OR direct assignment
+    const users = await withDatabase(async (prisma) => {
+      return await prisma.user.findMany({
+        where: {
+          role: 'USER',
+          OR: [
+            {
+              patientInfo: {
+                companyId: companyId
+              }
+            },
+            {
+              affiliations: {
+                some: {
+                  companyId: companyId,
+                  estado: 'ACTIVA'
+                }
+              }
+            }
+          ]
+        },
+        include: {
+          patientInfo: true,
+          // We don't strictly need affiliations here for the list, but good to have context if needed later
+        },
+        orderBy: { createdAt: 'desc' },
+      });
     });
 
-    // Map unique users to Patient interface
-    const mappedPatients: Patient[] = Array.from(userMap.values()).map((affiliation: any) => {
-      const user = affiliation.user;
+    // Map users to Patient interface
+    const mappedPatients: Patient[] = users.map((user: any) => {
       const patientInfo = user.patientInfo;
 
       // Calculate age from patientInfo if available, otherwise default
       const age = patientInfo?.fechaNacimiento
-        ? Math.floor((Date.now() - patientInfo.fechaNacimiento.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+        ? Math.floor((Date.now() - new Date(patientInfo.fechaNacimiento).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
         : 30; // Default age
 
       return {
@@ -3940,6 +3944,7 @@ export async function getPatientsByCompanyId(companyId: string): Promise<Patient
         companyName: company?.nombre || undefined,
       };
     });
+
     return mappedPatients;
   } catch (error) {
     console.error('Error fetching patients by company ID:', error);

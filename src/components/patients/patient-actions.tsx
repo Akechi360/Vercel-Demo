@@ -27,6 +27,7 @@ import { MoreHorizontal, Edit, Trash2, ChevronLeft, ChevronRight, Calendar as Ca
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import { deletePatient, updatePatient, getCompanies, getDoctors } from '@/lib/actions';
+import { useAuth } from '@/components/layout/auth-provider';
 import { useSweetAlertTheme, getSweetAlertConfig, getSweetAlertWarningConfig } from '@/hooks/use-sweetalert-theme';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -68,6 +69,7 @@ const calculateAge = (birthDate: string | Date): number => {
 };
 
 export default function PatientActions({ patient, onPatientUpdated, onPatientDeleted }: PatientActionsProps) {
+  const { currentUser } = useAuth();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [doctors, setDoctors] = useState<Array<{ id: string; name: string; specialty: string }>>([]);
@@ -87,13 +89,12 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
-
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
 
   // Calcular fechaNacimiento desde la edad actual o usar fechaNacimiento si existe
   const getDefaultFechaNacimiento = (): string => {
-    if ((patient as any).fechaNacimiento) {
-      return (patient as any).fechaNacimiento;
+    if (patient.fechaNacimiento) {
+      return patient.fechaNacimiento.split('T')[0];
     }
     // Si no hay fechaNacimiento, calcular aproximada desde edad
     const today = new Date();
@@ -119,7 +120,7 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
       phone: patient.contact.phone,
       email: patient.contact.email,
       companyId: patient.companyId || '',
-      assignedDoctorId: (patient as any).assignedDoctorId || '',
+      assignedDoctorId: patient.assignedDoctorId || '',
     },
   });
 
@@ -188,7 +189,8 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
         phone: values.phone || '',
         email: values.email || '',
         companyId: values.companyId === 'none' ? undefined : values.companyId,
-      });
+        assignedDoctorId: values.assignedDoctorId,
+      }, currentUser?.id);
 
       onPatientUpdated?.(updatedPatient);
       setIsEditOpen(false);
@@ -608,12 +610,13 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="assignedDoctorId">Médico Asignado *</Label>
+              <Label htmlFor="assignedDoctorId">Médico Asignado</Label>
               <Select onValueChange={(value) => form.setValue('assignedDoctorId', value)} defaultValue={form.watch('assignedDoctorId')}>
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccione un médico" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">Sin asignar</SelectItem>
                   {isLoadingCompanies ? (
                     <SelectItem value="loading" disabled>Cargando médicos...</SelectItem>
                   ) : (
@@ -640,7 +643,7 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
             </DialogFooter>
           </form>
         </DialogContent>
-      </Dialog>
+      </Dialog >
     </>
   );
 }

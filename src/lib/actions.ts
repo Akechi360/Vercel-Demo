@@ -139,6 +139,33 @@ function normalizeBloodType(bloodType: string): string | null {
   return normalized;
 }
 
+// Helper to map DB Gender to Frontend
+function mapGenderToFrontend(dbGender: string | null): 'Masculino' | 'Femenino' | 'Otro' {
+  if (!dbGender) return 'Otro';
+  const map: Record<string, 'Masculino' | 'Femenino' | 'Otro'> = {
+    'MASCULINO': 'Masculino',
+    'FEMENINO': 'Femenino',
+    'OTRO': 'Otro'
+  };
+  return map[dbGender] || 'Otro';
+}
+
+// Helper to map DB BloodType to Frontend
+function mapBloodTypeToFrontend(dbBloodType: string | null): string {
+  if (!dbBloodType) return 'O+';
+  const map: Record<string, string> = {
+    'A_POSITIVE': 'A+',
+    'A_NEGATIVE': 'A-',
+    'B_POSITIVE': 'B+',
+    'B_NEGATIVE': 'B-',
+    'AB_POSITIVE': 'AB+',
+    'AB_NEGATIVE': 'AB-',
+    'O_POSITIVE': 'O+',
+    'O_NEGATIVE': 'O-'
+  };
+  return map[dbBloodType] || 'O+';
+}
+
 // Test database connection
 export async function testDatabaseConnection(): Promise<boolean> {
   try {
@@ -267,11 +294,11 @@ export async function getPatients(currentUserId?: string) {
 
       if (currentUserId) {
         const currentUser = await prisma.user.findUnique({
-          where: { id: currentUserId },
-          select: { role: true, userId: true }
+          where: { id: currentUserId }, // Uses internal CUID
+          select: { role: true, userId: true, id: true }
         });
 
-        console.log('👤 Current user role:', currentUser?.role);
+        console.log('👤 Current user found:', currentUser ? `${currentUser.role} (${currentUser.id})` : 'Not found');
 
         if (currentUser?.role === 'DOCTOR') {
           // Doctors see patients assigned to them
@@ -279,16 +306,17 @@ export async function getPatients(currentUserId?: string) {
             ...whereClause,
             patientAssignments: {
               some: {
-                doctorId: currentUserId,
+                doctorId: currentUserId, // Uses internal CUID
                 active: true
               }
             }
           };
+          console.log('🩺 Doctor filter applied for:', currentUserId);
         } else if (currentUser?.role === 'USER') {
           // Patients see only themselves
           whereClause = {
             ...whereClause,
-            id: currentUserId
+            id: currentUserId // Uses internal CUID
           };
         }
         // Admins/Secretarias see all (default whereClause)
@@ -335,8 +363,10 @@ export async function getPatients(currentUserId?: string) {
           name: user.name,
           cedula: patientInfo?.cedula || '',
           age,
-          gender: patientInfo?.gender || 'Otro',
-          bloodType: patientInfo?.bloodType || 'O+',
+          fechaNacimiento: patientInfo?.fechaNacimiento ? patientInfo.fechaNacimiento.toISOString() : undefined,
+          gender: mapGenderToFrontend(patientInfo?.gender || null),
+          bloodType: mapBloodTypeToFrontend(patientInfo?.bloodType || null),
+          direccion: patientInfo?.direccion || '',
           status: user.status === 'ACTIVE' ? 'Activo' : 'Inactivo',
           lastVisit: user.lastLogin?.toISOString() || user.createdAt.toISOString(),
           contact: {
@@ -356,7 +386,17 @@ export async function getPatients(currentUserId?: string) {
   }, []);
 }
 
-export async function addPatient(patientData: any) {
+function calculateAge(birthDate: Date): number {
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+}
+
+export async function addPatient(patientData: any, currentUserId?: string) {
   return withDatabase(async (prisma) => {
     try {
       // Create user first
@@ -396,12 +436,30 @@ export async function addPatient(patientData: any) {
             patientId: user.id, // Use internal ID for relation
             active: true,
             assignedAt: new Date(),
-            assignedBy: 'SYSTEM' // Should ideally be currentUserId
+            assignedBy: currentUserId || 'SYSTEM' // Use currentUserId if available, fallback to SYSTEM (which might fail if FK constraint exists)
           }
         });
       }
 
-      return { success: true, userId: user.userId };
+      // Construct Patient object
+      const newPatient: Patient = {
+        id: user.userId,
+        name: user.name || '',
+        cedula: patientData.cedula,
+        age: calculateAge(new Date(patientData.birthDate)),
+        gender: patientData.gender,
+        bloodType: patientData.bloodType,
+        status: 'Activo',
+        contact: {
+          phone: user.phone || '',
+          email: user.email || ''
+        },
+        lastVisit: new Date().toISOString(),
+        companyId: patientData.companyId,
+        assignedDoctorId: patientData.assignedDoctorId
+      };
+
+      return newPatient;
     } catch (error) {
       console.error('Error adding patient:', error);
       throw new Error('Error al agregar paciente');
@@ -409,7 +467,7 @@ export async function addPatient(patientData: any) {
   });
 }
 
-export async function updatePatient(userId: string, patientData: any) {
+export async function updatePatient(userId: string, patientData: any, currentUserId?: string) {
   try {
     console.log(`🔄 Actualizando paciente: ${userId}`, patientData);
 
@@ -481,7 +539,7 @@ export async function updatePatient(userId: string, patientData: any) {
             patientId: user.id,
             active: true
           },
-          data: { active: false, unassignedAt: new Date() }
+          data: { active: false }
         });
 
         // Create new assignment
@@ -490,7 +548,7 @@ export async function updatePatient(userId: string, patientData: any) {
             doctorId: patientData.assignedDoctorId,
             patientId: user.id,
             active: true,
-            assignedBy: 'SYSTEM'
+            assignedBy: currentUserId || 'SYSTEM'
           }
         });
       }
@@ -1047,17 +1105,19 @@ export async function getCurrentUserWithStatus(userId: string): Promise<{
   } catch (error) {
     console.error('❌ Error getting current user with status:', error);
     return null;
+    return null;
   }
 }
 
 // Create patient from existing user
 export async function addPatientFromUser(userId: string, patientData: {
-  age: number;
-  gender: 'Masculino' | 'Femenino' | 'Otro';
-  bloodType: string;
-  cedula: string;
+  age?: number;
+  gender?: string;
+  bloodType?: string;
+  cedula?: string;
   companyId?: string;
-}): Promise<Patient> {
+  assignedDoctorId?: string;
+}, currentUserId?: string): Promise<Patient> {
   try {
     console.log('addPatientFromUser called with userId:', userId, 'and data:', JSON.stringify(patientData, null, 2));
 
@@ -1146,14 +1206,28 @@ export async function addPatientFromUser(userId: string, patientData: {
       console.log('Affiliation created successfully:', affiliation);
     }
 
+    // If assignedDoctorId is provided, create doctor-patient assignment
+    if (patientData.assignedDoctorId) {
+      await prisma.doctorPatient.create({
+        data: {
+          doctorId: patientData.assignedDoctorId,
+          patientId: user.id, // Use internal ID for relation
+          active: true,
+          assignedAt: new Date(),
+          assignedBy: currentUserId || 'SYSTEM'
+        }
+      });
+      console.log('Doctor assignment created successfully');
+    }
+
     // Map User to expected Patient type (since we're using userId architecture)
     const mappedPatient: Patient = {
       id: user.id, // Use user.id as patient ID
       name: user.name,
-      cedula: patientData.cedula,
-      age: patientData.age,
-      gender: patientData.gender,
-      bloodType: patientData.bloodType,
+      cedula: patientData.cedula || '',
+      age: patientData.age || 0,
+      gender: (patientData.gender as any) || 'Otro',
+      bloodType: patientData.bloodType || 'O+',
       status: 'Activo',
       contact: {
         phone: user.phone || '',

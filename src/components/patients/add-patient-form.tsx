@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { addPatient, addPatientFromUser, getCompanies, listSelectablePatientUsers, testDatabaseConnection, getDoctors } from '@/lib/actions';
 import { usePatients } from '@/lib/store/global-store';
+import { useAuth } from '@/components/layout/auth-provider';
 import type { Company, User } from '@/lib/types';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
@@ -58,6 +59,7 @@ interface AddPatientFormProps {
 
 export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
   console.log('🎯 AddPatientForm component rendered');
+  const { currentUser } = useAuth();
   const { addPatient: addPatientToStore } = usePatients();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [doctors, setDoctors] = useState<User[]>([]);
@@ -199,7 +201,7 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
           },
           companyId: values.companyId === 'none' ? undefined : values.companyId,
           assignedDoctorId: values.assignedDoctorId,
-        });
+        }, currentUser?.id);
       }
 
       addPatientToStore(newPatient);

@@ -192,6 +192,8 @@ export interface Patient {
   companyName?: string;
   direccion?: string;
   assignedDoctors?: { id: string; name: string; specialty?: string }[];
+  assignedDoctorId?: string;
+  assignedDoctorName?: string;
 }
 
 export interface Appointment {

@@ -25,20 +25,23 @@ const nextConfig: NextConfig = {
   },
   // Paquetes externos para componentes del servidor
   serverExternalPackages: ['@prisma/client', 'bcryptjs'],
-  
+
   // Production optimizations
   productionBrowserSourceMaps: false,
   output: 'standalone',
   compress: true,
   reactStrictMode: true,
-  
+  // Compiler configuration
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production" ? { exclude: ["error"] } : false,
+  },
   // TypeScript configuration
   typescript: {
     ignoreBuildErrors: true,
     // Enable incremental compilation
     tsconfigPath: './tsconfig.json'
   },
-  
+
   // Image optimization configuration
   images: {
     remotePatterns: [
@@ -63,7 +66,7 @@ const nextConfig: NextConfig = {
     ],
     formats: ['image/avif', 'image/webp'],
   },
-  
+
   // Webpack configuration
   webpack: (config: any, { dev, isServer }: { dev: boolean; isServer: boolean }) => {
     // Only in development
@@ -78,7 +81,7 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
-  
+
   // Optimization headers
   async headers() {
     return [

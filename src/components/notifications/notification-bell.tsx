@@ -36,14 +36,7 @@ export default function NotificationBell() {
     filters: { unreadOnly: false }
   });
 
-  // Debug logs (temporal)
-  console.log('🔔 NotificationBell Debug:', {
-    notifications: notifications?.length || 0,
-    unreadCount,
-    loading,
-    error,
-    shouldShowButton: unreadCount > 0
-  });
+  // Debug logs (temporal) removed
 
   const [isOpen, setIsOpen] = useState(false);
   const [isRinging, setIsRinging] = useState(false);
@@ -63,16 +56,16 @@ export default function NotificationBell() {
     // Solo animar si el contador aumentó (nueva notificación)
     if (unreadCount > previousUnreadCount.current) {
       setIsRinging(true);
-      
+
       // Remover la animación después de 1 segundo
       const timer = setTimeout(() => {
         setIsRinging(false);
       }, 1000); // Duración de la animación (1 segundo)
-      
+
       // Cleanup del timer
       return () => clearTimeout(timer);
     }
-    
+
     // Actualizar la referencia para la próxima comparación
     previousUnreadCount.current = unreadCount;
   }, [unreadCount]);
@@ -80,28 +73,25 @@ export default function NotificationBell() {
   // Las notificaciones ahora vienen del hook useNotifications
 
   const handleNotificationClick = async (notification: Notification) => {
-    console.log('[BELL] Clicked notification:', notification.id);
-    
+
     // Si ya está leída, solo navegar
     if (notification.isRead) {
-      console.log('[BELL] Notificación ya leída, solo navegando');
       if (notification.actionUrl) {
         window.location.href = notification.actionUrl;
       }
       setIsOpen(false);
       return;
     }
-    
+
     // Marcar como leída
     try {
       await markAsRead(notification.id);
-      console.log('[BELL] Marcada como leída:', notification.id);
-      
+
       // Navegar si tiene URL
       if (notification.actionUrl) {
         window.location.href = notification.actionUrl;
       }
-      
+
       setIsOpen(false);
     } catch (error) {
       console.error('[BELL] Error al marcar como leída:', error);
@@ -114,7 +104,6 @@ export default function NotificationBell() {
 
   const handleViewAllNotifications = () => {
     // TODO: Navegar a página de notificaciones
-    console.log('View all notifications');
     setIsOpen(false);
   };
 
@@ -136,14 +125,13 @@ export default function NotificationBell() {
           className="relative h-8 w-8"
           aria-label="Notificaciones"
         >
-          <Bell 
-            className={`h-5 w-5 transition-transform duration-200 ${
-              isRinging ? 'animate-ring' : ''
-            }`}
+          <Bell
+            className={`h-5 w-5 transition-transform duration-200 ${isRinging ? 'animate-ring' : ''
+              }`}
           />
           {unreadCount > 0 && (
-            <Badge 
-              variant="destructive" 
+            <Badge
+              variant="destructive"
               className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center"
               style={{ zIndex: 10 }}
             >
@@ -152,9 +140,9 @@ export default function NotificationBell() {
           )}
         </Button>
       </PopoverTrigger>
-      
-      <PopoverContent 
-        className="w-80 p-0" 
+
+      <PopoverContent
+        className="w-80 p-0"
         align="end"
         sideOffset={8}
       >
@@ -169,7 +157,6 @@ export default function NotificationBell() {
           </div>
           {unreadCount > 0 && (
             <>
-              {console.log('[BELL] Mostrando botón - unreadCount:', unreadCount)}
               <Button
                 variant="ghost"
                 size="sm"
@@ -181,9 +168,9 @@ export default function NotificationBell() {
             </>
           )}
         </div>
-        
+
         <Separator />
-        
+
         <div className="max-h-80 overflow-y-auto">
           {!notifications || notifications.length === 0 ? (
             <div className="p-4 text-center">
@@ -198,19 +185,16 @@ export default function NotificationBell() {
               {notifications.map((notification, index) => (
                 <div key={notification.id}>
                   <div
-                    className={`p-3 rounded-md cursor-pointer transition-colors hover:bg-accent ${
-                      !notification.isRead ? 'bg-primary/5' : ''
-                    }`}
+                    className={`p-3 rounded-md cursor-pointer transition-colors hover:bg-accent ${!notification.isRead ? 'bg-primary/5' : ''
+                      }`}
                     onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                        !notification.isRead ? 'bg-primary' : 'bg-transparent'
-                      }`} />
+                      <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${!notification.isRead ? 'bg-primary' : 'bg-transparent'
+                        }`} />
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm truncate ${
-                          !notification.isRead ? 'font-semibold' : 'font-medium'
-                        }`}>
+                        <p className={`text-sm truncate ${!notification.isRead ? 'font-semibold' : 'font-medium'
+                          }`}>
                           {notification.title}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
@@ -233,7 +217,7 @@ export default function NotificationBell() {
             </div>
           )}
         </div>
-        
+
         {notifications && notifications.length > 0 && (
           <>
             <Separator />

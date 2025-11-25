@@ -285,20 +285,16 @@ export async function deleteReport(reportId: string) {
 export async function getPatients(currentUserId?: string) {
   return withDatabase(async (prisma) => {
     try {
-      console.log('🔍 getPatients called with currentUserId:', currentUserId);
-
       let whereClause: any = {
-        role: 'USER', // Using string literal instead of ROLES.USER to avoid import issues if ROLES is not available in this scope (though it should be)
+        role: 'USER',
         status: 'ACTIVE'
       };
 
       if (currentUserId) {
         const currentUser = await prisma.user.findUnique({
-          where: { id: currentUserId }, // Uses internal CUID
+          where: { id: currentUserId },
           select: { role: true, userId: true, id: true }
         });
-
-        console.log('👤 Current user found:', currentUser ? `${currentUser.role} (${currentUser.id})` : 'Not found');
 
         if (currentUser?.role === 'DOCTOR') {
           // Doctors see patients assigned to them
@@ -306,38 +302,47 @@ export async function getPatients(currentUserId?: string) {
             ...whereClause,
             patientAssignments: {
               some: {
-                doctorId: currentUserId, // Uses internal CUID
+                doctorId: currentUserId,
                 active: true
               }
             }
           };
-          console.log('🩺 Doctor filter applied for:', currentUserId);
         } else if (currentUser?.role === 'USER') {
           // Patients see only themselves
           whereClause = {
             ...whereClause,
-            id: currentUserId // Uses internal CUID
+            id: currentUserId
           };
         }
-        // Admins/Secretarias see all (default whereClause)
       }
-
-      console.log('📋 Prisma where clause:', JSON.stringify(whereClause, null, 2));
 
       const patients = await prisma.user.findMany({
         where: whereClause,
-        include: {
+        select: {
+          userId: true,
+          name: true,
+          status: true,
+          lastLogin: true,
+          createdAt: true,
+          phone: true,
+          email: true,
           patientInfo: true,
           affiliations: {
             where: { estado: 'ACTIVA' },
-            include: { company: true }
+            select: {
+              companyId: true,
+              company: {
+                select: { nombre: true }
+              }
+            }
           },
           patientAssignments: {
             where: { active: true },
-            include: {
+            select: {
               doctor: {
-                include: {
-                  doctorInfo: true
+                select: {
+                  id: true,
+                  name: true
                 }
               }
             }
@@ -352,14 +357,13 @@ export async function getPatients(currentUserId?: string) {
           ? Math.floor((Date.now() - new Date(patientInfo.fechaNacimiento).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
           : 0;
 
-        // Get assigned doctor info
         const assignment = user.patientAssignments?.[0];
         const assignedDoctor = assignment?.doctor;
         const doctorName = assignedDoctor ? assignedDoctor.name : undefined;
         const doctorId = assignedDoctor ? assignedDoctor.id : undefined;
 
         return {
-          id: user.userId, // Use userId as the stable ID
+          id: user.userId,
           name: user.name,
           cedula: patientInfo?.cedula || '',
           age,
@@ -693,11 +697,6 @@ export async function getAppointments(): Promise<Appointment[]> {
     }
     const prisma = getPrisma();
     const appointments = await prisma.appointment.findMany({
-      include: {
-        patient: true, // Relación con User (paciente)
-        doctor: true,  // Relación con User (doctor)
-        creator: true, // Relación con User (creador)
-      },
       orderBy: { fecha: 'desc' },
     });
 

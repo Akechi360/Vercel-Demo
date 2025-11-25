@@ -11,18 +11,19 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Moon, Sun, User, LogOut, Settings, PanelLeft, Search } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Moon, Sun, User, LogOut, Settings, PanelLeft, Search, Home, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { useTheme } from 'next-themes';
-import { useRouter } from 'next/navigation';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useAuth } from './auth-provider';
 import { ROLES } from '@/lib/types';
 import NotificationBell from '@/components/notifications/notification-bell';
-
 export default function AppHeader() {
   const { setTheme, theme } = useTheme();
   const router = useRouter();
+  const pathname = usePathname();
   const { toggleSidebar, isMobile, state } = useSidebar();
   const { currentUser } = useAuth();
   const isCollapsed = state === 'collapsed';
@@ -32,7 +33,8 @@ export default function AppHeader() {
     router.push('/landing');
   };
 
-  // Greeting removed
+  // Generate breadcrumbs
+  const segments = pathname ? pathname.split('/').filter(Boolean) : [];
 
   return (
     <header className="sticky top-0 z-30 flex h-20 items-center gap-4 border-b bg-card/80 px-6 backdrop-blur-xl shadow-sm transition-all duration-300">
@@ -47,6 +49,34 @@ export default function AppHeader() {
           <span className="sr-only">Toggle Sidebar</span>
         </Button>
       )}
+
+      {/* Breadcrumbs */}
+      <nav aria-label="Breadcrumb" className="hidden sm:flex items-center text-sm text-muted-foreground mr-4">
+        <Link href="/dashboard" className="hover:text-primary transition-colors flex items-center">
+          <Home className="h-4 w-4" />
+        </Link>
+        {segments.map((segment, index) => {
+          // Skip "dashboard" if it's the first segment because we already have the Home icon linking to it
+          if (index === 0 && segment === 'dashboard') return null;
+
+          const href = `/${segments.slice(0, index + 1).join('/')}`;
+          const isLast = index === segments.length - 1;
+          const title = segment.charAt(0).toUpperCase() + segment.slice(1);
+
+          return (
+            <div key={href} className="flex items-center">
+              <ChevronRight className="h-4 w-4 mx-1 opacity-50" />
+              {isLast ? (
+                <span className="font-medium text-foreground">{title}</span>
+              ) : (
+                <Link href={href} className="hover:text-primary transition-colors">
+                  {title}
+                </Link>
+              )}
+            </div>
+          );
+        })}
+      </nav>
 
       {/* Search Bar */}
       <div className="flex-1 flex items-center max-w-md">

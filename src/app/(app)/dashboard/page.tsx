@@ -7,7 +7,8 @@ import {
 import { PageHeader } from '@/components/shared/page-header';
 import { useAuth } from '@/components/layout/auth-provider';
 import { usePermissions } from '@/hooks/use-permissions';
-import { getIpssScoresByUserId, getPatients, getAppointments, getAffiliations, getLabResultsStats } from '@/lib/actions';
+import { getIpssScoresByUserId, getAppointments, getAffiliations, getLabResultsStats } from '@/lib/actions';
+import { getCachedPatients } from '@/lib/cachedActions';
 import { useEffect, useState, useRef } from 'react';
 import type { Patient, Appointment, IpssScore } from '@/lib/types';
 import { isToday, isYesterday, subMonths } from 'date-fns';
@@ -15,6 +16,21 @@ import { RoleBasedContent } from '@/components/shared/role-based-content';
 import { HeartbeatLoader } from '@/components/ui/heartbeat-loader';
 import { FadeInSection } from '@/components/animations/fade-in-section';
 import { motion } from 'framer-motion';
+
+function SkeletonStatCard() {
+    return (
+        <div className="bg-card/80 rounded-xl shadow-lg border-l-4 border-l-primary/20 p-6 animate-pulse h-[140px]">
+            <div className="flex justify-between items-start mb-4">
+                <div className="space-y-2">
+                    <div className="h-4 w-24 bg-muted rounded" />
+                    <div className="h-8 w-16 bg-muted rounded" />
+                </div>
+                <div className="h-10 w-10 bg-muted rounded-full" />
+            </div>
+            <div className="h-4 w-32 bg-muted rounded" />
+        </div>
+    );
+}
 
 type DashboardStats = {
     totalPatients: number;
@@ -59,7 +75,7 @@ export default function DashboardPage() {
 
             if (userIsAdmin || userIsSecretaria || userIsDoctor) {
                 const [patients, appointments, labStats] = await Promise.all([
-                    getPatients(),
+                    getCachedPatients(currentUser.userId), // Use cached version
                     getAppointments(),
                     getLabResultsStats()
                 ]);
@@ -117,11 +133,9 @@ export default function DashboardPage() {
         });
     }, [currentUser?.userId, currentUser?.role]); // ✅ Solo dependencias estables
 
-    if (!stats) {
-        return <HeartbeatLoader text="Cargando estadísticas..." size="md" />;
-    }
+    const isLoading = !stats;
 
-    const patientStatCards = [
+    const patientStatCards = stats ? [
         {
             title: "Próxima Cita",
             value: 0,
@@ -143,60 +157,60 @@ export default function DashboardPage() {
             subtext: "No hay resultados pendientes",
             trend: "stale"
         }
-    ];
+    ] : [];
 
-    const adminDoctorStatCards = [
+    const adminDoctorStatCards = stats ? [
         {
             title: "Total Pacientes",
             value: stats.totalPatients,
             iconName: "Users",
-            subtext: stats.monthlyPatientsGrowth > 0 ? `+${stats.monthlyPatientsGrowth} este mes` :
-                stats.monthlyPatientsGrowth < 0 ? `${stats.monthlyPatientsGrowth} este mes` : "Sin cambios este mes",
-            trend: stats.monthlyPatientsGrowth > 0 ? "up" : stats.monthlyPatientsGrowth < 0 ? "down" : "stale"
+            subtext: `${stats.monthlyPatientsGrowth >= 0 ? '+' : ''}${stats.monthlyPatientsGrowth} este mes`,
+            trend: stats.monthlyPatientsGrowth >= 0 ? "up" : "down"
         },
         {
-            title: "Citas de Hoy",
+            title: "Citas Hoy",
             value: stats.todayAppointments,
-            iconName: "CalendarDays",
-            subtext: stats.todayAppointments > stats.yesterdayAppointments ?
-                `+${stats.todayAppointments - stats.yesterdayAppointments} vs ayer` :
-                stats.todayAppointments < stats.yesterdayAppointments ?
-                    `${stats.todayAppointments - stats.yesterdayAppointments} vs ayer` :
-                    "Igual que ayer",
-            trend: stats.todayAppointments > stats.yesterdayAppointments ? "up" :
-                stats.todayAppointments < stats.yesterdayAppointments ? "down" : "stale"
+            iconName: "Calendar",
+            subtext: `${stats.yesterdayAppointments} ayer`,
+            trend: stats.todayAppointments >= stats.yesterdayAppointments ? "up" : "down"
         },
         {
             title: "Resultados Pendientes",
             value: stats.pendingResults,
-            iconName: "FlaskConical",
-            subtext: stats.pendingResults > 0 ? "Análisis requerido" : "Sin resultados pendientes",
+            iconName: "FileText",
+            subtext: "Requieren revisión",
             trend: "stale"
         }
-    ];
+    ] : [];
 
-    // Determinar qué tarjetas mostrar según el rol
-    let statCards: typeof patientStatCards = [];
-    if (isPatient()) {
-        statCards = patientStatCards;
-    } else if (isAdmin() || isDoctor() || isSecretaria()) {
-        statCards = adminDoctorStatCards;
-    } else if (isPromotora()) {
-        statCards = [
-            {
-                title: "Afiliaciones Activas",
-                value: stats.activeAffiliations,
-                iconName: "Handshake",
-                subtext: stats.activeAffiliations > 0 ?
-                    `${stats.activeAffiliations} afiliación${stats.activeAffiliations > 1 ? 'es' : ''} activa${stats.activeAffiliations > 1 ? 's' : ''}` :
-                    "Sin afiliaciones registradas",
-                trend: stats.activeAffiliations > 0 ? "up" : "stale"
-            }
-        ];
-    }
+    const promotoraStatCards = stats ? [
+        {
+            title: "Afiliaciones Activas",
+            value: stats.activeAffiliations,
+            iconName: "Users",
+            subtext: "Total acumulado",
+            trend: "up"
+        },
+        {
+            title: "Comisiones Mes",
+            value: 0,
+            iconName: "DollarSign",
+            subtext: "En proceso",
+            trend: "stale"
+        },
+        {
+            title: "Nuevos Prospectos",
+            value: 0,
+            iconName: "UserPlus",
+            subtext: "Esta semana",
+            trend: "stale"
+        }
+    ] : [];
+
+    const statCards = isPromotora() ? promotoraStatCards : (isPatient() ? patientStatCards : adminDoctorStatCards);
 
     return (
-        <div className="min-h-screen bg-background p-6">
+        <div className="min-h-screen bg-gradient-to-b from-primary/5 via-background/10 to-primary/5 p-6">
             <div className="flex flex-col gap-8 max-w-7xl mx-auto">
                 <div className="relative mb-8">
                     {/* Línea decorativa animada con gradiente */}
@@ -213,20 +227,28 @@ export default function DashboardPage() {
                 {/* Tarjetas de estadísticas */}
                 <div className="relative mb-8">
                     {/* Glow ambiental imperceptible */}
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/4 via-transparent to-accent/4 rounded-3xl blur-3xl -z-10" />
+
 
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 relative z-10">
-                        {statCards.map((card, index) => (
-                            <StatCard
-                                key={card.title}
-                                title={card.title}
-                                value={card.value}
-                                iconName={card.iconName as any}
-                                subtext={card.subtext}
-                                trend={card.trend as "up" | "down" | "stale"}
-                                index={index}
-                            />
-                        ))}
+                        {isLoading ? (
+                            <>
+                                <SkeletonStatCard />
+                                <SkeletonStatCard />
+                                <SkeletonStatCard />
+                            </>
+                        ) : (
+                            statCards.map((card, index) => (
+                                <StatCard
+                                    key={card.title}
+                                    title={card.title}
+                                    value={card.value}
+                                    iconName={card.iconName as any}
+                                    subtext={card.subtext}
+                                    trend={card.trend as "up" | "down" | "stale"}
+                                    index={index}
+                                />
+                            ))
+                        )}
                     </div>
                 </div>
 

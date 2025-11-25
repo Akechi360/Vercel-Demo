@@ -3,103 +3,82 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Stethoscope, 
-  Check, 
-  Users, 
-  ShieldCheck, 
-  HeartPulse, 
-  Bone, 
-  FlaskConical, 
-  ZoomIn, 
-  Play, 
-  MessageSquare, 
-  Phone, 
-  MapPin, 
-  Ambulance, 
-  Microscope, 
-  Clock, 
+import { Card } from '@/components/ui/card';
+import {
+  Stethoscope,
+  Check,
+  Users,
+  ShieldCheck,
+  HeartPulse,
+  Bone,
+  FlaskConical,
+  MessageSquare,
+  Microscope,
   Activity,
   Star,
   ArrowRight,
-  Award,
   Calendar,
   FileText,
   Zap,
-  Globe,
-  ChevronRight
+  Sparkles,
+  Network
 } from 'lucide-react';
-import { motion, useInView } from 'framer-motion';
-import { TextHighlight } from '@/components/ui/text-highlight';
-import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { ScrollReveal } from '@/components/animations/scroll-reveal';
 import { AnimatedCounter } from '@/components/animations/animated-counter';
-import { ParallaxSection } from '@/components/animations/parallax-section';
-import { AnimatedButton } from '@/components/animations/animated-button';
-import { AnimatedCard } from '@/components/animations/animated-card';
-import { StaggerContainer } from '@/components/animations/stagger-container';
-import { StaggerItem } from '@/components/animations/stagger-item';
-import RotatingText from '@/components/ui/RotatingText';
-import TiltedCard from '@/components/ui/TiltedCard';
-import { MagneticButton } from '@/components/animations/magnetic-button';
+import { useRef } from 'react';
 
-const fadeIn = (delay: number = 0) => ({
-  hidden: { opacity: 0, y: 20 },
+const fadeInUp = {
+  hidden: { opacity: 0, y: 30 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      duration: 0.6,
-      ease: 'easeOut',
-      delay,
-    },
-  },
-});
+    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] }
+  }
+};
 
 const staggerContainer = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.2,
-      delayChildren: 0.1,
-    },
-  },
+      staggerChildren: 0.1,
+      delayChildren: 0.2
+    }
+  }
 };
 
 const metrics = [
-  { number: "1200 +", label: "Pacientes Activos", icon: Users },
-  { number: "30+", label: "Especialistas", icon: Stethoscope },
-  { number: "500+", label: "Estudios Realizados", icon: Microscope },
-  { number: "98%", label: "Satisfacción", icon: Star },
+  { number: "1200", label: "Pacientes Activos", icon: Users, color: "from-blue-500 to-cyan-500" },
+  { number: "30", label: "Especialistas", icon: Stethoscope, color: "from-purple-500 to-pink-500" },
+  { number: "500", label: "Estudios Realizados", icon: Microscope, color: "from-orange-500 to-red-500" },
+  { number: "98", label: "Satisfacción", icon: Star, color: "from-green-500 to-emerald-500" },
 ];
 
 const benefits = [
   {
-    icon: MessageSquare,
-    title: "Consultas Ilimitadas",
-    description: "Chatea con nuestro equipo médico especializado las 24 horas del día.",
-    color: "bg-urovital-blue/10 text-urovital-blue"
+    icon: Network,
+    title: "Telemedicina 24/7",
+    description: "Conexión directa con especialistas médicos desde cualquier lugar",
+    gradient: "from-blue-500 to-cyan-600"
   },
   {
-    icon: FlaskConical,
-    title: "Cobertura en Estudios",
-    description: "Acceso a radiología, uroflujometrías y más con descuentos preferenciales.",
-    color: "bg-urovital-red/10 text-urovital-red"
+    icon: FileText,
+    title: "Historial Médico Digital",
+    description: "Acceso completo a tu historial clínico y resultados de estudios",
+    gradient: "from-violet-500 to-purple-600"
   },
   {
     icon: Calendar,
-    title: "Atención Prioritaria",
-    description: "Turnos con especialistas sin demoras y seguimiento personalizado.",
-    color: "bg-urovital-blue/10 text-urovital-blue"
+    title: "Gestión de Citas",
+    description: "Agenda y administra tus consultas médicas de forma sencilla",
+    gradient: "from-pink-500 to-rose-600"
   },
   {
-    icon: ShieldCheck,
-    title: "Seguimiento 24/7",
-    description: "Recordatorios automáticos y acceso rápido a tus resultados médicos.",
-    color: "bg-urovital-red/10 text-urovital-red"
+    icon: Zap,
+    title: "Atención Prioritaria",
+    description: "Acceso rápido a especialistas y seguimiento personalizado",
+    gradient: "from-amber-500 to-orange-600"
   }
 ];
 
@@ -107,52 +86,49 @@ const specialties = [
   {
     icon: Stethoscope,
     title: 'Urología',
-    description: 'Atención especializada para el sistema urinario y reproductivo masculino.',
-    color: 'bg-urovital-blue/10 text-urovital-blue'
+    description: 'Atención especializada para el sistema urinario y reproductivo masculino',
+    image: '/images/landing/doctors-uro1.png'
   },
   {
     icon: HeartPulse,
     title: 'Ginecología',
-    description: 'Atención integral de la salud femenina con tratamientos especializados.',
-    color: 'bg-urovital-red/10 text-urovital-red'
+    description: 'Atención integral de la salud femenina con tratamientos especializados',
   },
   {
     icon: Bone,
     title: 'Oncología',
-    description: 'Diagnóstico y tratamiento de cáncer con un enfoque multidisciplinario y humano.',
-    color: 'bg-urovital-blue/10 text-urovital-blue'
+    description: 'Diagnóstico y tratamiento de cáncer con enfoque multidisciplinario',
   },
   {
     icon: Activity,
     title: 'Uroginecología',
-    description: 'Tratamientos avanzados de trastornos del piso pélvico.',
-    color: 'bg-urovital-red/10 text-urovital-red'
+    description: 'Tratamientos avanzados de trastornos del piso pélvico',
   },
 ];
 
 const processSteps = [
-  { 
-    number: "01", 
-    title: "Regístrate", 
-    description: "Crea tu cuenta en segundos y elige tu plan ideal.",
+  {
+    number: "01",
+    title: "Regístrate en la Plataforma",
+    description: "Crea tu cuenta y selecciona el plan que mejor se adapte a tus necesidades",
     icon: Users
   },
-  { 
-    number: "02", 
-    title: "Agenda tu cita", 
-    description: "Selecciona fecha, hora y especialista que prefieras.",
+  {
+    number: "02",
+    title: "Agenda tu Cita",
+    description: "Selecciona especialista, fecha y hora según tu disponibilidad",
     icon: Calendar
   },
-  { 
-    number: "03", 
-    title: "Recibe atención", 
-    description: "Consulta presencial o virtual con nuestros expertos.",
+  {
+    number: "03",
+    title: "Consulta Médica",
+    description: "Recibe atención presencial o por telemedicina con nuestros especialistas",
     icon: Stethoscope
   },
-  { 
-    number: "04", 
-    title: "Seguimiento continuo", 
-    description: "Acceso a resultados y seguimiento personalizado.",
+  {
+    number: "04",
+    title: "Accede a tu Historial",
+    description: "Consulta resultados de estudios y seguimiento médico en cualquier momento",
     icon: FileText
   },
 ];
@@ -190,634 +166,518 @@ const pricingPlans = [
 ];
 
 const partners = [
-  { name: "Banesco", logo: "/images/banks/banesco.png", badge: "Banesco Vzla/Banesco Panama" },
-  { name: "BDV", logo: "/images/banks/bdv.png", badge: "Banco de Venezuela" },
-  { name: "Mercantil", logo: "/images/banks/mercantil.png", badge: "Banco Mercantil" },
-  { name: "BNC", logo: "/images/banks/bnc.png", badge: "BNC" },
-  { name: "PayPal", logo: "/images/banks/paypal.png", badge: "PayPal" },
-  { name: "Wally", logo: "/images/banks/wally.png", badge: "WallyTech" },
-];
-
-const allies = [
-  {
-    name: "Oceánica de Seguros",
-    logo: "/images/aliados/oceanica.png",
-    description: "Empresa aseguradora líder, especializada en salud y bienestar, reconocida por su atención ágil y confiable."
-  },
-  {
-    name: "CliniCare Centro Médico",
-    logo: "/images/aliados/clinicare.png",
-    description: "Centro médico integral con tecnología avanzada y atención humanizada, orientado al cuidado experto de los pacientes."
-  }
+  { name: "Banesco", logo: "/images/banks/banesco.png" },
+  { name: "BDV", logo: "/images/banks/bdv.png" },
+  { name: "Mercantil", logo: "/images/banks/mercantil.png" },
+  { name: "BNC", logo: "/images/banks/bnc.png" },
+  { name: "PayPal", logo: "/images/banks/paypal.png" },
+  { name: "Wally", logo: "/images/banks/wally.png" },
 ];
 
 export default function LandingPage() {
+  const heroRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"]
+  });
+
+  const heroY = useTransform(scrollYProgress, [0, 1], [0, 200]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+
   return (
     <>
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-white via-urovital-blue-light/5 to-urovital-blue/10 dark:from-[#131c36] dark:via-[#071f3d] dark:to-[#131c36] pt-32 pb-20 md:pt-48 md:pb-28 overflow-hidden">
-        {/* Fondo con gradiente animado */}
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          <div className="gradient-mesh-hero absolute inset-0" />
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 animated-gradient" />
+      {/* Hero Section - Medical SaaS Tech */}
+      <section ref={heroRef} className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
+        {/* Animated gradient mesh background */}
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute top-0 -left-4 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob" />
+          <div className="absolute top-0 -right-4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000" />
+          <div className="absolute -bottom-8 left-20 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000" />
         </div>
-        
-        {/* Fondo con parallax */}
-        <ParallaxSection speed={0.5} className="absolute inset-0 -z-10">
-          <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
-        </ParallaxSection>
-        
-        {/* Elementos decorativos con parallax */}
-        <ParallaxSection speed={0.3} className="absolute inset-0 -z-10">
-          <div className="absolute top-20 right-10 w-64 h-64 bg-urovital-blue/10 rounded-full blur-3xl"></div>
-        </ParallaxSection>
-        
-        <ParallaxSection speed={0.7} className="absolute inset-0 -z-10">
-          <div className="absolute bottom-20 left-10 w-48 h-48 bg-urovital-red/10 rounded-full blur-3xl"></div>
-        </ParallaxSection>
-        <div className="container mx-auto px-4 grid lg:grid-cols-2 gap-12 items-center relative z-10">
-          <motion.div 
-            initial="hidden"
-            animate="visible"
-            variants={staggerContainer}
-            className="text-center lg:text-left"
-          >
-            <motion.div 
-              variants={fadeIn()} 
-              className="inline-flex items-center gap-2 bg-urovital-blue/10 text-urovital-blue px-4 py-2 rounded-full text-sm font-semibold mb-6"
+
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:72px_72px]" />
+
+
+        <motion.div
+          style={{ y: heroY, opacity: heroOpacity }}
+          className="container mx-auto px-4 py-20 relative z-10"
+        >
+          <div className="max-w-5xl mx-auto text-center">
+            {/* Main headline */}
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight"
             >
-              <Award className="w-4 h-4" />
-              Líderes en Salud Urológica
-            </motion.div>
-            
-            <motion.h1 
-              variants={fadeIn()}
-              className="text-4xl lg:text-6xl font-bold tracking-tight font-headline mb-6"
-            >
-              <span className="sr-only">UroVital</span>
-              <span className="inline-flex flex-wrap gap-2 justify-center lg:justify-start items-center">
-                Tu{' '}
-                <RotatingText
-                  texts={["Salud", "Bienestar", "Familia", "Cuidado"]}
-                  mainClassName="px-3 sm:px-4 md:px-5 bg-urovital-blue text-white overflow-hidden py-1 sm:py-2 md:py-3 justify-center rounded-lg"
-                  staggerFrom="last"
-                  initial={{ y: "100%" }}
-                  animate={{ y: 0 }}
-                  exit={{ y: "-120%" }}
-                  staggerDuration={0.025}
-                  splitLevelClassName="overflow-hidden pb-1 sm:pb-2"
-                  transition={{ type: "spring", damping: 30, stiffness: 400 }}
-                  rotationInterval={2500}
-                />
-                {' '}es nuestra prioridad
+              Tecnología médica
+              <br />
+              <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
+                que transforma vidas
               </span>
             </motion.h1>
-            
-            <motion.p 
-              variants={fadeIn()}
-              className="text-lg lg:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto lg:mx-0"
+
+            <motion.p
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+              className="text-xl text-blue-100/80 mb-8 max-w-3xl mx-auto leading-relaxed"
             >
-              Atención médica especializada, tecnología avanzada y un equipo humano 
-              comprometido con tu bienestar integral.
+              Plataforma SaaS de salud con telemedicina avanzada y
+              gestión médica en la nube. La evolución digital del cuidado de la salud.
             </motion.p>
-            
-            <motion.div 
-              variants={fadeIn()}
-              className="flex justify-center lg:justify-start"
+
+            {/* Tech badge - moved below description */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 mb-12"
             >
-              <MagneticButton 
-                className="bg-urovital-blue hover:bg-urovital-blue/90 text-white px-8 py-6 text-lg font-semibold border-2 border-urovital-blue hover:border-urovital-blue/90 shadow-lg hover:shadow-urovital-blue/30 transition-all duration-300 rounded-lg"
-                strength={0.4}
+              <Sparkles className="w-4 h-4 text-blue-400" />
+              <span className="text-sm font-medium text-white">Plataforma Médica de Última Generación</span>
+            </motion.div>
+
+
+            {/* CTAs */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.6 }}
+              className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+            >
+              <Button
+                size="lg"
+                className="group relative px-8 py-6 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white border-0 shadow-2xl shadow-blue-500/50 transition-all duration-300"
                 onClick={() => window.location.href = '/afiliacion'}
               >
-                <span className="flex items-center">
-                  Afíliate Ahora
-                  <ArrowRight className="ml-2 w-5 h-5" />
+                <span className="flex items-center gap-2">
+                  Acceder a la Plataforma
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </span>
-              </MagneticButton>
+              </Button>
+
+              <Button
+                size="lg"
+                variant="outline"
+                className="px-8 py-6 bg-white/5 backdrop-blur-xl border-white/20 text-white hover:bg-white/10 transition-all duration-300"
+                onClick={() => window.location.href = '#tecnologia'}
+              >
+                Ver Tecnología
+              </Button>
             </motion.div>
-          </motion.div>
-          
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, ease: [0.25, 1, 0.5, 1] }}
-            className="relative"
-          >
-            <div className="relative">
-              <Image 
-                src="/images/landing/doctors-uro1.png" 
-                alt="Equipo médico UroVital" 
-                width={608} 
-                height={601}
-                className="relative rounded-2xl shadow-2xl mx-auto max-w-full h-auto"
-                priority
-              />
-              <div className="absolute -top-4 -right-4 bg-urovital-blue text-white p-4 rounded-xl shadow-lg">
-                <div className="text-center">
-                  <div className="text-2xl font-bold">98%</div>
-                  <div className="text-sm">Satisfacción</div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-        
-        {/* Metrics */}
-        <div className="container mx-auto px-4 mt-16">
-          <StaggerContainer className="grid grid-cols-2 md:grid-cols-4 gap-8" staggerDelay={0.15}>
-            {metrics.map((metric, index) => {
-              const Icon = metric.icon;
-              return (
-                <StaggerItem key={index}>
-                  <div className="text-center bg-white dark:bg-card rounded-2xl p-8 shadow-lg hover:shadow-2xl hover:shadow-urovital-blue/20 transition-all duration-300 group hover:scale-105">
-                    <div className="inline-flex items-center justify-center w-12 h-12 bg-urovital-blue/10 rounded-full mb-4 group-hover:scale-110 transition-transform duration-300">
-                      <Icon className="w-6 h-6 text-urovital-blue" />
-                    </div>
-                    <p className="text-3xl font-bold text-urovital-blue mb-2">
-                      <AnimatedCounter 
-                        to={parseInt(metric.number.replace(/\D/g, ''))} 
-                        suffix={metric.number.replace(/\d/g, '')}
-                        duration={2.5}
-                        className="text-3xl font-bold text-urovital-blue"
-                      />
-                    </p>
-                    <p className="text-sm text-muted-foreground">{metric.label}</p>
+
+            {/* Floating medical image with glassmorphism */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1, delay: 0.8 }}
+              className="mt-20 relative"
+            >
+              <div className="relative rounded-3xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur-2xl p-2 shadow-2xl">
+                <Image
+                  src="/images/landing/doctors-uro1.png"
+                  alt="Plataforma UroVital"
+                  width={1200}
+                  height={600}
+                  className="rounded-2xl w-full h-auto"
+                  priority
+                />
+                {/* Floating tech indicators */}
+                <div className="absolute top-4 right-4 px-4 py-2 rounded-full bg-green-500/20 backdrop-blur-xl border border-green-400/30">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                    <span className="text-xs font-medium text-green-100">Sistema Activo</span>
                   </div>
-                </StaggerItem>
-              );
-            })}
-          </StaggerContainer>
-        </div>
-      </section>
-
-      {/* Benefits Section */}
-      <section className="py-20 md:py-28 bg-white dark:bg-[#131c36]">
-        <div className="container mx-auto px-4">
-          <motion.div 
-            initial="hidden" 
-            whileInView="visible" 
-            viewport={{ once: true, amount: 0.3 }} 
-            variants={staggerContainer} 
-            className="text-center max-w-3xl mx-auto mb-16"
-          >
-            <motion.p 
-              variants={fadeIn()} 
-              className="text-urovital-blue font-semibold text-sm uppercase mb-4 tracking-widest"
-            >
-              Beneficios Exclusivos
-            </motion.p>
-            <motion.h2 
-              variants={fadeIn()} 
-              className="text-3xl md:text-5xl font-bold font-headline mb-6"
-            >
-              Más salud por menos dinero
-            </motion.h2>
-            <motion.p 
-              variants={fadeIn()} 
-              className="text-lg text-muted-foreground"
-            >
-              Descubre por qué miles de pacientes confían en UroVital para su cuidado médico integral.
-            </motion.p>
-          </motion.div>
-
-          <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8" staggerDelay={0.12}>
-            {benefits.map((benefit, index) => {
-              const Icon = benefit.icon;
-              return (
-                <StaggerItem key={index}>
-                  <TiltedCard className="group">
-                    <AnimatedCard className="h-full text-center p-8 hover:shadow-2xl hover:shadow-urovital-blue/20 transition-all duration-300 border-0 bg-gradient-to-br from-white to-urovital-blue-light/5 dark:from-card dark:to-urovital-blue/5 group-hover:scale-105 rounded-xl">
-                      <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6 ${benefit.color} group-hover:scale-110 transition-transform duration-300`}>
-                        <Icon className="w-8 h-8" />
-                      </div>
-                      <h3 className="font-bold text-xl mb-4">{benefit.title}</h3>
-                      <p className="text-muted-foreground leading-relaxed">{benefit.description}</p>
-                    </AnimatedCard>
-                  </TiltedCard>
-                </StaggerItem>
-              );
-            })}
-          </StaggerContainer>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="py-20 md:py-28 bg-urovital-blue-light/5 dark:bg-[#071f3d]">
-        <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <motion.div 
-              initial={{opacity: 0, scale: 0.9}} 
-              whileInView={{opacity: 1, scale: 1}} 
-              viewport={{once: true}} 
-              transition={{duration: 0.6}} 
-              className="relative overflow-hidden order-2 lg:order-1"
-            >
-              <Image 
-                src="/images/landing/appointments1.jpg" 
-                width={658} 
-                height={488} 
-                alt="Proceso de atención médica" 
-                className="rounded-2xl shadow-2xl w-full h-auto object-cover" 
-              />
-            </motion.div>
-            
-            <motion.div 
-              initial="hidden" 
-              whileInView="visible" 
-              viewport={{ once: true, amount: 0.5 }} 
-              variants={fadeIn()}
-              className="order-1 lg:order-2"
-            >
-              <p className="text-urovital-blue font-semibold text-sm uppercase mb-4 tracking-widest">Cómo funciona</p>
-              <h2 className="text-3xl md:text-5xl font-bold font-headline mb-8">
-                Proceso simple y efectivo
-              </h2>
-              <p className="text-lg text-muted-foreground mb-12">
-                En solo 4 pasos tendrás acceso a la mejor atención médica especializada.
-              </p>
-              
-              <div className="space-y-8">
-                {processSteps.map((step, index) => {
-                  const Icon = step.icon;
-                  return (
-                    <ScrollReveal key={index} delay={index * 0.15} direction="up">
-                      <motion.div 
-                        initial={{ opacity: 0, x: -20 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.6, delay: index * 0.1 }}
-                        className="flex items-start gap-6"
-                      >
-                        <div className="flex-shrink-0 w-16 h-16 flex items-center justify-center rounded-2xl bg-urovital-blue text-white font-bold text-lg shadow-lg">
-                          {step.number}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <Icon className="w-5 h-5 text-urovital-blue" />
-                            <h3 className="font-bold text-xl">{step.title}</h3>
-                          </div>
-                          <p className="text-muted-foreground">{step.description}</p>
-                        </div>
-                      </motion.div>
-                    </ScrollReveal>
-                  );
-                })}
+                </div>
               </div>
             </motion.div>
           </div>
-        </div>
+        </motion.div>
+
+        {/* Scroll indicator */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2"
+        >
+          <div className="w-6 h-10 rounded-full border-2 border-white/30 flex items-start justify-center p-2">
+            <motion.div
+              animate={{ y: [0, 12, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="w-1.5 h-1.5 bg-white rounded-full"
+            />
+          </div>
+        </motion.div>
       </section>
 
-      {/* Specialties Section */}
-      <section className="py-20 md:py-28 bg-white dark:bg-[#131c36]">
+      {/* Metrics Section - Floating cards */}
+      <section className="py-20 bg-gradient-to-b from-slate-900 to-slate-950">
         <div className="container mx-auto px-4">
           <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, amount: 0.3 }}
             variants={staggerContainer}
-            className="text-center max-w-3xl mx-auto mb-16"
+            className="grid grid-cols-2 md:grid-cols-4 gap-6"
           >
-            <motion.p
-              variants={fadeIn()}
-              className="text-urovital-blue font-semibold text-sm uppercase mb-4 tracking-widest"
-            >
-              Nuestras Especialidades
-            </motion.p>
-            <motion.h2
-              variants={fadeIn()}
-              className="text-3xl md:text-5xl font-bold font-headline mb-6"
-            >
-              Especialistas que cuidan cada etapa de tu salud
-            </motion.h2>
-            <motion.p 
-              variants={fadeIn()} 
-              className="text-lg text-muted-foreground"
-            >
-              Un equipo multidisciplinario dedicado a tu bienestar integral con la más alta tecnología.
-            </motion.p>
-          </motion.div>
-          
-          <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8" staggerDelay={0.15}>
-            {specialties.map((specialty, index) => {
-              const Icon = specialty.icon;
+            {metrics.map((metric, index) => {
+              const Icon = metric.icon;
               return (
-                <StaggerItem key={index}>
-                  <TiltedCard className="group">
-                    <AnimatedCard className="h-full text-center p-8 hover:shadow-2xl hover:shadow-urovital-blue/20 transition-all duration-300 border-0 bg-gradient-to-br from-white to-urovital-blue-light/5 dark:from-card dark:to-urovital-blue/5 group-hover:scale-105 rounded-xl">
-                      <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6 ${specialty.color} group-hover:scale-110 transition-transform duration-300`}>
-                        <Icon className="w-8 h-8" />
+                <motion.div
+                  key={index}
+                  variants={fadeInUp}
+                  className="group relative"
+                >
+                  <div className="relative p-6 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 hover:border-white/20 transition-all duration-300 hover:scale-105">
+                    <div className={`absolute inset-0 bg-gradient-to-br ${metric.color} opacity-0 group-hover:opacity-10 rounded-2xl transition-opacity duration-300`} />
+                    <div className="relative">
+                      <Icon className="w-8 h-8 text-blue-400 mb-4" />
+                      <div className="text-4xl font-bold text-white mb-2">
+                        <AnimatedCounter to={parseInt(metric.number)} suffix={metric.number.includes('+') ? '+' : metric.number.includes('%') ? '%' : ''} />
                       </div>
-                      <h3 className="font-bold text-xl mb-4">{specialty.title}</h3>
-                      <p className="text-muted-foreground leading-relaxed">{specialty.description}</p>
-                    </AnimatedCard>
-                  </TiltedCard>
-                </StaggerItem>
+                      <div className="text-sm text-blue-200/60">{metric.label}</div>
+                    </div>
+                  </div>
+                </motion.div>
               );
             })}
-          </StaggerContainer>
+          </motion.div>
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section className="py-20 md:py-28 bg-urovital-blue-light/5 dark:bg-[#071f3d]">
-        <div className="container mx-auto px-4">
-          <motion.div 
-            initial="hidden" 
-            whileInView="visible" 
-            viewport={{ once: true, amount: 0.3 }} 
-            variants={staggerContainer} 
-            className="text-center max-w-3xl mx-auto mb-16"
+      {/* Benefits Section - Bento Grid with Tech Focus */}
+      <section id="tecnologia" className="py-32 bg-slate-950 relative overflow-hidden">
+        {/* Background effects */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-slate-950 to-slate-950" />
+
+        <div className="container mx-auto px-4 relative z-10">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            variants={fadeInUp}
+            className="text-center mb-16"
           >
-            <motion.p 
-              variants={fadeIn()} 
-              className="text-urovital-blue font-semibold text-sm uppercase mb-4 tracking-widest"
-            >
-              Planes de Precios
-            </motion.p>
-            <motion.h2 
-              variants={fadeIn()} 
-              className="text-3xl md:text-5xl font-bold font-headline mb-6"
-            >
-              Elige el plan perfecto para ti
-            </motion.h2>
-            <motion.p 
-              variants={fadeIn()} 
-              className="text-lg text-muted-foreground"
-            >
-              Flexibilidad y transparencia en cada plan. Sin sorpresas, solo beneficios.
-            </motion.p>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 mb-6">
+              <Network className="w-4 h-4 text-blue-400" />
+              <span className="text-sm font-medium text-blue-300">Servicios Médicos</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+              Plataforma integral de salud
+            </h2>
+            <p className="text-xl text-blue-100/60 max-w-2xl mx-auto">
+              Gestión completa de tu salud con telemedicina y seguimiento personalizado
+            </p>
           </motion.div>
-          
-          <StaggerContainer className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto" staggerDelay={0.2}>
+
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            variants={staggerContainer}
+            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+          >
+            {benefits.map((benefit, index) => {
+              const Icon = benefit.icon;
+              return (
+                <motion.div
+                  key={index}
+                  variants={fadeInUp}
+                  className="group relative"
+                >
+                  <div className="relative p-8 rounded-3xl bg-gradient-to-br from-white/[0.07] to-white/[0.02] backdrop-blur-2xl border border-white/10 hover:border-white/20 transition-all duration-500 overflow-hidden">
+                    {/* Gradient overlay on hover */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${benefit.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500`} />
+
+                    <div className="relative">
+                      <div className={`inline-flex p-3 rounded-2xl bg-gradient-to-br ${benefit.gradient} mb-6`}>
+                        <Icon className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-white mb-3">{benefit.title}</h3>
+                      <p className="text-blue-100/60 leading-relaxed">{benefit.description}</p>
+                    </div>
+
+                    {/* Decorative corner */}
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  </div>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Process Section - Timeline Tech */}
+      <section className="py-32 bg-gradient-to-b from-slate-950 via-blue-950/20 to-slate-950">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            variants={fadeInUp}
+            className="text-center mb-20"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+              Cómo funciona UroVital
+            </h2>
+            <p className="text-xl text-blue-100/60 max-w-2xl mx-auto">
+              Cuatro pasos simples para acceder a atención médica especializada
+            </p>
+          </motion.div>
+
+          <div className="max-w-4xl mx-auto">
+            {processSteps.map((step, index) => {
+              const Icon = step.icon;
+              return (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -50 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  className="relative flex gap-8 mb-12 last:mb-0"
+                >
+                  {/* Timeline line */}
+                  {index < processSteps.length - 1 && (
+                    <div className="absolute left-6 top-16 w-0.5 h-full bg-gradient-to-b from-blue-500 to-transparent" />
+                  )}
+
+                  {/* Number circle */}
+                  <div className="relative flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/50">
+                      {step.number}
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 pb-12">
+                    <div className="p-6 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 hover:border-white/20 transition-all duration-300 group">
+                      <div className="flex items-start gap-4">
+                        <div className="p-2 rounded-lg bg-blue-500/10">
+                          <Icon className="w-5 h-5 text-blue-400" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-xl font-bold text-white mb-2">{step.title}</h3>
+                          <p className="text-blue-100/60">{step.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Specialties - Modern Grid */}
+      <section className="py-32 bg-slate-950">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            variants={fadeInUp}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+              Especialidades médicas
+            </h2>
+            <p className="text-xl text-blue-100/60 max-w-2xl mx-auto">
+              Atención especializada con tecnología de vanguardia
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            variants={staggerContainer}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+          >
+            {specialties.map((specialty, index) => {
+              const Icon = specialty.icon;
+              return (
+                <motion.div
+                  key={index}
+                  variants={fadeInUp}
+                  className="group relative"
+                >
+                  <div className="relative p-6 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 hover:border-blue-500/50 transition-all duration-300 h-full">
+                    <Icon className="w-10 h-10 text-blue-400 mb-4" />
+                    <h3 className="text-xl font-bold text-white mb-3">{specialty.title}</h3>
+                    <p className="text-blue-100/60 text-sm leading-relaxed">{specialty.description}</p>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Pricing - Modern SaaS Style */}
+      <section className="py-32 bg-gradient-to-b from-slate-950 to-blue-950/20">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            variants={fadeInUp}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+              Planes de suscripción
+            </h2>
+            <p className="text-xl text-blue-100/60 max-w-2xl mx-auto">
+              Elige el plan que mejor se adapte a tus necesidades
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {pricingPlans.map((plan, index) => (
-              <StaggerItem key={plan.name}>
-                <div className="relative">
-                {/* Badge flotante - no afecta el layout interno */}
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                className="relative"
+              >
                 {plan.popular && (
-                  <div className="absolute top-[-20px] left-1/2 -translate-x-1/2 z-10">
-                    <div className="bg-urovital-blue text-white px-6 py-2 rounded-full text-sm font-semibold shadow-lg">
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
+                    <div className="px-4 py-1.5 rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-sm font-semibold shadow-lg">
                       Más Popular
                     </div>
                   </div>
                 )}
-                
-                {/* Card con altura fija idéntica */}
-                <TiltedCard className="group">
-                <AnimatedCard className={cn(
-                  "flex flex-col h-[520px] rounded-2xl shadow-lg hover:shadow-2xl hover:shadow-urovital-blue/20 transition-all duration-300 card-gradient group border-2",
-                  plan.popular 
-                    ? "border-urovital-blue/30 hover:border-urovital-blue/50" 
-                    : "border-transparent hover:border-urovital-blue/20"
+
+                <div className={cn(
+                  "relative p-8 rounded-3xl bg-gradient-to-br from-white/[0.07] to-white/[0.02] backdrop-blur-2xl border transition-all duration-300 h-full flex flex-col",
+                  plan.popular ? "border-blue-500/50 shadow-2xl shadow-blue-500/20" : "border-white/10 hover:border-white/20"
                 )}>
-                  {/* Header Section - Altura fija */}
-                  <div className="p-8 pb-4 flex-shrink-0">
-                    <div className="text-center">
-                      <CardTitle className="text-2xl font-bold text-urovital-blue mb-2">{plan.name}</CardTitle>
-                      <CardDescription className="text-lg text-muted-foreground">{plan.subtitle}</CardDescription>
+                  <div className="mb-8">
+                    <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
+                    <p className="text-blue-100/60">{plan.subtitle}</p>
+                  </div>
+
+                  <div className="mb-8">
+                    <div className="flex items-baseline gap-2 mb-2">
+                      <span className="text-5xl font-bold text-white">${plan.price}</span>
+                      <span className="text-blue-100/60">/año</span>
                     </div>
+                    <p className="text-sm text-blue-100/60">{plan.priceSummary}</p>
                   </div>
 
-                  {/* Content Section - Altura fija con scroll si es necesario */}
-                  <div className="flex-1 px-8 overflow-hidden">
-                    {/* Features List - Altura fija con scroll */}
-                    <div className="h-full overflow-y-auto">
-                      <ul className="space-y-3 pr-2">
-                        {plan.features.map(feature => (
-                          <li key={feature} className="flex items-start gap-3">
-                            <Check className="w-5 h-5 text-urovital-blue mt-0.5 flex-shrink-0" />
-                            <span className="text-muted-foreground leading-relaxed text-sm">{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                  
-                  {/* Price Section - Altura fija */}
-                  <div className="px-8 py-4 border-t border-border flex-shrink-0">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-urovital-blue mb-1">${plan.price}</div>
-                      <p className="text-muted-foreground text-sm">{plan.priceSummary}</p>
-                    </div>
-                  </div>
+                  <ul className="space-y-4 mb-8 flex-1">
+                    {plan.features.map((feature, i) => (
+                      <li key={i} className="flex items-start gap-3">
+                        <Check className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                        <span className="text-blue-100/80">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
 
-                  {/* Footer Section - Altura fija, siempre al fondo */}
-                  <div className="p-8 pt-4 flex-shrink-0">
-                    <Button 
-                      asChild 
-                      size="lg" 
-                      className="w-full py-6 text-lg font-semibold border-2 border-urovital-blue hover:border-urovital-blue/90 shadow-lg hover:shadow-urovital-blue/30 transition-all duration-300 bg-urovital-blue hover:bg-urovital-blue/90 text-white group-hover:scale-105"
-                    >
-                      <Link href={`/afiliacion?plan=${plan.id}`}>
-                        Afíliate Ahora
-                        <ArrowRight className="ml-2 w-5 h-5" />
-                      </Link>
-                    </Button>
-                  </div>
-                </AnimatedCard>
-                </TiltedCard>
-                </div>
-              </StaggerItem>
-            ))}
-          </StaggerContainer>
-        </div>
-      </section>
-
-      {/* Partners Section */}
-      <section className="py-20 md:py-28 bg-white dark:bg-[#131c36]">
-        <div className="container mx-auto px-4">
-          <motion.div 
-            initial="hidden" 
-            whileInView="visible" 
-            viewport={{ once: true, amount: 0.3 }} 
-            variants={staggerContainer} 
-            className="text-center max-w-3xl mx-auto mb-16"
-          >
-            <motion.p 
-              variants={fadeIn()} 
-              className="text-urovital-blue font-semibold text-sm uppercase mb-4 tracking-widest"
-            >
-              Pagos Asegurados
-            </motion.p>
-            <motion.h2 
-              variants={fadeIn()} 
-              className="text-3xl md:text-5xl font-bold font-headline mb-6"
-            >
-              Formas de pago seguras y confiables
-            </motion.h2>
-            <motion.p 
-              variants={fadeIn()} 
-              className="text-lg text-muted-foreground"
-            >
-              Aceptamos múltiples métodos de pago para tu comodidad y seguridad.
-            </motion.p>
-          </motion.div>
-
-          <StaggerContainer className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8" staggerDelay={0.1}>
-            {partners.map((partner, index) => (
-              <StaggerItem key={index}>
-                <div className="bg-white dark:bg-card rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-105 flex flex-col justify-center items-center h-[120px] relative">
-                  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-full flex justify-center">
-                    <span className="bg-urovital-blue text-white text-xs font-semibold px-2 py-1 rounded-full shadow-lg whitespace-nowrap">
-                      {partner.badge}
+                  <Button
+                    className={cn(
+                      "w-full py-6 rounded-xl font-semibold transition-all duration-300",
+                      plan.popular
+                        ? "bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white shadow-lg shadow-blue-500/50"
+                        : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                    )}
+                    onClick={() => window.location.href = `/afiliacion?plan=${plan.id}`}
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      Seleccionar Plan
+                      <ArrowRight className="w-5 h-5" />
                     </span>
-                  </div>
-                  <Image
-                    src={partner.logo}
-                    alt={partner.name}
-                    width={120}
-                    height={60}
-                    className={`max-h-[48px] w-auto object-contain opacity-70 group-hover:opacity-100 transition-opacity duration-300 ${partner.name === "PayPal" ? "transform scale-[1.95]" : ""}`}
-                  />
+                  </Button>
                 </div>
-              </StaggerItem>
+              </motion.div>
             ))}
-          </StaggerContainer>
+          </div>
         </div>
       </section>
 
-      {/* Allies Section */}
-      <section className="py-20 md:py-28 bg-gray-50 dark:bg-[#0f172a]">
+      {/* Partners - Minimal */}
+      <section className="py-20 bg-slate-950">
         <div className="container mx-auto px-4">
-          <motion.div 
-            initial="hidden" 
-            whileInView="visible" 
-            viewport={{ once: true, amount: 0.3 }} 
-            variants={staggerContainer} 
-            className="text-center max-w-3xl mx-auto mb-16"
-          >
-            <motion.p 
-              variants={fadeIn()} 
-              className="text-urovital-blue font-semibold text-sm uppercase mb-4 tracking-widest"
-            >
-              Nuestros Aliados
-            </motion.p>
-            <motion.h2 
-              variants={fadeIn()} 
-              className="text-3xl md:text-5xl font-bold font-headline mb-6"
-            >
-              Aliados estratégicos para tu bienestar
-            </motion.h2>
-            <motion.p 
-              variants={fadeIn()} 
-              className="text-lg text-muted-foreground"
-            >
-              Trabajamos con instituciones reconocidas para brindarte la mejor atención médica y seguros de calidad.
-            </motion.p>
-          </motion.div>
-
-          <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto" staggerDelay={0.15}>
-            {allies.map((ally, index) => (
-              <StaggerItem key={index}>
-                <TiltedCard className="group">
-                  <div className="bg-white dark:bg-card rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-105 flex flex-col items-center text-center h-full">
-                    <div className="mb-6">
-                      <Image
-                        src={ally.logo}
-                        alt={ally.name}
-                        width={280}
-                        height={160}
-                        className="max-h-[120px] w-auto object-contain opacity-70 group-hover:opacity-100 transition-opacity duration-300"
-                      />
-                    </div>
-                    <h3 className="text-xl font-bold font-headline mb-4 text-foreground">
-                      {ally.name}
-                    </h3>
-                    <p className="text-muted-foreground leading-relaxed">
-                      {ally.description}
-                    </p>
-                  </div>
-                </TiltedCard>
-              </StaggerItem>
+          <p className="text-center text-blue-100/40 text-sm mb-8">Métodos de pago aceptados</p>
+          <div className="flex flex-wrap justify-center items-center gap-12 opacity-40 hover:opacity-60 transition-opacity">
+            {partners.map((partner, index) => (
+              <div key={index} className="grayscale hover:grayscale-0 transition-all duration-300">
+                <Image
+                  src={partner.logo}
+                  alt={partner.name}
+                  width={100}
+                  height={50}
+                  className="h-8 w-auto object-contain"
+                />
+              </div>
             ))}
-          </StaggerContainer>
+          </div>
         </div>
       </section>
 
-      {/* CTA Section - with light/dark mode */}
-      <section className="relative py-24 bg-gradient-to-b from-white via-gray-50 to-white dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 overflow-hidden">
-        {/* Subtle pattern overlay */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-urovital-blue/5 via-transparent to-transparent" />
-        
-        <div className="relative z-10 container mx-auto px-4">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
+      {/* Final CTA - Premium */}
+      <section className="relative py-32 bg-gradient-to-br from-blue-950 via-slate-950 to-purple-950 overflow-hidden">
+        {/* Animated background */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob" />
+          <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000" />
+        </div>
+
+        <div className="container mx-auto px-4 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="max-w-5xl mx-auto text-center space-y-8"
+            transition={{ duration: 0.8 }}
+            className="max-w-4xl mx-auto text-center"
           >
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white leading-tight">
-              ¿Listo para mejorar tu salud?
+            <h2 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
+              El futuro de la salud
+              <br />
+              <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                comienza hoy
+              </span>
             </h2>
-            
-            <div className="text-xl md:text-2xl text-gray-700 dark:text-gray-300 leading-relaxed">
-              <span>Únete a </span>
-              <TextHighlight>
-                <TextGenerateEffect 
-                  words="miles de pacientes" 
-                  duration={0.5} 
-                  filter={true}
-                  className="inline-block"
-                />
-              </TextHighlight>
-              <span> que ya confían en </span>
-              <TextHighlight>
-                <TextGenerateEffect 
-                  words="UroVital" 
-                  duration={0.5}
-                  filter={true}
-                  className="inline-block"
-                />
-              </TextHighlight>
-              <span> para su cuidado médico integral.</span>
-            </div>
-            
-            <p className="text-lg text-gray-600 dark:text-gray-400">
-              Tu bienestar es nuestra prioridad.
+            <p className="text-xl text-blue-100/70 mb-12 max-w-2xl mx-auto">
+              Únete a la revolución digital de la salud. Tecnología médica avanzada al alcance de tu mano.
             </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
-              <Button 
-                size="lg" 
-                className="bg-urovital-blue hover:bg-urovital-blue/90 text-white text-lg px-8 py-6"
-                onClick={() => window.location.href = '/afiliacion'}
-              >
-                <span className="flex items-center">
-                  Afíliate Ahora
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </span>
-              </Button>
-            </div>
-          </motion.div>
-
-          {/* Trust Badge */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="max-w-md mx-auto mt-16"
-          >
-            <Card className="border-gray-200 dark:border-urovital-blue/30 bg-white dark:bg-slate-800/50 backdrop-blur-sm shadow-xl">
-              <CardContent className="flex items-center gap-4 p-6">
-                <div className="bg-urovital-blue/10 dark:bg-urovital-blue/20 p-4 rounded-full">
-                  <ShieldCheck className="w-8 h-8 text-urovital-blue" />
-                </div>
-                <div className="text-left">
-                  <p className="font-bold text-gray-900 dark:text-white text-lg">
-                    Cuidado de Confianza
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Especialistas Certificados
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <Button
+              size="lg"
+              className="px-12 py-7 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-lg font-semibold shadow-2xl shadow-blue-500/50 transition-all duration-300 rounded-xl"
+              onClick={() => window.location.href = '/afiliacion'}
+            >
+              <span className="flex items-center gap-2">
+                Comenzar Ahora
+                <ArrowRight className="w-5 h-5" />
+              </span>
+            </Button>
           </motion.div>
         </div>
       </section>
+
+      <style jsx global>{`
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          25% { transform: translate(20px, -50px) scale(1.1); }
+          50% { transform: translate(-20px, 20px) scale(0.9); }
+          75% { transform: translate(50px, 50px) scale(1.05); }
+        }
+        .animate-blob {
+          animation: blob 20s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        .animation-delay-4000 {
+          animation-delay: 4s;
+        }
+      `}</style>
     </>
   );
 }

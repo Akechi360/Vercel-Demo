@@ -28,14 +28,14 @@ const estudiosData: Estudio[] = [
     { id: '8', categoria: 'Endoscópicos', nombre: 'REGENERACION GENITAL Y URINARIA CON BIOGEL / PRP / ACIDO HIALURONICO' },
     { id: '9', categoria: 'Endoscópicos', nombre: 'HISTEROSCOPIA FLEXIBLE / CONVENCIONAL' },
     { id: '10', categoria: 'Endoscópicos', nombre: 'VAGINOSCOPIA DIAGNOSTICA' },
-    
+
     // Estudios Funcionales
     { id: '11', categoria: 'Funcionales', nombre: 'UROFLUJOMETRIA' },
     { id: '12', categoria: 'Funcionales', nombre: 'ESTUDIO URODINAMICO / VIDEOURODINAMIA' },
     { id: '13', categoria: 'Funcionales', nombre: 'PRUEBA DE PRESION FLUJO URINARIO' },
     { id: '14', categoria: 'Funcionales', nombre: 'CISTOMETRIA' },
     { id: '15', categoria: 'Funcionales', nombre: 'MAPA PROSTATICO' },
-    
+
     // Estudios de Imagen
     { id: '16', categoria: 'Imagen', nombre: 'ECOGRAFIA RENAL, PROSTATICA, ABDOMINOPELVICA' },
     { id: '17', categoria: 'Imagen', nombre: 'ECOGRAFIA TESTICULAR CONVENCIONAL O DOPLER' },
@@ -49,7 +49,7 @@ const estudiosData: Estudio[] = [
     { id: '25', categoria: 'Imagen', nombre: 'PIELOGRAFIA RETROGRADA ENDOSCOPICA' },
     { id: '26', categoria: 'Imagen', nombre: 'URETROGRAFIA' },
     { id: '27', categoria: 'Imagen', nombre: 'CISTOGRAFIA COMBINADA' },
-    
+
     // Procedimientos Urológicos y Uroginecológicos
     { id: '28', categoria: 'Procedimientos', nombre: 'URETERORENOSCOPIA ENDOLITOTRIPCIA NEUMATICA' },
     { id: '29', categoria: 'Procedimientos', nombre: 'LITOTRIPCIA LASER URETERAL Y RENAL' },
@@ -109,14 +109,14 @@ export default function EstudiosPage() {
     useEffect(() => {
         setCurrentPage(1);
     }, [searchTerm]);
-    
+
     const containerVariants = {
         hidden: { opacity: 0 },
         show: {
-        opacity: 1,
-        transition: {
-            staggerChildren: 0.03,
-        },
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.03,
+            },
         },
     };
 
@@ -131,25 +131,40 @@ export default function EstudiosPage() {
     };
 
 
+    const getCategoryColor = (categoria: string) => {
+        switch (categoria) {
+            case 'Endoscópicos': return 'text-blue-400';
+            case 'Funcionales': return 'text-green-400';
+            case 'Imagen': return 'text-purple-400';
+            case 'Procedimientos': return 'text-red-400';
+            default: return 'text-blue-400';
+        }
+    };
+
     return (
-        <section className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-white to-sky-100 dark:from-[#0D122A] dark:to-[#101633] pt-16 pb-20 relative overflow-hidden">
-            {/* Fondo con gradiente animado */}
-            <div className="absolute inset-0 -z-10 overflow-hidden">
-                <div className="gradient-mesh-hero absolute inset-0" />
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 animated-gradient" />
+        <section className="min-h-screen w-full bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 pt-16 pb-20 relative overflow-hidden">
+            {/* Animated gradient mesh background */}
+            <div className="absolute inset-0 opacity-30 pointer-events-none">
+                <div className="absolute top-0 -left-4 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob" />
+                <div className="absolute top-0 -right-4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000" />
+                <div className="absolute -bottom-8 left-20 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000" />
             </div>
-            
+
+            {/* Grid pattern overlay */}
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:72px_72px] pointer-events-none" />
+
             {/* Back Button */}
             <div className="container mx-auto px-4 pt-4 relative z-10">
-                <MagneticButton 
-                    className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors duration-200 font-medium bg-transparent border-0 p-2 rounded-lg hover:bg-primary/5"
+                <MagneticButton
+                    className="inline-flex items-center gap-2 text-blue-100 hover:text-white transition-colors duration-200 font-medium bg-white/5 border border-white/10 p-2 rounded-lg hover:bg-white/10 backdrop-blur-sm"
                     strength={0.2}
                     onClick={() => window.location.href = '/landing'}
                 >
                     <ArrowLeft className="h-4 w-4" />
-                    Atrás
+                    Volver
                 </MagneticButton>
             </div>
+
             <main className="container mx-auto px-4 relative z-10">
                 <div className="text-center mb-12">
                     <div className="flex justify-center mb-6">
@@ -162,30 +177,32 @@ export default function EstudiosPage() {
                             priority
                         />
                     </div>
-                    <h1 className="text-4xl font-bold text-primary font-headline">Estudios urológicos</h1>
+                    <h1 className="text-4xl md:text-5xl font-bold text-white font-headline mb-4">Estudios Urológicos</h1>
+                    <p className="text-blue-100/60 text-lg max-w-2xl mx-auto">Tecnología avanzada para un diagnóstico preciso</p>
                 </div>
 
-                 <div className="relative w-full max-w-lg mx-auto mb-12">
-                    <Card className='bg-white/90 dark:bg-[#101633] border border-primary/20 shadow-lg'>
-                        <CardContent className='p-2'>
-                             <div className="relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/70" />
+                <div className="relative w-full max-w-lg mx-auto mb-16">
+                    <div className='relative group'>
+                        <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                        <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl">
+                            <div className="relative flex items-center">
+                                <Search className="absolute left-4 h-5 w-5 text-blue-400" />
                                 <Input
-                                    placeholder="Buscar por nombre..."
+                                    placeholder="Buscar estudio..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="pl-12 h-12 text-base rounded-full shadow-sm bg-transparent border-0 focus-visible:ring-primary"
+                                    className="pl-12 h-14 text-base rounded-full bg-transparent border-0 focus-visible:ring-0 text-white placeholder:text-blue-100/40"
                                 />
-                             </div>
-                        </CardContent>
-                    </Card>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <AnimatePresence>
-                    <StaggerContainer 
+                    <StaggerContainer
                         key={`${searchTerm}-${currentPage}`}
                         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                        staggerDelay={0.1}
+                        staggerDelay={0.05}
                     >
                         {paginatedEstudios.map((estudio) => {
                             const getCategoryIcon = (categoria: string) => {
@@ -197,43 +214,33 @@ export default function EstudiosPage() {
                                     default: return Microscope;
                                 }
                             };
-                            
-                            const getCategoryColor = (categoria: string) => {
-                                switch (categoria) {
-                                    case 'Endoscópicos': return 'text-blue-600';
-                                    case 'Funcionales': return 'text-green-600';
-                                    case 'Imagen': return 'text-purple-600';
-                                    case 'Procedimientos': return 'text-red-600';
-                                    default: return 'text-primary';
-                                }
-                            };
-                            
+
                             const IconComponent = getCategoryIcon(estudio.categoria);
                             const iconColor = getCategoryColor(estudio.categoria);
-                            
+
                             return (
                                 <StaggerItem key={estudio.id}>
                                     <AnimatedCard className={cn(
-                                        "flex flex-col h-full rounded-2xl shadow-sm transition-all duration-300 ease-in-out card-gradient",
-                                        "hover:shadow-[0_0_20px_rgba(37,99,235,0.2)] dark:hover:shadow-[0_0_30px_rgba(37,99,235,0.3)]",
-                                        "border-b-4 border-transparent hover:border-primary/20"
+                                        "flex flex-col h-full rounded-2xl transition-all duration-300 ease-in-out group relative overflow-hidden",
+                                        "bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10",
+                                        "hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]"
                                     )}>
-                                        <CardHeader>
+                                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                                        <CardHeader className="relative">
                                             <CardTitle className="flex items-center gap-3">
-                                                <div className="p-3 bg-primary/10 rounded-full">
+                                                <div className="p-3 bg-white/5 rounded-xl border border-white/10 group-hover:border-blue-500/30 transition-colors">
                                                     <IconComponent className={`h-6 w-6 ${iconColor}`} />
                                                 </div>
-                                                <span className="text-lg font-bold text-primary font-headline">{estudio.categoria}</span>
+                                                <span className="text-lg font-bold text-white font-headline leading-tight">{estudio.categoria}</span>
                                             </CardTitle>
                                         </CardHeader>
-                                        <CardContent className="flex-grow space-y-4 text-sm">
-                                            <div className="flex items-start gap-3">
-                                                <div className="p-2 bg-primary/10 rounded-md">
-                                                    <Microscope className="h-4 w-4 text-primary" />
-                                                </div>
+                                        <CardContent className="flex-grow space-y-4 text-sm relative">
+                                            <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
+                                                <Microscope className="h-4 w-4 text-blue-400 mt-0.5" />
                                                 <div>
-                                                    <p className="font-semibold text-foreground">Estudio</p>
-                                                    <p className="text-muted-foreground">{toSentenceCase(estudio.nombre)}</p>
+                                                    <p className="font-semibold text-blue-100 text-xs uppercase tracking-wider mb-1">Estudio</p>
+                                                    <p className="text-white font-medium">{toSentenceCase(estudio.nombre)}</p>
                                                 </div>
                                             </div>
                                         </CardContent>
@@ -246,7 +253,7 @@ export default function EstudiosPage() {
 
                 {/* Paginación */}
                 {totalPages > 1 && (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="flex justify-center items-center gap-3 mt-12"
@@ -255,43 +262,43 @@ export default function EstudiosPage() {
                             onClick={() => handlePageChange(currentPage - 1)}
                             disabled={currentPage === 1}
                             className={cn(
-                                "px-4 py-2 rounded-full font-medium transition-all duration-200",
-                                "border border-slate-200 dark:border-slate-700",
-                                currentPage === 1 
-                                    ? "bg-slate-50 text-slate-400 cursor-not-allowed border-slate-200 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700" 
-                                    : "bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 dark:border-slate-600"
+                                "px-4 py-2 rounded-full font-medium transition-all duration-200 backdrop-blur-sm",
+                                "border border-white/10",
+                                currentPage === 1
+                                    ? "bg-white/5 text-white/20 cursor-not-allowed"
+                                    : "bg-white/10 text-white hover:bg-white/20 hover:border-white/30"
                             )}
                         >
                             Anterior
                         </button>
-                        
+
                         <div className="flex gap-1">
                             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                                 <button
                                     key={page}
                                     onClick={() => handlePageChange(page)}
                                     className={cn(
-                                        "w-9 h-9 rounded-full font-medium transition-all duration-200",
-                                        "border border-slate-200 dark:border-slate-700",
+                                        "w-9 h-9 rounded-full font-medium transition-all duration-200 backdrop-blur-sm",
+                                        "border border-white/10",
                                         currentPage === page
-                                            ? "bg-blue-500 text-white border-blue-500 shadow-sm"
-                                            : "bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 dark:border-slate-600"
+                                            ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white border-transparent shadow-lg shadow-blue-500/20"
+                                            : "bg-white/10 text-white hover:bg-white/20 hover:border-white/30"
                                     )}
                                 >
                                     {page}
                                 </button>
                             ))}
                         </div>
-                        
+
                         <button
                             onClick={() => handlePageChange(currentPage + 1)}
                             disabled={currentPage === totalPages}
                             className={cn(
-                                "px-4 py-2 rounded-full font-medium transition-all duration-200",
-                                "border border-slate-200 dark:border-slate-700",
-                                currentPage === totalPages 
-                                    ? "bg-slate-50 text-slate-400 cursor-not-allowed border-slate-200 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700" 
-                                    : "bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 dark:border-slate-600"
+                                "px-4 py-2 rounded-full font-medium transition-all duration-200 backdrop-blur-sm",
+                                "border border-white/10",
+                                currentPage === totalPages
+                                    ? "bg-white/5 text-white/20 cursor-not-allowed"
+                                    : "bg-white/10 text-white hover:bg-white/20 hover:border-white/30"
                             )}
                         >
                             Siguiente
@@ -301,28 +308,48 @@ export default function EstudiosPage() {
 
                 {/* Información de paginación */}
                 {filteredEstudios.length > 0 && (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="text-center mt-6 text-sm text-muted-foreground"
+                        className="text-center mt-6 text-sm text-blue-100/40"
                     >
                         Mostrando {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredEstudios.length)} de {filteredEstudios.length} estudios
                     </motion.div>
                 )}
-                
-                    {filteredEstudios.length === 0 && (
-                    <motion.div 
-                        initial={{opacity: 0}} 
-                        animate={{opacity: 1}} 
-                        className="text-center py-16 text-primary/70 col-span-full bg-primary/10 rounded-2xl"
+
+                {filteredEstudios.length === 0 && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-center py-20 col-span-full"
                     >
-                        <Search className="mx-auto h-10 w-10 mb-4" />
-                        <p className="font-semibold">No se encontraron resultados</p>
-                        <p>Intenta con otro término de búsqueda.</p>
+                        <div className="inline-flex p-4 rounded-full bg-white/5 border border-white/10 mb-4">
+                            <Search className="h-8 w-8 text-blue-400" />
+                        </div>
+                        <p className="font-semibold text-white text-lg">No se encontraron resultados</p>
+                        <p className="text-blue-100/60">Intenta con otro término de búsqueda.</p>
                     </motion.div>
                 )}
 
             </main>
+
+            <style jsx global>{`
+                @keyframes blob {
+                  0%, 100% { transform: translate(0, 0) scale(1); }
+                  25% { transform: translate(20px, -50px) scale(1.1); }
+                  50% { transform: translate(-20px, 20px) scale(0.9); }
+                  75% { transform: translate(50px, 50px) scale(1.05); }
+                }
+                .animate-blob {
+                  animation: blob 20s infinite;
+                }
+                .animation-delay-2000 {
+                  animation-delay: 2s;
+                }
+                .animation-delay-4000 {
+                  animation-delay: 4s;
+                }
+            `}</style>
         </section>
     );
 }

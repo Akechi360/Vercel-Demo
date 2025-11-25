@@ -55,47 +55,58 @@
   }
 
   .dark {
-    /* UroVital Dark Theme - Colores Institucionales */
-    --background: 220 13% 11%; /* Azul oscuro institucional */
-    --foreground: 210 20% 98%;
-    --card: 220 13% 15%;
-    --card-foreground: 210 20% 98%;
-    --popover: 220 13% 11%;
-    --popover-foreground: 210 20% 98%;
+    /* Medicare-Inspired Dark Theme */
+    --background: 222 23% 11%; /* Deep navy background #1a1d2e */
+    --foreground: 0 0% 100%; /* Pure white text */
+    
+    --card: 223 20% 17%; /* Elevated card #2a2d3e */
+    --card-foreground: 0 0% 100%;
+    
+    --popover: 223 20% 17%;
+    --popover-foreground: 0 0% 100%;
 
+    /* UroVital Brand Primary - Keep existing */
     --primary: 210 100% 50%; /* UroVital Blue: #0384fc */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 215 14% 24%;
-    --secondary-foreground: 210 20% 98%;
+    --secondary: 223 17% 22%; /* Lighter card variant #343849 */
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 215 14% 24%;
-    --muted-foreground: 215 10% 65%;
+    --muted: 223 17% 22%;
+    --muted-foreground: 220 9% 52%; /* #858796 gray text */
 
-    --accent: 210 100% 50%; /* UroVital Blue: #0384fc */
+    --accent: 210 100% 50%; /* Keep UroVital Blue */
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 100% 50%; /* UroVital Red: #fc1818 */
+    --destructive: 0 79% 57%; /* Medicare red #e74a3b */
     --destructive-foreground: 0 0% 100%;
+    
+    /* Success color - Medicare green */
+    --success: 158 60% 45%; /* #1cc88a */
+    --success-foreground: 0 0% 100%;
+    
+    /* Warning color - Medicare orange */
+    --warning: 39 97% 60%; /* #f6c23e */
+    --warning-foreground: 222 23% 11%;
 
-    --border: 215 14% 24%;
-    --input: 215 14% 24%;
-    --ring: 210 100% 50%; /* Ring color from primary */
+    --border: 223 17% 24%; /* Subtle borders #3a3d4e */
+    --input: 223 17% 22%;
+    --ring: 210 100% 50%;
 
-    /* UroVital Brand Colors (Dark) */
-    --urovital-blue: 210 100% 50%; /* #0384fc */
-    --urovital-blue-light: 200 100% 95%; /* #36b0f2 */
-    --urovital-red: 0 100% 50%; /* #fc1818 */
+    /* UroVital Brand Colors (Keep) */
+    --urovital-blue: 210 100% 50%;
+    --urovital-blue-light: 200 100% 95%;
+    --urovital-red: 0 100% 50%;
     --urovital-gray: 220 14% 93%;
 
-    /* Sidebar (Dark) */
-    --sidebar-background: 220 13% 15%;
-    --sidebar-foreground: 210 20% 98%;
+    /* Sidebar - Match Medicare */
+    --sidebar-background: 222 23% 14%; /* Slightly lighter than bg #242838 */
+    --sidebar-foreground: 0 0% 100%;
     --sidebar-primary: 210 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 14% 24%;
-    --sidebar-accent-foreground: 210 20% 98%;
-    --sidebar-border: 215 14% 24%;
+    --sidebar-accent: 223 17% 22%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 223 17% 24%;
     --sidebar-ring: 210 100% 50%;
   }
 }

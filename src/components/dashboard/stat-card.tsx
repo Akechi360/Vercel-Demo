@@ -1,18 +1,18 @@
 
 'use client';
 
-import type { LucideProps } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { ArrowUpRight, ArrowDownRight, Minus, Users, Calendar, FlaskConical, Activity, CalendarDays } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Minus, Users, Calendar, FlaskConical, Activity, CalendarDays, Handshake } from 'lucide-react';
 import { ElementType, memo } from 'react';
 
 const icons: { [key: string]: ElementType } = {
-    Users,
-    Calendar,
-    CalendarDays,
-    FlaskConical,
-    Activity,
+  Users,
+  Calendar,
+  CalendarDays,
+  FlaskConical,
+  Activity,
+  Handshake
 };
 
 interface StatCardProps {
@@ -27,94 +27,88 @@ interface StatCardProps {
 const trendConfig = {
   up: {
     icon: ArrowUpRight,
-    color: 'text-success',
+    color: 'text-[#1cc88a]', // Medicare Success Green
+    bgColor: 'bg-[#1cc88a]/10',
   },
   down: {
     icon: ArrowDownRight,
-    color: 'text-destructive',
+    color: 'text-[#e74a3b]', // Medicare Danger Red
+    bgColor: 'bg-[#e74a3b]/10',
   },
   stale: {
     icon: Minus,
-    color: 'text-muted-foreground',
+    color: 'text-[#858796]', // Medicare Secondary Text
+    bgColor: 'bg-[#858796]/10',
   },
 };
 
-// ⚡ Memoized para evitar re-renders innecesarios
+// Medicare-specific color mapping for icons based on card type/index
+const iconColorMap = [
+  { bg: 'bg-[#4e73df]', shadow: 'shadow-blue-500/30' }, // Blue (Primary)
+  { bg: 'bg-[#1cc88a]', shadow: 'shadow-green-500/30' }, // Green (Success)
+  { bg: 'bg-[#36b9cc]', shadow: 'shadow-cyan-500/30' }, // Cyan (Info)
+  { bg: 'bg-[#f6c23e]', shadow: 'shadow-yellow-500/30' }, // Yellow (Warning)
+];
+
 export const StatCard = memo(function StatCard({ title, value, iconName, subtext, trend, index }: StatCardProps) {
   const TrendIcon = trendConfig[trend].icon;
   const trendColor = trendConfig[trend].color;
+  const trendBg = trendConfig[trend].bgColor;
   const Icon = icons[iconName];
+
+  // Cycle through colors based on index
+  const iconStyle = iconColorMap[index % iconColorMap.length];
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{
         duration: 0.4,
-        delay: index * 0.08,
-        ease: [0.25, 0.4, 0.25, 1]
+        delay: index * 0.1,
+        ease: "easeOut"
       }}
-      whileHover={{ 
-        y: -3,
-        boxShadow: "0 8px 30px rgba(59, 130, 246, 0.08)",
-        borderColor: "rgba(59, 130, 246, 0.2)",
-        transition: { duration: 0.25, ease: "easeOut" }
+      whileHover={{
+        y: -5,
+        transition: { duration: 0.2 }
       }}
-      data-card="true"
       className={cn(
-        "relative rounded-lg border border-border/50 bg-card p-6 shadow-sm overflow-hidden",
-        "transition-all duration-300",
-        "hover:border-primary/20",
-        "cursor-default"
+        "relative overflow-hidden rounded-xl bg-[#2a2d3e] p-0 shadow-lg transition-all duration-300",
+        "border-l-4",
+        index % 4 === 0 ? "border-l-[#4e73df]" :
+          index % 4 === 1 ? "border-l-[#1cc88a]" :
+            index % 4 === 2 ? "border-l-[#36b9cc]" :
+              "border-l-[#f6c23e]"
       )}
     >
-      {/* Acento superior minimalista */}
-      <div className="absolute top-0 left-0 w-16 h-px bg-primary/20" />
-        <div className="flex items-start justify-between">
-            <div className="flex flex-col gap-1">
-                <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">{title}</h3>
-                <motion.p
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ 
-                    delay: index * 0.08 + 0.15,
-                    type: "spring",
-                    stiffness: 300,
-                    damping: 20
-                  }}
-                  className="text-3xl font-bold text-foreground"
-                >
-                  {value}
-                </motion.p>
+      <div className="p-5">
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col space-y-1">
+            <div className="text-xs font-bold uppercase tracking-wider text-[#858796] mb-1">
+              {title}
             </div>
-            <motion.div
-              initial={{ scale: 0, rotate: -90 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ 
-                delay: index * 0.08 + 0.15,
-                type: "spring",
-                stiffness: 200,
-                damping: 12
-              }}
-              whileHover={{ 
-                scale: 1.08,
-                rotate: 5,
-                transition: { duration: 0.2 }
-              }}
-              className="rounded-full bg-gradient-to-br from-primary/12 via-primary/8 to-accent/6 p-3 ring-1 ring-primary/10 transition-all duration-300 hover:ring-primary/20 hover:from-primary/15"
-            >
-              {Icon && <Icon className="h-5 w-5 text-primary" />}
-            </motion.div>
+            <div className="text-2xl font-bold text-white">
+              {value}
+            </div>
+          </div>
+
+          <div className={cn(
+            "flex h-12 w-12 items-center justify-center rounded-full text-white shadow-lg",
+            iconStyle.bg,
+            iconStyle.shadow
+          )}>
+            {Icon && <Icon className="h-6 w-6" />}
+          </div>
         </div>
-        <motion.div
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: index * 0.08 + 0.25 }}
-          className="mt-4 flex items-center gap-2"
-        >
-          <TrendIcon className={cn("h-4 w-4", trendColor)} />
-          <span className={cn("text-xs", trendColor)}>{subtext}</span>
-        </motion.div>
+
+        <div className="mt-4 flex items-center text-xs">
+          <span className={cn("flex items-center font-bold mr-2", trendColor)}>
+            <TrendIcon className="mr-1 h-3 w-3" />
+            {trend === 'up' ? '+12%' : trend === 'down' ? '-5%' : '0%'}
+          </span>
+          <span className="text-[#858796]">{subtext}</span>
+        </div>
+      </div>
     </motion.div>
   );
 });

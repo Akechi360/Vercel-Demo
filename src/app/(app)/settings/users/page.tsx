@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -11,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -444,59 +444,61 @@ export default function UsersManagementPage() {
               </Button>
             </DialogTrigger>
           )}
-          <DialogContent>
-            <DialogHeader>
+          <DialogContent className="sm:max-w-[500px] max-h-[85vh] flex flex-col p-0 overflow-hidden gap-0">
+            <DialogHeader className="p-6 pb-2">
               <DialogTitle>Crear Nuevo Usuario</DialogTitle>
               <DialogDescription>
                 Agrega un nuevo usuario al sistema con los permisos correspondientes.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="newUserName">Nombre Completo</Label>
-                <Input
-                  id="newUserName"
-                  value={newUser.name}
-                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                  placeholder="Ej: Dr. Juan Pérez"
-                />
+            <ScrollArea className="h-[60vh] w-full p-6 py-4">
+              <div className="space-y-4 pr-4">
+                <div className="space-y-2">
+                  <Label htmlFor="newUserName">Nombre Completo</Label>
+                  <Input
+                    id="newUserName"
+                    value={newUser.name}
+                    onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                    placeholder="Ej: Dr. Juan Pérez"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newUserEmail">Email</Label>
+                  <Input
+                    id="newUserEmail"
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    placeholder="usuario@urovital.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newUserPhone">Teléfono</Label>
+                  <Input
+                    id="newUserPhone"
+                    value={newUser.phone}
+                    onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                    placeholder="+58 412-1234567"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newUserRole">Rol</Label>
+                  <Select value={newUser.role} onValueChange={(value: 'admin' | 'doctor' | 'secretaria' | 'patient' | 'promotora') => setNewUser({ ...newUser, role: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Administrador</SelectItem>
+                      <SelectItem value="doctor">Doctor</SelectItem>
+                      <SelectItem value="secretaria">Secretaria</SelectItem>
+                      <SelectItem value="patient">Paciente</SelectItem>
+                      <SelectItem value="promotora">Promotora</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="newUserEmail">Email</Label>
-                <Input
-                  id="newUserEmail"
-                  type="email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                  placeholder="usuario@urovital.com"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="newUserPhone">Teléfono</Label>
-                <Input
-                  id="newUserPhone"
-                  value={newUser.phone}
-                  onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
-                  placeholder="+58 412-1234567"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="newUserRole">Rol</Label>
-                <Select value={newUser.role} onValueChange={(value: 'admin' | 'doctor' | 'secretaria' | 'patient' | 'promotora') => setNewUser({ ...newUser, role: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Administrador</SelectItem>
-                    <SelectItem value="doctor">Doctor</SelectItem>
-                    <SelectItem value="secretaria">Secretaria</SelectItem>
-                    <SelectItem value="patient">Paciente</SelectItem>
-                    <SelectItem value="promotora">Promotora</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
+            </ScrollArea>
+            <DialogFooter className="p-6 pt-2">
               <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                 Cancelar
               </Button>
@@ -844,187 +846,186 @@ export default function UsersManagementPage() {
           clearUserDetails();
         }
       }}>
-        <DialogContent className="sm:max-w-[425px] max-h-[85vh] flex flex-col p-0 gap-0">
+        <DialogContent className="sm:max-w-[500px] max-h-[85vh] flex flex-col p-0 overflow-hidden gap-0">
           <DialogHeader className="p-6 pb-2">
             <DialogTitle>Editar Usuario</DialogTitle>
             <DialogDescription>
-              Modifica la información y permisos del usuario.
+              Modifica los datos del usuario seleccionado.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="overflow-y-auto flex-1 p-6 pt-2">
-            {isLoadingDetails ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                  <p className="text-sm text-muted-foreground">Cargando detalles del usuario...</p>
+          <ScrollArea className="h-[60vh] w-full p-6 py-4">
+            <div className="pr-4">
+              {isLoadingDetails ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
-              </div>
-            ) : detailsError ? (
-              <div className="text-center py-8">
-                <p className="text-red-600">Error al cargar detalles: {detailsError}</p>
-              </div>
-            ) : selectedUser && (
-              <div className="space-y-4">
-                {/* Información adicional del usuario (lazy loaded) */}
-                {userDetails && (
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-sm text-muted-foreground">Información Adicional</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium text-muted-foreground">Último acceso</label>
-                        <div className="text-sm">
-                          {userDetails.lastLogin
-                            ? new Date(userDetails.lastLogin).toLocaleDateString()
-                            : 'Nunca'
-                          }
+              ) : detailsError ? (
+                <div className="text-center py-8">
+                  <p className="text-red-600">Error al cargar detalles: {detailsError}</p>
+                </div>
+              ) : selectedUser && (
+                <div className="space-y-4">
+                  {/* Información adicional del usuario (lazy loaded) */}
+                  {userDetails && (
+                    <div className="space-y-3">
+                      <h4 className="font-medium text-sm text-muted-foreground">Información Adicional</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium text-muted-foreground">Último acceso</label>
+                          <div className="text-sm">
+                            {userDetails.lastLogin
+                              ? new Date(userDetails.lastLogin).toLocaleDateString()
+                              : 'Nunca'
+                            }
+                          </div>
                         </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium text-muted-foreground">Registrado</label>
+                          <div className="text-sm">
+                            {new Date(userDetails.createdAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                        {userDetails.patient && (
+                          <div className="col-span-2">
+                            <span className="text-gray-600">Paciente:</span>
+                            <span className="ml-2">
+                              {userDetails.patient.nombre} {userDetails.patient.apellido} (C.I: {userDetails.patient.cedula})
+                            </span>
+                          </div>
+                        )}
+                        {userDetails.payments && userDetails.payments.length > 0 && (
+                          <div className="col-span-2">
+                            <span className="text-gray-600">Últimos pagos:</span>
+                            <span className="ml-2">
+                              {userDetails.payments.length} pagos registrados
+                            </span>
+                          </div>
+                        )}
+                        {userDetails.appointments && userDetails.appointments.length > 0 && (
+                          <div className="col-span-2">
+                            <span className="text-gray-600">Citas:</span>
+                            <span className="ml-2">
+                              {userDetails.appointments.length} citas registradas
+                            </span>
+                          </div>
+                        )}
                       </div>
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium text-muted-foreground">Registrado</label>
-                        <div className="text-sm">
-                          {new Date(userDetails.createdAt).toLocaleDateString()}
-                        </div>
-                      </div>
-                      {userDetails.patient && (
-                        <div className="col-span-2">
-                          <span className="text-gray-600">Paciente:</span>
-                          <span className="ml-2">
-                            {userDetails.patient.nombre} {userDetails.patient.apellido} (C.I: {userDetails.patient.cedula})
-                          </span>
-                        </div>
-                      )}
-                      {userDetails.payments && userDetails.payments.length > 0 && (
-                        <div className="col-span-2">
-                          <span className="text-gray-600">Últimos pagos:</span>
-                          <span className="ml-2">
-                            {userDetails.payments.length} pagos registrados
-                          </span>
-                        </div>
-                      )}
-                      {userDetails.appointments && userDetails.appointments.length > 0 && (
-                        <div className="col-span-2">
-                          <span className="text-gray-600">Citas:</span>
-                          <span className="ml-2">
-                            {userDetails.appointments.length} citas registradas
-                          </span>
-                        </div>
-                      )}
                     </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="editUserName">Nombre Completo</Label>
+                    <Input
+                      id="editUserName"
+                      value={selectedUser.name}
+                      onChange={(e) => setSelectedUser({ ...selectedUser, name: e.target.value })}
+                    />
                   </div>
-                )}
+                  <div className="space-y-2">
+                    <Label htmlFor="editUserEmail">Email</Label>
+                    <Input
+                      id="editUserEmail"
+                      type="email"
+                      value={selectedUser.email}
+                      onChange={(e) => setSelectedUser({ ...selectedUser, email: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editUserPhone">Teléfono</Label>
+                    <Input
+                      id="editUserPhone"
+                      value={selectedUser.phone || ''}
+                      onChange={(e) => setSelectedUser({ ...selectedUser, phone: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editUserRole">Rol</Label>
+                    <Select
+                      value={selectedUser.role}
+                      onValueChange={(value: 'ADMIN' | 'DOCTOR' | 'SECRETARIA' | 'USER' | 'PROMOTORA') =>
+                        setSelectedUser({ ...selectedUser, role: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ADMIN">Administrador</SelectItem>
+                        <SelectItem value="DOCTOR">Doctor</SelectItem>
+                        <SelectItem value="SECRETARIA">Secretaria</SelectItem>
+                        <SelectItem value="USER">Paciente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="editUserName">Nombre Completo</Label>
-                  <Input
-                    id="editUserName"
-                    value={selectedUser.name}
-                    onChange={(e) => setSelectedUser({ ...selectedUser, name: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="editUserEmail">Email</Label>
-                  <Input
-                    id="editUserEmail"
-                    type="email"
-                    value={selectedUser.email}
-                    onChange={(e) => setSelectedUser({ ...selectedUser, email: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="editUserPhone">Teléfono</Label>
-                  <Input
-                    id="editUserPhone"
-                    value={selectedUser.phone || ''}
-                    onChange={(e) => setSelectedUser({ ...selectedUser, phone: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="editUserRole">Rol</Label>
-                  <Select
-                    value={selectedUser.role}
-                    onValueChange={(value: 'ADMIN' | 'DOCTOR' | 'SECRETARIA' | 'USER' | 'PROMOTORA') =>
-                      setSelectedUser({ ...selectedUser, role: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ADMIN">Administrador</SelectItem>
-                      <SelectItem value="DOCTOR">Doctor</SelectItem>
-                      <SelectItem value="SECRETARIA">Secretaria</SelectItem>
-                      <SelectItem value="USER">Paciente</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                  {/* Campos específicos para doctores */}
+                  {selectedUser.role === 'DOCTOR' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="editUserSpecialty">Especialidad</Label>
+                        <Select
+                          value={selectedUser.specialty || ''}
+                          onValueChange={(value) => setSelectedUser({ ...selectedUser, specialty: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar especialidad" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Urología">Urología</SelectItem>
+                            <SelectItem value="Ginecología">Ginecología</SelectItem>
+                            <SelectItem value="Oncología">Oncología</SelectItem>
+                            <SelectItem value="Uroginecología">Uroginecología</SelectItem>
+                            <SelectItem value="Medicina General">Medicina General</SelectItem>
+                            <SelectItem value="Pediatría">Pediatría</SelectItem>
+                            <SelectItem value="Cardiología">Cardiología</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                {/* Campos específicos para doctores */}
-                {selectedUser.role === 'DOCTOR' && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="editUserSpecialty">Especialidad</Label>
-                      <Select
-                        value={selectedUser.specialty || ''}
-                        onValueChange={(value) => setSelectedUser({ ...selectedUser, specialty: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar especialidad" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Urología">Urología</SelectItem>
-                          <SelectItem value="Ginecología">Ginecología</SelectItem>
-                          <SelectItem value="Oncología">Oncología</SelectItem>
-                          <SelectItem value="Uroginecología">Uroginecología</SelectItem>
-                          <SelectItem value="Medicina General">Medicina General</SelectItem>
-                          <SelectItem value="Pediatría">Pediatría</SelectItem>
-                          <SelectItem value="Cardiología">Cardiología</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="editUserCedula">Cédula Profesional</Label>
+                        <Input
+                          id="editUserCedula"
+                          value={selectedUser.cedula || ''}
+                          onChange={(e) => setSelectedUser({ ...selectedUser, cedula: e.target.value })}
+                          placeholder="Ej: MD-123456"
+                        />
+                      </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="editUserCedula">Cédula Profesional</Label>
-                      <Input
-                        id="editUserCedula"
-                        value={selectedUser.cedula || ''}
-                        onChange={(e) => setSelectedUser({ ...selectedUser, cedula: e.target.value })}
-                        placeholder="Ej: MD-123456"
-                      />
-                    </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="editUserPhone">Teléfono de Contacto</Label>
+                        <Input
+                          id="editUserPhone"
+                          value={selectedUser.telefono || ''}
+                          onChange={(e) => setSelectedUser({ ...selectedUser, telefono: e.target.value })}
+                          placeholder="Ej: +58 412-1234567"
+                        />
+                      </div>
+                    </>
+                  )}
 
-                    <div className="space-y-2">
-                      <Label htmlFor="editUserPhone">Teléfono de Contacto</Label>
-                      <Input
-                        id="editUserPhone"
-                        value={selectedUser.telefono || ''}
-                        onChange={(e) => setSelectedUser({ ...selectedUser, telefono: e.target.value })}
-                        placeholder="Ej: +58 412-1234567"
-                      />
-                    </div>
-                  </>
-                )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="editUserStatus">Estado</Label>
-                  <Select
-                    value={selectedUser.status}
-                    onValueChange={(value: 'ACTIVE' | 'INACTIVE') =>
-                      setSelectedUser({ ...selectedUser, status: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ACTIVE">Activo</SelectItem>
-                      <SelectItem value="INACTIVE">Inactivo</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-2">
+                    <Label htmlFor="editUserStatus">Estado</Label>
+                    <Select
+                      value={selectedUser.status}
+                      onValueChange={(value: 'ACTIVE' | 'INACTIVE') =>
+                        setSelectedUser({ ...selectedUser, status: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ACTIVE">Activo</SelectItem>
+                        <SelectItem value="INACTIVE">Inactivo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          </ScrollArea>
 
           <DialogFooter className="p-6 pt-2">
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
@@ -1036,6 +1037,6 @@ export default function UsersManagementPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div >
+    </div>
   );
 }

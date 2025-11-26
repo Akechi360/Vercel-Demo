@@ -12,16 +12,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePathname, useRouter } from 'next/navigation';
-import { Moon, Sun, User, LogOut, Settings, PanelLeft, Search } from 'lucide-react';
+import { User, LogOut, Settings, PanelLeft, Search } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
-import { useTheme } from 'next-themes';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useAuth } from './auth-provider';
 import { ROLES } from '@/lib/types';
 import NotificationBell from '@/components/notifications/notification-bell';
 export default function AppHeader() {
-  const { setTheme, theme } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
   const { toggleSidebar, isMobile, state } = useSidebar();
@@ -63,16 +61,6 @@ export default function AppHeader() {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4 ml-auto">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full hover:bg-primary/10 hover:text-primary transition-colors duration-300"
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-        >
-          <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          <span className="sr-only">Toggle theme</span>
-        </Button>
 
         <div className="relative">
           <NotificationBell />

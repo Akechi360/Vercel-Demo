@@ -85,7 +85,7 @@ export const StatCard = memo(function StatCard({ title, value, iconName, subtext
       <div className="p-5">
         <div className="flex items-center justify-between">
           <div className="flex flex-col space-y-1">
-            <div className="text-xs font-bold uppercase tracking-wider text-[#858796] mb-1">
+            <div className="text-xs font-bold uppercase tracking-wider text-[#858796] mb-1 truncate max-w-[120px] sm:max-w-none" title={title}>
               {title}
             </div>
             <div className="text-2xl font-bold text-white">

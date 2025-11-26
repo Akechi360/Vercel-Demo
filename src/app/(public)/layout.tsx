@@ -2,7 +2,7 @@
 'use client';
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/layout/auth-provider";
-import { Mail, Phone, MapPin, Clock, Menu, Sun, Moon } from "lucide-react";
+import { Mail, Phone, MapPin, Clock, Menu } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import 'animate.css';
@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 import React, { useState, useEffect } from 'react';
 import Footer from "@/components/layout/footer";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { useTheme } from "next-themes";
 
 
 const NAV_LINKS = [
@@ -26,7 +25,6 @@ export default function PublicLayout({
   children: React.ReactNode;
 }) {
   const { isAuthenticated } = useAuth();
-  const { theme, setTheme } = useTheme();
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -188,16 +186,6 @@ export default function PublicLayout({
 
               {/* Desktop actions */}
               <div className="hidden lg:flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  type="button"
-                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                >
-                  <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                  <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                  <span className="sr-only">Cambiar tema</span>
-                </Button>
                 {isAuthenticated ? (
                   <Button asChild>
                     <Link href="/dashboard">Ir al Panel</Link>

@@ -605,7 +605,7 @@ export default function LandingPage() {
       <section className="py-20 bg-slate-950">
         <div className="container mx-auto px-4">
           <p className="text-center text-blue-100/60 text-sm mb-12 uppercase tracking-wider font-medium">Métodos de pago aceptados</p>
-          <div className="flex flex-nowrap justify-center items-center gap-8 md:gap-12">
+          <div className="flex flex-wrap md:flex-nowrap justify-center items-center gap-8 md:gap-12">
             {partners.map((partner, index) => (
               <div key={index} className="relative group flex-shrink-0">
                 <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

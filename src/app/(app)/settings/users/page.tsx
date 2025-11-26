@@ -1,9 +1,11 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { getUsers, createUser, updateUser, deleteUser as deleteUserAction } from '@/lib/actions';
 import { syncUserData } from '@/lib/user-sync';
 import { useUserDetails } from '@/hooks/use-user-details';
+import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,6 +53,7 @@ import withReactContent from 'sweetalert2-react-content';
 import { User, UserRole } from "@prisma/client";
 
 // Mock data removed - now using database
+// Force HMR update
 
 export default function UsersManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -205,10 +208,12 @@ export default function UsersManagementPage() {
 
   const handleEditUser = async (user: User) => {
     console.log(`🔄 Opening edit dialog for user: ${user.id}`);
+    console.log('🔍 User from list has specialty?:', (user as any).specialty);
 
     // Cargar detalles completos del usuario (lazy loading)
-    // Cargar detalles completos del usuario (lazy loading)
     const details = await loadUserDetails(user.id);
+    console.log('🔍 Details loaded:', details);
+    console.log('🔍 Doctor info:', details?.doctorInfo);
 
     // Si es doctor, intentar obtener la especialidad y otros datos de los detalles cargados
     let specialty = '';
@@ -219,6 +224,7 @@ export default function UsersManagementPage() {
       specialty = details.doctorInfo.especialidad || '';
       cedula = details.doctorInfo.cedula || '';
       telefono = details.doctorInfo.telefono || '';
+      console.log('🔍 Loaded specialty from DB:', specialty);
     }
 
     setSelectedUser({ ...user, specialty, cedula, telefono });
@@ -237,6 +243,12 @@ export default function UsersManagementPage() {
         });
 
         console.log('📞 Calling updateUser function...');
+        console.log('🔍 selectedUser.specialty:', selectedUser.specialty);
+
+        console.log('🔍 selectedUser.cedula:', selectedUser.cedula);
+        console.log('🔍 selectedUser.telefono:', selectedUser.telefono);
+        console.log('🔍 Full selectedUser:', selectedUser);
+
         const updatedUser = await updateUser(selectedUser.id, {
           name: selectedUser.name,
           email: selectedUser.email,
@@ -246,15 +258,23 @@ export default function UsersManagementPage() {
           specialty: selectedUser.specialty,
           cedula: selectedUser.cedula,
           telefono: selectedUser.telefono
-        });
+        } as any);
 
         console.log('✅ User updated successfully:', updatedUser);
         console.log('🔍 Updated user type:', typeof updatedUser);
         console.log('🔍 Updated user keys:', Object.keys(updatedUser));
         console.log('Current users before update:', users);
 
+        // updatedUser doesn't include doctor-specific fields (specialty, cedula, telefono)
+        // because they're in DoctorInfo relation, not in User model
+        // So we need to preserve them from selectedUser
         const updatedUsers = users.map(user =>
-          user.id === selectedUser.id ? updatedUser : user
+          user.id === selectedUser.id ? {
+            ...updatedUser,
+            specialty: selectedUser.specialty,
+            cedula: selectedUser.cedula,
+            telefono: selectedUser.telefono
+          } : user
         );
 
         console.log('Updated users array:', updatedUsers);
@@ -418,7 +438,7 @@ export default function UsersManagementPage() {
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           {canCreateUser() && (
             <DialogTrigger asChild>
-              <Button>
+              <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white border-0 shadow-lg shadow-blue-500/20">
                 <Plus className="h-4 w-4 mr-2" />
                 Nuevo Usuario
               </Button>
@@ -565,94 +585,185 @@ export default function UsersManagementPage() {
               </div>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Usuario</TableHead>
-                  <TableHead>Rol</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Último Acceso</TableHead>
-                  <TableHead>Fecha de Registro</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile Card Layout */}
+              <div className="md:hidden space-y-4">
                 {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{user.name}</div>
-                        <div className="text-sm text-muted-foreground flex items-center gap-1">
-                          <Mail className="h-3 w-3" />
-                          {user.email}
+                  <div
+                    key={user.id}
+                    className="rounded-lg border bg-card p-4 space-y-3 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-base truncate">{user.name}</h3>
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                          <Mail className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{user.email}</span>
                         </div>
                         {user.phone && (
-                          <div className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                            <Phone className="h-3 w-3 flex-shrink-0" />
                             {user.phone}
                           </div>
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getRoleBadgeVariant(user.role)}>
-                        {user.role === 'ADMIN' ? 'Administrador' :
-                          user.role === 'DOCTOR' ? 'Doctor' :
-                            user.role === 'SECRETARIA' ? 'Secretaria' :
-                              user.role === 'USER' ? 'Paciente' :
-                                user.role === 'PROMOTORA' ? 'Promotora' : 'Desconocido'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusBadgeVariant(user.status)}>
-                        {user.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {user.lastLogin ? formatDate(user.lastLogin.toISOString()) : 'Nunca'}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <div className="flex gap-2 ml-2">
+                        <Badge variant={getRoleBadgeVariant(user.role)} className="whitespace-nowrap">
+                          {user.role === 'ADMIN' ? 'Admin' :
+                            user.role === 'DOCTOR' ? 'Doctor' :
+                              user.role === 'SECRETARIA' ? 'Secretaria' :
+                                user.role === 'USER' ? 'Paciente' :
+                                  user.role === 'PROMOTORA' ? 'Promotora' : 'Desconocido'}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <Badge variant={getStatusBadgeVariant(user.status)} className="whitespace-nowrap">
+                          {user.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-1 text-muted-foreground">
                         <Calendar className="h-3 w-3" />
-                        {formatDate(user.createdAt.toISOString())}
+                        <span className="text-xs">{formatDate(user.createdAt.toISOString())}</span>
                       </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {/* Botón para cambiar estado */}
-                        {canEditUser(user) && (
-                          <Button
-                            variant={user.status === 'ACTIVE' ? 'destructive' : 'default'}
-                            size="sm"
-                            onClick={() => cambiarEstadoUsuario(user.id, user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE')}
-                          >
-                            {user.status === 'ACTIVE' ? 'Desactivar' : 'Activar'}
-                          </Button>
-                        )}
-                        {canEditUser(user) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditUser(user)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {canDeleteUser(user) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteUser(user.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+
+                    <div className="flex gap-2 pt-2 border-t">
+                      {canEditUser(user) && (
+                        <Button
+                          variant={user.status === 'ACTIVE' ? 'destructive' : 'default'}
+                          size="sm"
+                          onClick={() => cambiarEstadoUsuario(user.id, user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE')}
+                          className="flex-1"
+                        >
+                          {user.status === 'ACTIVE' ? 'Desactivar' : 'Activar'}
+                        </Button>
+                      )}
+                      {canEditUser(user) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditUser(user)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canDeleteUser(user) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteUser(user.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              {/* Desktop Table Layout */}
+              <div className="hidden md:block overflow-x-hidden">
+                <div className="w-full">
+                  <Table className="table-fixed w-full">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[30%]">Usuario</TableHead>
+                        <TableHead className="w-[12%]">Rol</TableHead>
+                        <TableHead className="w-[10%]">Estado</TableHead>
+                        <TableHead className="w-[15%]">Último Acceso</TableHead>
+                        <TableHead className="w-[15%]">Fecha de Registro</TableHead>
+                        <TableHead className="text-right w-[18%]">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsers.map((user, index) => (
+                        <TableRow
+                          key={user.id}
+                          className={cn(
+                            "hover:bg-muted/50 transition-colors",
+                            index % 2 === 0 ? "bg-muted/20" : "bg-transparent"
+                          )}
+                        >
+                          <TableCell className="py-4">
+                            <div className="max-w-full overflow-hidden">
+                              <div className="font-medium truncate">{user.name}</div>
+                              <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                <Mail className="h-3 w-3 flex-shrink-0" />
+                                <span className="truncate">{user.email}</span>
+                              </div>
+                              {user.phone && (
+                                <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                  <Phone className="h-3 w-3 flex-shrink-0" />
+                                  {user.phone}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <Badge variant={getRoleBadgeVariant(user.role)} className="whitespace-nowrap">
+                              {user.role === 'ADMIN' ? 'Admin' :
+                                user.role === 'DOCTOR' ? 'Doctor' :
+                                  user.role === 'SECRETARIA' ? 'Secretaria' :
+                                    user.role === 'USER' ? 'Paciente' :
+                                      user.role === 'PROMOTORA' ? 'Promotora' : 'Desconocido'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <Badge variant={getStatusBadgeVariant(user.status)} className="whitespace-nowrap">
+                              {user.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm py-4">
+                            <span className="truncate block">{user.lastLogin ? formatDate(user.lastLogin.toISOString()) : 'Nunca'}</span>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <Calendar className="h-3 w-3 flex-shrink-0" />
+                              <span className="truncate">{formatDate(user.createdAt.toISOString())}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right py-4">
+                            <div className="flex justify-end gap-2">
+                              {canEditUser(user) && (
+                                <Button
+                                  variant={user.status === 'ACTIVE' ? 'destructive' : 'default'}
+                                  size="sm"
+                                  onClick={() => cambiarEstadoUsuario(user.id, user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE')}
+                                  className="whitespace-nowrap"
+                                >
+                                  {user.status === 'ACTIVE' ? 'Desactivar' : 'Activar'}
+                                </Button>
+                              )}
+                              {canEditUser(user) && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditUser(user)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {canDeleteUser(user) && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteUser(user.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </>
           )}
 
           {/* Controles de paginación */}

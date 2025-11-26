@@ -120,35 +120,67 @@ export default function PublicLayout({
                       <span className="sr-only">Abrir menú</span>
                     </Button>
                   </SheetTrigger>
-                  <SheetContent side="left">
-                    <SheetHeader>
+                  <SheetContent side="left" className="w-[300px] border-r border-white/10 bg-gradient-to-b from-slate-950 via-blue-950 to-slate-900 p-0">
+                    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:72px_72px] pointer-events-none" />
+
+                    <SheetHeader className="p-6 border-b border-white/10 relative z-10">
                       <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
+                      <Image
+                        src="/images/logo/urovital-logo.png"
+                        alt="UroVital"
+                        width={180}
+                        height={64}
+                        className="h-10 w-auto object-contain brightness-0 invert"
+                        priority
+                      />
                     </SheetHeader>
-                    <nav className="flex flex-col gap-4 mt-8">
-                      {NAV_LINKS.map(link => (
-                        <Button key={link.href} asChild variant="ghost" className={cn(
-                          "justify-start text-lg hover:text-white hover:bg-primary/20",
-                          (pathname === link.href || (link.href !== '/landing' && pathname.startsWith(link.href))) && "text-primary"
-                        )}>
-                          <Link href={link.href}>{link.label}</Link>
+
+                    <div className="flex flex-col h-full relative z-10 overflow-y-auto">
+                      <nav className="flex flex-col gap-2 p-6">
+                        {NAV_LINKS.map(link => {
+                          const isActive = pathname === link.href || (link.href !== '/landing' && pathname.startsWith(link.href));
+                          return (
+                            <Link
+                              key={link.href}
+                              href={link.href}
+                              onClick={() => setIsMenuOpen(false)}
+                              className={cn(
+                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group",
+                                isActive
+                                  ? "bg-white/10 text-white"
+                                  : "text-blue-100/60 hover:text-white hover:bg-white/5"
+                              )}
+                            >
+                              <span className={cn(
+                                "text-lg font-medium",
+                                isActive && "bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent font-bold"
+                              )}>
+                                {link.label}
+                              </span>
+                              {isActive && (
+                                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.5)]" />
+                              )}
+                            </Link>
+                          );
+                        })}
+                      </nav>
+
+                      <div className="mt-6 p-6 flex flex-col gap-4">
+                        {isAuthenticated ? (
+                          <Button asChild size="lg" className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white border-0 shadow-lg shadow-blue-500/20">
+                            <Link href="/dashboard" onClick={() => setIsMenuOpen(false)}>Ir al Panel</Link>
+                          </Button>
+                        ) : (
+                          <Button asChild size="lg" className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white border-0 shadow-lg shadow-blue-500/20">
+                            <Link href="/afiliacion" onClick={() => setIsMenuOpen(false)}>Afíliate Ahora</Link>
+                          </Button>
+                        )}
+                        <Button asChild variant="outline" size="lg" className="w-full bg-white/5 border-white/10 text-white hover:bg-white/10 hover:text-white">
+                          <Link href="/login" onClick={() => setIsMenuOpen(false)}>
+                            Iniciar Sesión
+                          </Link>
                         </Button>
-                      ))}
-                    </nav>
-                    <div className="mt-8 pt-4 border-t flex flex-col gap-3">
-                      {isAuthenticated ? (
-                        <Button asChild size="lg" className="w-full">
-                          <Link href="/dashboard">Ir al Panel</Link>
-                        </Button>
-                      ) : (
-                        <Button asChild size="lg" className="w-full">
-                          <Link href="/afiliacion">Afíliate Ahora</Link>
-                        </Button>
-                      )}
-                      <Button asChild variant="outline" size="lg" className="w-full">
-                        <Link href="/login">
-                          Iniciar Sesión
-                        </Link>
-                      </Button>
+                      </div>
                     </div>
                   </SheetContent>
                 </Sheet>

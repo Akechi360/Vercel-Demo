@@ -11,7 +11,6 @@ const TABS = [
   { name: 'Usuarios', href: '/settings/users', icon: Users },
   { name: 'Perfil', href: '/settings/profile', icon: User },
   { name: 'Seguridad', href: '/settings/security', icon: Lock },
-  { name: 'Preferencias', href: '/settings/preferences', icon: Shield },
 ];
 
 export default function SettingsLayout({
@@ -24,28 +23,30 @@ export default function SettingsLayout({
   return (
     <div className="flex flex-col gap-8">
       <PageHeader title="Configuración" />
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
-        <div className="lg:col-span-1">
-          <Tabs defaultValue={pathname} orientation="vertical" className="w-full">
-            <TabsList className="w-full h-auto flex-col items-start bg-transparent p-0">
-              {TABS.map((tab) => (
-                 <TabsTrigger
-                  key={tab.href}
-                  value={tab.href}
-                  className="w-full justify-start data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
-                  asChild
-                >
-                   <Link href={tab.href}>
-                    <tab.icon className="mr-2 h-4 w-4" />
-                    {tab.name}
-                  </Link>
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
+        <div className="lg:sticky lg:top-24 lg:self-start">
+          <div className="rounded-xl border bg-card shadow-sm p-2">
+            <Tabs defaultValue={pathname} orientation="vertical" className="w-full">
+              <TabsList className="w-full h-auto flex-col items-stretch bg-transparent p-0 gap-1">
+                {TABS.map((tab) => (
+                  <TabsTrigger
+                    key={tab.href}
+                    value={tab.href}
+                    className="w-full justify-start data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg px-4 py-3 transition-all"
+                    asChild
+                  >
+                    <Link href={tab.href} className="flex items-center gap-3">
+                      <tab.icon className="h-4 w-4" />
+                      <span className="font-medium">{tab.name}</span>
+                    </Link>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
         </div>
-        <div className="lg:col-span-3">
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+        <div>
+          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6">
             {children}
           </div>
         </div>

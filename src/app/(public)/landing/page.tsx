@@ -604,16 +604,20 @@ export default function LandingPage() {
       {/* Partners - Minimal */}
       <section className="py-20 bg-slate-950">
         <div className="container mx-auto px-4">
-          <p className="text-center text-blue-100/40 text-sm mb-8">Métodos de pago aceptados</p>
-          <div className="flex flex-wrap justify-center items-center gap-12 opacity-40 hover:opacity-60 transition-opacity">
+          <p className="text-center text-blue-100/60 text-sm mb-12 uppercase tracking-wider font-medium">Métodos de pago aceptados</p>
+          <div className="flex flex-nowrap justify-center items-center gap-8 md:gap-12">
             {partners.map((partner, index) => (
-              <div key={index} className="grayscale hover:grayscale-0 transition-all duration-300">
+              <div key={index} className="relative group flex-shrink-0">
+                <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <Image
                   src={partner.logo}
                   alt={partner.name}
-                  width={100}
-                  height={50}
-                  className="h-8 w-auto object-contain"
+                  width={140}
+                  height={70}
+                  className={cn(
+                    "w-auto object-contain relative z-10 transition-all duration-300 grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110",
+                    partner.name === 'PayPal' ? "h-16 md:h-20" : "h-10 md:h-12"
+                  )}
                 />
               </div>
             ))}

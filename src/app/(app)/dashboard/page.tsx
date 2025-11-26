@@ -210,7 +210,7 @@ export default function DashboardPage() {
     const statCards = isPromotora() ? promotoraStatCards : (isPatient() ? patientStatCards : adminDoctorStatCards);
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-primary/5 via-background/10 to-primary/5 p-6">
+        <div className="min-h-screen p-6">
             <div className="flex flex-col gap-8 max-w-7xl mx-auto">
                 <div className="relative mb-8">
                     {/* Línea decorativa animada con gradiente */}

@@ -804,6 +804,15 @@ export async function getUserDetails(userId: string): Promise<any> {
         userId: true,
         avatarUrl: true,
         createdAt: true,
+        // Doctor info for doctors
+        doctorInfo: {
+          select: {
+            especialidad: true,
+            area: true,
+            cedula: true,
+            telefono: true,
+          }
+        },
         // Relaciones solo cuando se necesitan
         // patient: {
         //   select: {

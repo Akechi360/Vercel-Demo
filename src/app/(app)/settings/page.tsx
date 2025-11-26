@@ -8,11 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Building2, 
-  Users, 
-  Calendar, 
-  CreditCard, 
+import {
+  Building2,
+  Users,
+  Calendar,
+  CreditCard,
   Database,
   Bell,
   Shield,
@@ -40,7 +40,6 @@ export default function GeneralSettingsPage() {
     { label: 'Usuarios Registrados', value: '0', icon: Users, color: 'text-blue-600' },
     { label: 'Pacientes Activos', value: '0', icon: Users, color: 'text-green-600' },
     { label: 'Citas del Mes', value: '0', icon: Calendar, color: 'text-purple-600' },
-    { label: 'Ingresos del Mes', value: '$0', icon: CreditCard, color: 'text-orange-600' },
   ]);
 
   useEffect(() => {
@@ -65,46 +64,30 @@ export default function GeneralSettingsPage() {
         // Calcular estadísticas del mes actual
         const currentMonth = new Date().getMonth();
         const currentYear = new Date().getFullYear();
-        
+
         const monthlyAppointments = safeAppointments.filter(apt => {
           const aptDate = new Date(apt.date);
           return aptDate.getMonth() === currentMonth && aptDate.getFullYear() === currentYear;
         });
 
-        const monthlyPayments = safePayments.filter(payment => {
-          const paymentDate = new Date(payment.date);
-          return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
-        });
-
-        const totalIncome = monthlyPayments.reduce((sum, payment) => {
-          const amount = typeof payment.monto === 'number' ? payment.monto : 0;
-          return sum + amount;
-        }, 0);
-
         setStats([
-          { 
-            label: 'Usuarios Registrados', 
-            value: safeUsers.length.toLocaleString(), 
-            icon: Users, 
-            color: 'text-blue-600' 
+          {
+            label: 'Usuarios Registrados',
+            value: safeUsers.length.toLocaleString(),
+            icon: Users,
+            color: 'text-blue-600'
           },
-          { 
-            label: 'Pacientes Activos', 
-            value: safePatients.filter(p => p.status === 'Activo').length.toLocaleString(), 
-            icon: Users, 
-            color: 'text-green-600' 
+          {
+            label: 'Pacientes Activos',
+            value: safePatients.filter(p => p.status === 'Activo').length.toLocaleString(),
+            icon: Users,
+            color: 'text-green-600'
           },
-          { 
-            label: 'Citas del Mes', 
-            value: monthlyAppointments.length.toLocaleString(), 
-            icon: Calendar, 
-            color: 'text-purple-600' 
-          },
-          { 
-            label: 'Ingresos del Mes', 
-            value: `$${totalIncome.toLocaleString()}`, 
-            icon: CreditCard, 
-            color: 'text-orange-600' 
+          {
+            label: 'Citas del Mes',
+            value: monthlyAppointments.length.toLocaleString(),
+            icon: Calendar,
+            color: 'text-purple-600'
           },
         ]);
       } catch (error) {
@@ -114,7 +97,6 @@ export default function GeneralSettingsPage() {
           { label: 'Usuarios Registrados', value: '0', icon: Users, color: 'text-blue-600' },
           { label: 'Pacientes Activos', value: '0', icon: Users, color: 'text-green-600' },
           { label: 'Citas del Mes', value: '0', icon: Calendar, color: 'text-purple-600' },
-          { label: 'Ingresos del Mes', value: '$0', icon: CreditCard, color: 'text-orange-600' },
         ]);
       }
     };
@@ -171,7 +153,7 @@ export default function GeneralSettingsPage() {
               <Input
                 id="clinicName"
                 value={settings.clinicName}
-                onChange={(e) => setSettings({...settings, clinicName: e.target.value})}
+                onChange={(e) => setSettings({ ...settings, clinicName: e.target.value })}
               />
             </div>
             <div className="space-y-2">
@@ -179,7 +161,7 @@ export default function GeneralSettingsPage() {
               <Textarea
                 id="clinicAddress"
                 value={settings.clinicAddress}
-                onChange={(e) => setSettings({...settings, clinicAddress: e.target.value})}
+                onChange={(e) => setSettings({ ...settings, clinicAddress: e.target.value })}
                 rows={2}
               />
             </div>
@@ -189,7 +171,7 @@ export default function GeneralSettingsPage() {
                 <Input
                   id="clinicPhone"
                   value={settings.clinicPhone}
-                  onChange={(e) => setSettings({...settings, clinicPhone: e.target.value})}
+                  onChange={(e) => setSettings({ ...settings, clinicPhone: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
@@ -198,7 +180,7 @@ export default function GeneralSettingsPage() {
                   id="clinicEmail"
                   type="email"
                   value={settings.clinicEmail}
-                  onChange={(e) => setSettings({...settings, clinicEmail: e.target.value})}
+                  onChange={(e) => setSettings({ ...settings, clinicEmail: e.target.value })}
                 />
               </div>
             </div>
@@ -207,7 +189,7 @@ export default function GeneralSettingsPage() {
               <Input
                 id="workingHours"
                 value={settings.workingHours}
-                onChange={(e) => setSettings({...settings, workingHours: e.target.value})}
+                onChange={(e) => setSettings({ ...settings, workingHours: e.target.value })}
               />
             </div>
           </CardContent>
@@ -234,12 +216,12 @@ export default function GeneralSettingsPage() {
               </div>
               <Switch
                 checked={settings.notifications}
-                onCheckedChange={(checked) => setSettings({...settings, notifications: checked})}
+                onCheckedChange={(checked) => setSettings({ ...settings, notifications: checked })}
               />
             </div>
-            
+
             <Separator />
-            
+
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Notificaciones por Email</Label>
@@ -249,10 +231,10 @@ export default function GeneralSettingsPage() {
               </div>
               <Switch
                 checked={settings.emailNotifications}
-                onCheckedChange={(checked) => setSettings({...settings, emailNotifications: checked})}
+                onCheckedChange={(checked) => setSettings({ ...settings, emailNotifications: checked })}
               />
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Notificaciones SMS</Label>
@@ -262,12 +244,12 @@ export default function GeneralSettingsPage() {
               </div>
               <Switch
                 checked={settings.smsNotifications}
-                onCheckedChange={(checked) => setSettings({...settings, smsNotifications: checked})}
+                onCheckedChange={(checked) => setSettings({ ...settings, smsNotifications: checked })}
               />
             </div>
-            
+
             <Separator />
-            
+
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Modo Mantenimiento</Label>
@@ -277,10 +259,10 @@ export default function GeneralSettingsPage() {
               </div>
               <Switch
                 checked={settings.maintenanceMode}
-                onCheckedChange={(checked) => setSettings({...settings, maintenanceMode: checked})}
+                onCheckedChange={(checked) => setSettings({ ...settings, maintenanceMode: checked })}
               />
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Respaldo Automático</Label>
@@ -290,67 +272,22 @@ export default function GeneralSettingsPage() {
               </div>
               <Switch
                 checked={settings.autoBackup}
-                onCheckedChange={(checked) => setSettings({...settings, autoBackup: checked})}
+                onCheckedChange={(checked) => setSettings({ ...settings, autoBackup: checked })}
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="dataRetention">Retención de Datos</Label>
               <Input
                 id="dataRetention"
                 value={settings.dataRetention}
-                onChange={(e) => setSettings({...settings, dataRetention: e.target.value})}
+                onChange={(e) => setSettings({ ...settings, dataRetention: e.target.value })}
               />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Estado del Sistema */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5" />
-            Estado del Sistema
-          </CardTitle>
-          <CardDescription>
-            Monitorea el estado de los servicios y componentes del sistema.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="flex items-center gap-2">
-                <Database className="h-4 w-4" />
-                <span className="text-sm font-medium">Base de Datos</span>
-              </div>
-              <Badge variant="default" className="bg-green-100 text-green-800">
-                Conectada
-              </Badge>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="flex items-center gap-2">
-                <Globe className="h-4 w-4" />
-                <span className="text-sm font-medium">Servidor Web</span>
-              </div>
-              <Badge variant="default" className="bg-green-100 text-green-800">
-                Activo
-              </Badge>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="flex items-center gap-2">
-                <Bell className="h-4 w-4" />
-                <span className="text-sm font-medium">Notificaciones</span>
-              </div>
-              <Badge variant="default" className="bg-green-100 text-green-800">
-                Funcionando
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       <div className="flex justify-end">
         <Button onClick={handleSave} className="min-w-[120px]">

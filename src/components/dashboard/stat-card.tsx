@@ -3,7 +3,7 @@
 
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { ArrowUpRight, ArrowDownRight, Minus, Users, Calendar, FlaskConical, Activity, CalendarDays, Handshake } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Minus, Users, Calendar, FlaskConical, Activity, CalendarDays, Handshake, FileText } from 'lucide-react';
 import { ElementType, memo } from 'react';
 
 const icons: { [key: string]: ElementType } = {
@@ -12,7 +12,8 @@ const icons: { [key: string]: ElementType } = {
   CalendarDays,
   FlaskConical,
   Activity,
-  Handshake
+  Handshake,
+  FileText
 };
 
 interface StatCardProps {

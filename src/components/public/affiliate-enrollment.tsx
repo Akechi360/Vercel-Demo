@@ -22,6 +22,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import Image from 'next/image';
 import { CheckCircle, Info } from 'lucide-react';
 import { submitAffiliateLead } from '@/lib/actions';
+import { sendAffiliationNotification } from '@/app/actions/ntfy';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -125,6 +126,13 @@ function AffiliateEnrollmentContent() {
 
     try {
       await submitAffiliateLead(leadData);
+
+      // Send NTFY notification (non-blocking)
+      sendAffiliationNotification({
+        nombre: data.fullName,
+        cedula: data.documentId
+      });
+
       MySwal.fire({
         title: '¡Afiliación Exitosa!',
         html: `
@@ -451,7 +459,7 @@ function AffiliateEnrollmentContent() {
                             width={method.id === 'usdt' || method.id === 'paypal' ? 100 : 80}
                             height={method.id === 'usdt' || method.id === 'paypal' ? 100 : 80}
                             className={cn(
-                              "mb-2 object-contain brightness-0 invert opacity-80",
+                              "mb-2 object-contain",
                               method.id === 'usdt' || method.id === 'paypal' ? "scale-110" : ""
                             )}
                           />
@@ -487,7 +495,7 @@ function AffiliateEnrollmentContent() {
           <div className="p-4 border border-white/10 rounded-lg bg-white/5 text-blue-100">
             <h4 className="font-semibold text-lg text-white">Método de Pago Seleccionado</h4>
             <div className="flex items-center gap-4 mt-2">
-              <Image src={selectedMethod.logoSrc} alt={selectedMethod.label} width={80} height={80} className="object-contain brightness-0 invert opacity-80" />
+              <Image src={selectedMethod.logoSrc} alt={selectedMethod.label} width={80} height={80} className="object-contain" />
               <div>
                 <p className="font-semibold text-white">{selectedMethod.label}</p>
                 <div className="text-sm text-blue-100/60 whitespace-pre-line">{selectedMethod.accountInfo}</div>

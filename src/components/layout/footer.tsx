@@ -11,9 +11,9 @@ const socialLinks = [
 ];
 
 const usefulLinks = [
-    { name: 'Sobre Nosotros', href: '#about' },
+    { name: 'Sobre Nosotros', href: '/en-construccion' },
     { name: 'Servicios', href: '#services' },
-    { name: 'Departamentos', href: '#departments' },
+    { name: 'Departamentos', href: '/en-construccion' },
     { name: 'Doctores', href: '#doctors' },
 ]
 
@@ -35,17 +35,17 @@ export default function Footer() {
                             />
                         </Link>
                         <p className="text-muted-foreground leading-relaxed">
-                            Ofrecemos atención médica especializada con tecnología avanzada y un equipo humano 
+                            Ofrecemos atención médica especializada con tecnología avanzada y un equipo humano
                             comprometido con tu bienestar integral.
                         </p>
                         <div className="flex items-center gap-3">
                             {socialLinks.map(link => {
                                 const Icon = link.icon;
                                 return (
-                                    <Button 
-                                        key={link.name} 
-                                        variant="ghost" 
-                                        size="icon" 
+                                    <Button
+                                        key={link.name}
+                                        variant="ghost"
+                                        size="icon"
                                         asChild
                                         className="hover:bg-urovital-blue/10 hover:text-urovital-blue transition-colors"
                                     >
@@ -57,15 +57,15 @@ export default function Footer() {
                             })}
                         </div>
                     </div>
-                    
+
                     {/* Useful Links */}
                     <div className="space-y-6">
                         <h4 className="font-bold text-lg text-foreground">Enlaces Útiles</h4>
                         <ul className="space-y-3">
                             {usefulLinks.map(link => (
                                 <li key={link.name}>
-                                    <Link 
-                                        href={link.href} 
+                                    <Link
+                                        href={link.href}
                                         className="text-muted-foreground hover:text-urovital-blue transition-colors duration-200"
                                     >
                                         {link.name}
@@ -74,7 +74,7 @@ export default function Footer() {
                             ))}
                         </ul>
                     </div>
-                    
+
                     {/* Contact Info */}
                     <div className="space-y-6">
                         <h4 className="font-bold text-lg text-foreground">Contacto</h4>
@@ -88,8 +88,8 @@ export default function Footer() {
                             </div>
                             <div className="flex items-center gap-3">
                                 <Phone className="w-5 h-5 text-urovital-blue flex-shrink-0" />
-                                <a 
-                                    href="tel:+584121772206" 
+                                <a
+                                    href="tel:+584121772206"
                                     className="text-muted-foreground hover:text-urovital-blue transition-colors"
                                 >
                                     +58 412-177 2206
@@ -97,8 +97,8 @@ export default function Footer() {
                             </div>
                             <div className="flex items-center gap-3">
                                 <Mail className="w-5 h-5 text-urovital-blue flex-shrink-0" />
-                                <a 
-                                    href="mailto:info@urovital.com" 
+                                <a
+                                    href="mailto:info@urovital.com"
                                     className="text-muted-foreground hover:text-urovital-blue transition-colors"
                                 >
                                     info@urovital.com
@@ -106,7 +106,7 @@ export default function Footer() {
                             </div>
                         </div>
                     </div>
-                    
+
                     {/* Newsletter */}
                     <div className="space-y-6">
                         <h4 className="font-bold text-lg text-foreground">Boletín</h4>
@@ -114,13 +114,13 @@ export default function Footer() {
                             Suscríbete para recibir noticias, consejos de salud y ofertas exclusivas.
                         </p>
                         <div className="flex w-full max-w-sm items-center space-x-2">
-                            <Input 
-                                type="email" 
-                                placeholder="Tu email" 
-                                className="bg-background border-border focus:border-urovital-blue focus:ring-urovital-blue" 
+                            <Input
+                                type="email"
+                                placeholder="Tu email"
+                                className="bg-background border-border focus:border-urovital-blue focus:ring-urovital-blue"
                             />
-                            <Button 
-                                type="submit" 
+                            <Button
+                                type="submit"
                                 size="icon"
                                 className="bg-urovital-blue hover:bg-urovital-blue/90 text-white"
                             >
@@ -129,7 +129,7 @@ export default function Footer() {
                         </div>
                     </div>
                 </div>
-                
+
                 <div className="mt-12 pt-8 border-t border-border">
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                         <p className="text-muted-foreground text-sm">

@@ -34,6 +34,7 @@ export default function PublicLayout({
   }, [pathname]);
 
   const showLandingHeader = pathname === '/landing';
+  const isMaintenancePage = pathname === '/en-construccion';
 
   useEffect(() => {
     if (!showLandingHeader) {
@@ -207,7 +208,7 @@ export default function PublicLayout({
       )}
 
 
-      <main className={cn("flex-1", !showLandingHeader && 'pt-16')}>
+      <main className={cn("flex-1", (!showLandingHeader && !isMaintenancePage) && 'pt-16')}>
         {children}
       </main>
 

@@ -66,7 +66,7 @@ const settingsMenuItem = { href: '/settings', label: 'Configuración', icon: Set
 
 export default function Nav() {
   const pathname = usePathname();
-  const { currentUser, isAuthenticated, loading, logout } = useAuth();
+  const { currentUser, isAuthenticated, loading } = useAuth();
   const { hasPermission } = usePermissions();
   const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
@@ -197,14 +197,6 @@ export default function Nav() {
               <span className="text-sm font-medium text-sidebar-foreground truncate">{currentUser.name}</span>
               <span className="text-xs text-sidebar-foreground/50 truncate capitalize">{currentUser.role.toLowerCase()}</span>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10"
-              onClick={() => logout()}
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
@@ -212,14 +204,6 @@ export default function Nav() {
               <AvatarImage src={`https://ui-avatars.com/api/?name=${currentUser.name}&background=0D8ABC&color=fff`} />
               <AvatarFallback><UserCircle className="h-5 w-5" /></AvatarFallback>
             </Avatar>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10"
-              onClick={() => logout()}
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
           </div>
         )}
       </SidebarFooter>

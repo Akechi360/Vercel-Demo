@@ -9,7 +9,7 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger,
-  } from "@/components/ui/accessible-dialog"
+} from "@/components/ui/accessible-dialog"
 import { ConsultationForm, ConsultationFormValues, ReportAttachment } from "./consultation-form";
 import type { Patient } from "@/lib/types";
 import { addConsultation } from "@/lib/actions";
@@ -21,10 +21,10 @@ import { UserRole } from "@/lib/types";
 
 // Extend the ReportAttachment type to include base64Content
 type ExtendedReportAttachment = ReportAttachment & {
-  base64Content?: string;
-  notes?: string;
+    base64Content?: string;
+    notes?: string;
 };
-  
+
 
 export function AddHistoryFab({ userId, onFormSubmit }: { userId: string; onFormSubmit: (values: ConsultationFormValues) => void }) {
     const [open, setOpen] = useState(false);
@@ -40,16 +40,16 @@ export function AddHistoryFab({ userId, onFormSubmit }: { userId: string; onForm
             });
 
             // Ensure date is properly formatted as ISO string
-            const formattedDate = values.date instanceof Date ? values.date.toISOString() : 
-                               typeof values.date === 'string' ? values.date : 
-                               new Date().toISOString();
-            
+            const formattedDate = values.date instanceof Date ? values.date.toISOString() :
+                typeof values.date === 'string' ? values.date :
+                    new Date().toISOString();
+
             const submissionValues = {
                 ...values,
                 date: formattedDate,
                 userId: userId,
             };
-            
+
             console.log('🔄 AddHistoryFab - handleFormSubmit called with:', {
                 userId: userId,
                 currentUser: currentUser?.name,
@@ -89,7 +89,7 @@ export function AddHistoryFab({ userId, onFormSubmit }: { userId: string; onForm
                 // Mapear cada attachment a un reporte separado
                 return report.attachments.map(attachment => {
                     const extendedAttachment = attachment as ExtendedReportAttachment;
-                    
+
                     console.log('📎 Procesando reporte:', {
                         title: report.title,
                         hasAttachment: true,
@@ -97,7 +97,7 @@ export function AddHistoryFab({ userId, onFormSubmit }: { userId: string; onForm
                         hasBase64: !!extendedAttachment.base64Content,
                         base64Length: extendedAttachment.base64Content?.length || 0
                     });
-                    
+
                     return {
                         title: report.title || 'Sin título',
                         notes: (report as any).notes || '',
@@ -123,14 +123,14 @@ export function AddHistoryFab({ userId, onFormSubmit }: { userId: string; onForm
                 reports: reports, // ⭐ Usar reportes mapeados
                 labResults: values.labResults,
             }, userContext);
-            
+
             console.log('✅ Consulta guardada exitosamente');
-            
+
             toast({
                 title: "Consulta Guardada",
                 description: `Nueva consulta de tipo "${values.type}" ha sido guardada exitosamente.`,
             });
-            
+
             onFormSubmit(values);
             setOpen(false);
             // Revalidar el cache de Next.js para refrescar datos de BD
@@ -147,7 +147,7 @@ export function AddHistoryFab({ userId, onFormSubmit }: { userId: string; onForm
 
     // State to track if component is mounted (for SSR/SSG)
     const [mounted, setMounted] = useState(false);
-    
+
     useEffect(() => {
         setMounted(true);
         return () => setMounted(false);
@@ -161,7 +161,7 @@ export function AddHistoryFab({ userId, onFormSubmit }: { userId: string; onForm
                     <span className="sr-only">Agregar Historial Médico</span>
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="max-w-4xl">
                 <DialogHeader>
                     <DialogTitle>Añadir Nueva Consulta</DialogTitle>
                     <DialogDescription>

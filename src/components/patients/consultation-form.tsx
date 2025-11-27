@@ -136,13 +136,13 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      date: initialData?.date 
+      date: initialData?.date
         ? (() => {
-            const dateValue = typeof initialData.date === 'string' 
-              ? new Date(initialData.date) 
-              : new Date(initialData.date);
-            return isNaN(dateValue.getTime()) ? new Date() : dateValue;
-          })()
+          const dateValue = typeof initialData.date === 'string'
+            ? new Date(initialData.date)
+            : new Date(initialData.date);
+          return isNaN(dateValue.getTime()) ? new Date() : dateValue;
+        })()
         : new Date(),
       doctor: initialData?.doctor || '',
       type: initialData?.type || 'Seguimiento',
@@ -254,12 +254,12 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
     console.log('🚀 [handleFileUpload] INICIO:', { fileName: file.name, fileSize: file.size, reportIndex });
     try {
       setIsProcessingFiles(true);
-      
+
       console.log('📎 Procesando archivo:', file.name, `(${(file.size / 1024).toFixed(2)} KB)`);
 
       // Convert File to base64
       const base64Content = await fileToBase64(file);
-      
+
       console.log('✅ [consultation-form] Archivo convertido a base64:', {
         fileName: file.name,
         fileSize: file.size,
@@ -271,19 +271,19 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
 
       // Create temporary URL only for UI preview
       const fileUrl = URL.createObjectURL(file);
-      
+
       // Update the form with the new file
       const currentReports = form.getValues('reports') || [];
       const updatedReports = [...currentReports];
-      
+
       if (!updatedReports[reportIndex]) {
-        updatedReports[reportIndex] = { 
-          title: '', 
-          date: format(new Date(), 'yyyy-MM-dd'), 
-          attachments: [] 
+        updatedReports[reportIndex] = {
+          title: '',
+          date: format(new Date(), 'yyyy-MM-dd'),
+          attachments: []
         };
       }
-      
+
       const newAttachment: ReportAttachment = {
         name: file.name,
         type: file.type,
@@ -291,13 +291,13 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
         url: fileUrl, // Temporary URL for preview
         base64Content: base64Content // Base64 content for persistence
       };
-      
+
       if (!updatedReports[reportIndex].attachments) {
         updatedReports[reportIndex].attachments = [];
       }
-      
+
       updatedReports[reportIndex].attachments!.push(newAttachment);
-      
+
       console.log('💾 [consultation-form] Actualizando form con reporte:', {
         reportIndex,
         reportTitle: updatedReports[reportIndex].title || 'Sin título',
@@ -312,15 +312,15 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
           base64Length: newAttachment.base64Content?.length || 0
         }
       });
-      
+
       form.setValue('reports', updatedReports, { shouldDirty: true });
-      
+
       console.log('✅ [consultation-form] Archivo agregado al reporte:', {
         fileName: newAttachment.name,
         reportIndex,
         totalAttachments: updatedReports[reportIndex].attachments?.length || 0
       });
-      
+
     } catch (error) {
       console.error('❌ Error uploading file:', error);
       toast({
@@ -336,13 +336,13 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Doctor Selection */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Row 1: Doctor, Type, Date */}
           <FormField
             control={form.control}
             name="doctor"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex flex-col">
                 <FormLabel>Doctor</FormLabel>
                 <Select
                   onValueChange={(value) => {
@@ -355,7 +355,7 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleccione un doctor" />
+                      <SelectValue placeholder="Seleccione" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -367,11 +367,6 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
                             <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
                           </Avatar>
                           <span>{doctor.name}</span>
-                          {doctor.especialidad && (
-                            <span className="text-muted-foreground text-xs">
-                              ({doctor.especialidad})
-                            </span>
-                          )}
                         </div>
                       </SelectItem>
                     ))}
@@ -384,10 +379,34 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
 
           <FormField
             control={form.control}
+            name="type"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Tipo de consulta</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccione" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="Inicial">Inicial</SelectItem>
+                    <SelectItem value="Seguimiento">Seguimiento</SelectItem>
+                    <SelectItem value="Pre-operatorio">Pre-operatorio</SelectItem>
+                    <SelectItem value="Post-operatorio">Post-operatorio</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
             name="date"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Fecha de la consulta</FormLabel>
+                <FormLabel>Fecha</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -401,7 +420,7 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
                         {field.value ? (
                           format(field.value, "PPP", { locale: es })
                         ) : (
-                          <span>Seleccione una fecha</span>
+                          <span>Seleccione</span>
                         )}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
@@ -416,31 +435,6 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
                       locale={es}
                       initialFocus
                       className="p-4"
-                      classNames={{
-                        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-                        month: "space-y-4",
-                        caption: "flex justify-center pt-1 relative items-center",
-                        caption_label: "text-sm font-semibold",
-                        nav: "space-x-1 flex items-center",
-                        nav_button: "h-8 w-8 bg-transparent p-0 opacity-70 hover:opacity-100 hover:bg-accent transition-all rounded-md border border-input",
-                        nav_button_previous: "absolute left-1",
-                        nav_button_next: "absolute right-1",
-                        table: "w-full border-collapse space-y-1",
-                        head_row: "flex",
-                        head_cell: "text-muted-foreground rounded-md w-10 font-medium text-[0.85rem] uppercase",
-                        row: "flex w-full mt-2",
-                        cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md",
-                        day: "h-10 w-10 p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground transition-all rounded-lg",
-                        day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-lg shadow-sm",
-                        day_today: "bg-accent text-accent-foreground font-semibold",
-                        day_outside: "text-muted-foreground opacity-40",
-                        day_disabled: "text-muted-foreground opacity-30 cursor-not-allowed",
-                        day_range_middle: "aria-selected:bg-accent/50 aria-selected:text-accent-foreground",
-                      }}
-                      components={{
-                        IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" {...props} />,
-                        IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" {...props} />,
-                      }}
                     />
                   </PopoverContent>
                 </Popover>
@@ -448,51 +442,26 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
               </FormItem>
             )}
           />
-        </div>
 
-        {/* Consultation Type */}
-        <FormField
-          control={form.control}
-          name="type"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Tipo de consulta</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
+          {/* Row 2: Notes (Full Width) */}
+          <FormField
+            control={form.control}
+            name="notes"
+            render={({ field }) => (
+              <FormItem className="col-span-1 md:col-span-3">
+                <FormLabel>Notas de la consulta</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccione el tipo de consulta" />
-                  </SelectTrigger>
+                  <Textarea
+                    placeholder="Escriba las notas de la consulta..."
+                    className="min-h-[80px]"
+                    {...field}
+                  />
                 </FormControl>
-                <SelectContent>
-                  <SelectItem value="Inicial">Inicial</SelectItem>
-                  <SelectItem value="Seguimiento">Seguimiento</SelectItem>
-                  <SelectItem value="Pre-operatorio">Pre-operatorio</SelectItem>
-                  <SelectItem value="Post-operatorio">Post-operatorio</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Notes */}
-        <FormField
-          control={form.control}
-          name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Notas de la consulta</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Escriba las notas de la consulta..."
-                  className="min-h-[100px]"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         {/* Prescriptions Accordion */}
         <Accordion type="single" collapsible className="w-full">
@@ -522,7 +491,7 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <FormField
                         control={form.control}
@@ -537,7 +506,7 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={form.control}
                         name={`prescriptions.${index}.dosage`}
@@ -551,7 +520,7 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={form.control}
                         name={`prescriptions.${index}.duration`}
@@ -568,7 +537,7 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
                     </div>
                   </div>
                 ))}
-                
+
                 <Button
                   type="button"
                   variant="outline"
@@ -612,7 +581,7 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                    
+
                     <FormField
                       control={form.control}
                       name={`reports.${index}.title`}
@@ -626,7 +595,7 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name={`reports.${index}.file`}
@@ -641,12 +610,12 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
                                 onChange={async (e) => {
                                   const file = e.target.files?.[0];
                                   if (!file) return;
-                                  
+
                                   console.log('🔴 Archivo seleccionado:', file.name);
 
                                   try {
                                     setIsProcessingFiles(true);
-                                    
+
                                     // Convertir a base64
                                     const reader = new FileReader();
                                     const base64Promise = new Promise<string>((resolve, reject) => {
@@ -657,26 +626,26 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
                                       reader.onerror = reject;
                                       reader.readAsDataURL(file);
                                     });
-                                    
+
                                     const base64Content = await base64Promise;
                                     console.log('✅ Base64 generado, length:', base64Content.length);
-                                    
+
                                     // URL para preview
                                     const fileUrl = URL.createObjectURL(file);
-                                    
+
                                     // Obtener reportes actuales
                                     const currentReports = form.getValues('reports') || [];
                                     const updatedReports = [...currentReports];
-                                    
+
                                     // Inicializar si no existe
                                     if (!updatedReports[index]) {
-                                      updatedReports[index] = { 
-                                        title: '', 
-                                        date: format(new Date(), 'yyyy-MM-dd'), 
-                                        attachments: [] 
+                                      updatedReports[index] = {
+                                        title: '',
+                                        date: format(new Date(), 'yyyy-MM-dd'),
+                                        attachments: []
                                       };
                                     }
-                                    
+
                                     // Crear attachment con base64
                                     const newAttachment = {
                                       name: file.name,
@@ -685,18 +654,18 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
                                       url: fileUrl,
                                       base64Content: base64Content
                                     };
-                                    
+
                                     if (!updatedReports[index].attachments) {
                                       updatedReports[index].attachments = [];
                                     }
-                                    
+
                                     updatedReports[index].attachments = [newAttachment];
-                                    
+
                                     // Actualizar form
                                     form.setValue('reports', updatedReports, { shouldDirty: true });
-                                    
+
                                     console.log('✅ Archivo agregado:', file.name);
-                                    
+
                                   } catch (error) {
                                     console.error('❌ Error:', error);
                                     toast({
@@ -715,7 +684,7 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
                               ) : (() => {
                                 const currentReport = form.watch(`reports.${index}`);
                                 const attachment = currentReport?.attachments?.[0];
-                                
+
                                 return attachment ? (
                                   <div className="mt-2 flex items-center gap-2 text-sm text-green-600">
                                     <FileText className="h-4 w-4" />
@@ -736,7 +705,7 @@ export function ConsultationForm({ userId, initialData, onFormSubmit }: Consulta
                     />
                   </div>
                 ))}
-                
+
                 <Button
                   type="button"
                   variant="outline"

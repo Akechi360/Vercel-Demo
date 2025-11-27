@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
@@ -11,6 +11,7 @@ import { useAuth } from '@/components/layout/auth-provider';
 import { addLabResult } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { FileInput } from '@/components/ui/file-input';
+import { createPortal } from 'react-dom';
 
 interface AddLabResultFabProps {
   patientUserId: string;
@@ -23,6 +24,7 @@ export default function AddLabResultFab({ patientUserId, patientName, onSuccess 
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   // Campos para parámetros dinámicos (carga manual)
   const [params, setParams] = useState([
@@ -36,6 +38,11 @@ export default function AddLabResultFab({ patientUserId, patientName, onSuccess 
     tipo: 'Urológico',
     resultado: ''
   });
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   const handleParamChange = (idx: number, field: 'name' | 'value', value: string) => {
     setParams((prev) => {
@@ -117,17 +124,17 @@ export default function AddLabResultFab({ patientUserId, patientName, onSuccess 
     }
   };
 
-  return (
+  const dialogContent = (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button 
+        <Button
           className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-lg bg-gradient-to-r from-primary to-blue-400 hover:from-primary/90 hover:to-blue-400/90 transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-[0_0_20px_rgba(58,109,255,0.4),0_0_40px_rgba(186,85,211,0.3),0_0_60px_rgba(255,105,180,0.2)] animate-pulse-slow"
         >
           <FlaskConical className="h-8 w-8" />
           <span className="sr-only">Agregar Resultado de Laboratorio</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FlaskConical className="h-5 w-5" />
@@ -138,35 +145,38 @@ export default function AddLabResultFab({ patientUserId, patientName, onSuccess 
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="nombre">Nombre del Estudio *</Label>
-            <Input
-              id="nombre"
-              placeholder="Ej: PSA Total, Hematología, Glucosa..."
-              value={formData.nombre}
-              onChange={e => setFormData({ ...formData, nombre: e.target.value })}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="tipo">Tipo de estudio *</Label>
-            <Select
-              value={formData.tipo}
-              onValueChange={v => setFormData({ ...formData, tipo: v })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="PSA">PSA (Antígeno Prostático)</SelectItem>
-                <SelectItem value="Urológico">Urológico</SelectItem>
-                <SelectItem value="Sangre">Sangre</SelectItem>
-                <SelectItem value="Orina">Orina</SelectItem>
-                <SelectItem value="Imagen">Imagen</SelectItem>
-                <SelectItem value="Biopsia">Biopsia</SelectItem>
-                <SelectItem value="Otro">Otro</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Row 1: Nombre and Tipo in 2 columns */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="nombre">Nombre del Estudio *</Label>
+              <Input
+                id="nombre"
+                placeholder="Ej: PSA Total, Hematología, Glucosa..."
+                value={formData.nombre}
+                onChange={e => setFormData({ ...formData, nombre: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tipo">Tipo de estudio *</Label>
+              <Select
+                value={formData.tipo}
+                onValueChange={v => setFormData({ ...formData, tipo: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PSA">PSA (Antígeno Prostático)</SelectItem>
+                  <SelectItem value="Urológico">Urológico</SelectItem>
+                  <SelectItem value="Sangre">Sangre</SelectItem>
+                  <SelectItem value="Orina">Orina</SelectItem>
+                  <SelectItem value="Imagen">Imagen</SelectItem>
+                  <SelectItem value="Biopsia">Biopsia</SelectItem>
+                  <SelectItem value="Otro">Otro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div>
@@ -195,7 +205,7 @@ export default function AddLabResultFab({ patientUserId, patientName, onSuccess 
 
           <div>
             <Label>Adjuntar Archivo (PDF o Imagen)</Label>
-            <FileInput value={fileList} onValueChange={setFileList} accept=".pdf,.jpg,.jpeg,.png,.gif" multiple={false}/>
+            <FileInput value={fileList} onValueChange={setFileList} accept=".pdf,.jpg,.jpeg,.png,.gif" multiple={false} />
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
@@ -215,5 +225,7 @@ export default function AddLabResultFab({ patientUserId, patientName, onSuccess 
       </DialogContent>
     </Dialog>
   );
+
+  return mounted ? createPortal(dialogContent, document.body) : null;
 }
 

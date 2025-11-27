@@ -254,7 +254,8 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
+              {/* Row 1: Name, Cedula, Gender */}
               <div className="space-y-2">
                 <Label htmlFor="name">Nombre Completo</Label>
                 <Input
@@ -266,253 +267,24 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
                   <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>
                 )}
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="edad">Edad</Label>
+                <Label htmlFor="cedula">Cédula</Label>
                 <Input
-                  id="edad"
-                  type="number"
-                  value={form.watch('fechaNacimiento') ? calculateAge(form.watch('fechaNacimiento')) : patient.age || 0}
-                  disabled
-                  className="cursor-not-allowed bg-muted"
-                  placeholder="Calculada automáticamente"
+                  id="cedula"
+                  {...form.register('cedula')}
+                  placeholder="Ej: V12345678"
                 />
+                {form.formState.errors.cedula && (
+                  <p className="text-sm text-red-500">{form.formState.errors.cedula.message}</p>
+                )}
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label>Fecha de Nacimiento *</Label>
-              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !form.watch('fechaNacimiento') && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {(() => {
-                      const fecha = form.watch('fechaNacimiento');
-                      if (!fecha) return <span>Seleccione una fecha</span>;
-
-                      const [y, m, d] = fecha.split('-').map(Number);
-                      const localDate = new Date(y, m - 1, d);
-                      return localDate.toLocaleDateString('es-ES', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      });
-                    })()}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <div className="p-4">
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-medium">Mes:</h4>
-                        <div className="relative">
-                          <button
-                            type="button"
-                            className="absolute left-0 top-0 bottom-0 px-2 flex items-center justify-center text-muted-foreground hover:text-foreground"
-                            onClick={() => {
-                              setSelectedMonth(prev => (prev > 0 ? prev - 1 : 11));
-                            }}
-                          >
-                            <ChevronLeft className="h-4 w-4" />
-                          </button>
-
-                          <div
-                            className="w-full text-center border rounded-md py-2 px-8 bg-background"
-                            onWheel={(e) => {
-                              e.preventDefault();
-                              setSelectedMonth(prev => {
-                                const delta = e.deltaY > 0 ? 1 : -1;
-                                return (prev - delta + 12) % 12;
-                              });
-                            }}
-                          >
-                            {months[selectedMonth]}
-                          </div>
-
-                          <button
-                            type="button"
-                            className="absolute right-0 top-0 bottom-0 px-2 flex items-center justify-center text-muted-foreground hover:text-foreground"
-                            onClick={() => {
-                              setSelectedMonth(prev => (prev + 1) % 12);
-                            }}
-                          >
-                            <ChevronRight className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-medium">Año:</h4>
-                        <div className="relative">
-                          <button
-                            type="button"
-                            className="absolute left-0 top-0 bottom-0 px-2 flex items-center justify-center text-muted-foreground hover:text-foreground"
-                            onClick={() => {
-                              const currentIndex = years.findIndex(y => y === selectedYear);
-                              if (currentIndex > 0) {
-                                setSelectedYear(years[currentIndex - 1]);
-                              }
-                            }}
-                          >
-                            <ChevronLeft className="h-4 w-4" />
-                          </button>
-
-                          <div
-                            className="w-full text-center border rounded-md py-2 px-8 bg-background"
-                            onWheel={(e) => {
-                              e.preventDefault();
-                              const currentIndex = years.findIndex(y => y === selectedYear);
-                              const delta = e.deltaY > 0 ? 1 : -1;
-                              const newIndex = Math.min(Math.max(0, currentIndex + delta), years.length - 1);
-                              if (newIndex !== currentIndex) {
-                                setSelectedYear(years[newIndex]);
-                              }
-                            }}
-                          >
-                            {selectedYear}
-                          </div>
-
-                          <button
-                            type="button"
-                            className="absolute right-0 top-0 bottom-0 px-2 flex items-center justify-center text-muted-foreground hover:text-foreground"
-                            onClick={() => {
-                              const currentIndex = years.findIndex(y => y === selectedYear);
-                              if (currentIndex < years.length - 1) {
-                                setSelectedYear(years[currentIndex + 1]);
-                              }
-                            }}
-                          >
-                            <ChevronRight className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-2">
-                      <style jsx>{`
-                        .rdp {
-                          --rdp-cell-size: 40px;
-                          --rdp-accent-color: #3b82f6;
-                          --rdp-background-color: #e0f2fe;
-                          margin: 0;
-                        }
-                        .rdp-caption {
-                          display: none !important;
-                        }
-                        .rdp-table {
-                          margin: 0;
-                        }
-                        .rdp-day {
-                          height: var(--rdp-cell-size);
-                          width: var(--rdp-cell-size);
-                          display: flex;
-                          align-items: center;
-                          justify-content: center;
-                          border-radius: 0.5rem;
-                          margin: 0;
-                        }
-                        .rdp-day_selected {
-                          background-color: var(--rdp-accent-color) !important;
-                          color: white !important;
-                        }
-                        .rdp-day_today:not(.rdp-day_selected) {
-                          background-color: #f3f4f6;
-                          color: #111827;
-                        }
-                      `}</style>
-                      <Calendar
-                        mode="single"
-                        selected={
-                          form.watch('fechaNacimiento')
-                            ? (() => {
-                              const dateStr = form.watch('fechaNacimiento');
-                              if (!dateStr) return undefined;
-
-                              // Parse manual evitando timezone
-                              const parts = dateStr.split('-');
-                              if (parts.length !== 3) return undefined;
-
-                              const y = parseInt(parts[0], 10);
-                              const m = parseInt(parts[1], 10) - 1;
-                              const d = parseInt(parts[2], 10);
-
-                              // Crear fecha en UTC para evitar problemas de zona horaria
-                              const utcDate = new Date(Date.UTC(y, m, d, 12, 0, 0));
-                              console.log('🔵 Fecha seleccionada (UTC):', utcDate.toISOString());
-                              return utcDate;
-                            })()
-                            : undefined
-                        }
-                        onSelect={(date) => {
-                          if (date) {
-                            const year = date.getFullYear();
-                            const month = date.getMonth() + 1;
-                            const day = date.getDate();
-
-                            const formattedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-
-                            console.log('✅ Click en día:', day, '→ Guardando:', formattedDate);
-
-                            form.setValue('fechaNacimiento', formattedDate, { shouldValidate: true });
-                            setSelectedYear(year);
-                            setSelectedMonth(month - 1);
-                            setIsCalendarOpen(false);
-                          }
-                        }}
-                        month={new Date(selectedYear, selectedMonth)}
-                        onMonthChange={(date) => {
-                          setSelectedYear(date.getFullYear());
-                          setSelectedMonth(date.getMonth());
-                        }}
-                        disabled={(date) => date > new Date() || date < new Date('1900-01-01')}
-                        initialFocus
-                        classNames={{
-                          months: "flex flex-col sm:flex-row space-y-2 sm:space-x-2 sm:space-y-0",
-                          month: "space-y-2",
-                          caption: "flex justify-center pt-1 relative items-center",
-                          caption_label: "text-sm font-medium",
-                          nav: "space-x-1 flex items-center",
-                          nav_button: "h-6 w-6 bg-transparent hover:bg-accent rounded-md",
-                          nav_button_previous: "absolute left-1",
-                          nav_button_next: "absolute right-1",
-                          table: "w-full border-collapse",
-                          head_row: "flex w-full",
-                          head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.7rem] uppercase",
-                          row: "flex w-full mt-0.5",
-                          cell: "relative p-0 text-center text-sm",
-                          day: "h-9 w-9 p-0 font-normal hover:bg-accent hover:text-accent-foreground rounded-md text-sm",
-                          day_selected: "bg-primary text-primary-foreground hover:bg-primary/90",
-                          day_today: "bg-accent text-accent-foreground font-semibold",
-                          day_outside: "text-muted-foreground/30 opacity-30",
-                          day_disabled: "text-muted-foreground/20 opacity-30",
-                          day_hidden: "invisible",
-                        }}
-                        components={{
-                          Caption: () => null,
-                          CaptionLabel: () => null,
-                          IconLeft: () => null,
-                          IconRight: () => null,
-                        }}
-                      />
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-              {form.formState.errors.fechaNacimiento && (
-                <p className="text-sm text-red-500">{form.formState.errors.fechaNacimiento.message}</p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="gender">Género</Label>
                 <Select onValueChange={(value) => form.setValue('gender', value as 'Masculino' | 'Femenino' | 'Otro')} defaultValue={form.watch('gender')}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleccione un género" />
+                    <SelectValue placeholder="Seleccione" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Masculino">Masculino</SelectItem>
@@ -524,11 +296,242 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
                   <p className="text-sm text-red-500">{form.formState.errors.gender.message}</p>
                 )}
               </div>
+
+              {/* Row 2: Birth Date, Age, Blood Type */}
+              <div className="space-y-2">
+                <Label>Fecha de Nacimiento *</Label>
+                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !form.watch('fechaNacimiento') && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {(() => {
+                        const fecha = form.watch('fechaNacimiento');
+                        if (!fecha) return <span>Seleccione</span>;
+
+                        const [y, m, d] = fecha.split('-').map(Number);
+                        const localDate = new Date(y, m - 1, d);
+                        return localDate.toLocaleDateString('es-ES', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        });
+                      })()}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <div className="p-4">
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium">Mes:</h4>
+                          <div className="relative">
+                            <button
+                              type="button"
+                              className="absolute left-0 top-0 bottom-0 px-2 flex items-center justify-center text-muted-foreground hover:text-foreground"
+                              onClick={() => {
+                                setSelectedMonth(prev => (prev > 0 ? prev - 1 : 11));
+                              }}
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </button>
+
+                            <div
+                              className="w-full text-center border rounded-md py-2 px-8 bg-background"
+                              onWheel={(e) => {
+                                e.preventDefault();
+                                setSelectedMonth(prev => {
+                                  const delta = e.deltaY > 0 ? 1 : -1;
+                                  return (prev - delta + 12) % 12;
+                                });
+                              }}
+                            >
+                              {months[selectedMonth]}
+                            </div>
+
+                            <button
+                              type="button"
+                              className="absolute right-0 top-0 bottom-0 px-2 flex items-center justify-center text-muted-foreground hover:text-foreground"
+                              onClick={() => {
+                                setSelectedMonth(prev => (prev + 1) % 12);
+                              }}
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium">Año:</h4>
+                          <div className="relative">
+                            <button
+                              type="button"
+                              className="absolute left-0 top-0 bottom-0 px-2 flex items-center justify-center text-muted-foreground hover:text-foreground"
+                              onClick={() => {
+                                const currentIndex = years.findIndex(y => y === selectedYear);
+                                if (currentIndex > 0) {
+                                  setSelectedYear(years[currentIndex - 1]);
+                                }
+                              }}
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </button>
+
+                            <div
+                              className="w-full text-center border rounded-md py-2 px-8 bg-background"
+                              onWheel={(e) => {
+                                e.preventDefault();
+                                const currentIndex = years.findIndex(y => y === selectedYear);
+                                const delta = e.deltaY > 0 ? 1 : -1;
+                                const newIndex = Math.min(Math.max(0, currentIndex + delta), years.length - 1);
+                                if (newIndex !== currentIndex) {
+                                  setSelectedYear(years[newIndex]);
+                                }
+                              }}
+                            >
+                              {selectedYear}
+                            </div>
+
+                            <button
+                              type="button"
+                              className="absolute right-0 top-0 bottom-0 px-2 flex items-center justify-center text-muted-foreground hover:text-foreground"
+                              onClick={() => {
+                                const currentIndex = years.findIndex(y => y === selectedYear);
+                                if (currentIndex < years.length - 1) {
+                                  setSelectedYear(years[currentIndex + 1]);
+                                }
+                              }}
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-2">
+                        <style jsx>{`
+                          .rdp {
+                            --rdp-cell-size: 40px;
+                            --rdp-accent-color: #3b82f6;
+                            --rdp-background-color: #e0f2fe;
+                            margin: 0;
+                          }
+                          .rdp-caption {
+                            display: none !important;
+                          }
+                          .rdp-table {
+                            margin: 0;
+                          }
+                          .rdp-day {
+                            height: var(--rdp-cell-size);
+                            width: var(--rdp-cell-size);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            border-radius: 0.5rem;
+                            margin: 0;
+                          }
+                          .rdp-day_selected {
+                            background-color: var(--rdp-accent-color) !important;
+                            color: white !important;
+                          }
+                          .rdp-day_today:not(.rdp-day_selected) {
+                            background-color: #f3f4f6;
+                            color: #111827;
+                          }
+                        `}</style>
+                        <Calendar
+                          mode="single"
+                          selected={
+                            form.watch('fechaNacimiento')
+                              ? (() => {
+                                const dateStr = form.watch('fechaNacimiento');
+                                if (!dateStr) return undefined;
+                                const parts = dateStr.split('-');
+                                if (parts.length !== 3) return undefined;
+                                const y = parseInt(parts[0], 10);
+                                const m = parseInt(parts[1], 10) - 1;
+                                const d = parseInt(parts[2], 10);
+                                return new Date(Date.UTC(y, m, d, 12, 0, 0));
+                              })()
+                              : undefined
+                          }
+                          onSelect={(date) => {
+                            if (date) {
+                              const year = date.getFullYear();
+                              const month = date.getMonth() + 1;
+                              const day = date.getDate();
+                              const formattedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                              form.setValue('fechaNacimiento', formattedDate, { shouldValidate: true });
+                              setSelectedYear(year);
+                              setSelectedMonth(month - 1);
+                              setIsCalendarOpen(false);
+                            }
+                          }}
+                          month={new Date(selectedYear, selectedMonth)}
+                          onMonthChange={(date) => {
+                            setSelectedYear(date.getFullYear());
+                            setSelectedMonth(date.getMonth());
+                          }}
+                          disabled={(date) => date > new Date() || date < new Date('1900-01-01')}
+                          initialFocus
+                          classNames={{
+                            months: "flex flex-col sm:flex-row space-y-2 sm:space-x-2 sm:space-y-0",
+                            month: "space-y-2",
+                            caption: "flex justify-center pt-1 relative items-center",
+                            caption_label: "text-sm font-medium",
+                            nav: "space-x-1 flex items-center",
+                            nav_button: "h-6 w-6 bg-transparent hover:bg-accent rounded-md",
+                            nav_button_previous: "absolute left-1",
+                            nav_button_next: "absolute right-1",
+                            table: "w-full border-collapse",
+                            head_row: "flex w-full",
+                            head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.7rem] uppercase",
+                            row: "flex w-full mt-0.5",
+                            cell: "relative p-0 text-center text-sm",
+                            day: "h-9 w-9 p-0 font-normal hover:bg-accent hover:text-accent-foreground rounded-md text-sm",
+                            day_selected: "bg-primary text-primary-foreground hover:bg-primary/90",
+                            day_today: "bg-accent text-accent-foreground font-semibold",
+                            day_outside: "text-muted-foreground/30 opacity-30",
+                            day_disabled: "text-muted-foreground/20 opacity-30",
+                            day_hidden: "invisible",
+                          }}
+                          components={{
+                            Caption: () => null,
+                            CaptionLabel: () => null,
+                            IconLeft: () => null,
+                            IconRight: () => null,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                {form.formState.errors.fechaNacimiento && (
+                  <p className="text-sm text-red-500">{form.formState.errors.fechaNacimiento.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edad">Edad</Label>
+                <Input
+                  id="edad"
+                  type="number"
+                  value={form.watch('fechaNacimiento') ? calculateAge(form.watch('fechaNacimiento')) : patient.age || 0}
+                  disabled
+                  className="cursor-not-allowed bg-muted"
+                  placeholder="Auto"
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="bloodType">Grupo Sanguíneo</Label>
                 <Select onValueChange={(value) => form.setValue('bloodType', value as "O+" | "O-" | "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-")} defaultValue={form.watch('bloodType')}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleccione un tipo de sangre" />
+                    <SelectValue placeholder="Seleccione" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="A+">A+</SelectItem>
@@ -545,21 +548,80 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
                   <p className="text-sm text-red-500">{form.formState.errors.bloodType.message}</p>
                 )}
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
+              {/* Row 3: Phone, Email, Company */}
               <div className="space-y-2">
-                <Label htmlFor="cedula">Cédula</Label>
+                <Label htmlFor="phone">Teléfono</Label>
                 <Input
-                  id="cedula"
-                  {...form.register('cedula')}
-                  placeholder="Ej: V12345678"
+                  id="phone"
+                  {...form.register('phone')}
+                  placeholder="Ej: +58 412..."
                 />
-                {form.formState.errors.cedula && (
-                  <p className="text-sm text-red-500">{form.formState.errors.cedula.message}</p>
+                {form.formState.errors.phone && (
+                  <p className="text-sm text-red-500">{form.formState.errors.phone.message}</p>
                 )}
               </div>
+
               <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  {...form.register('email')}
+                  placeholder="Ej: juan@..."
+                />
+                {form.formState.errors.email && (
+                  <p className="text-sm text-red-500">{form.formState.errors.email.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="companyId">Empresa Afiliada</Label>
+                <Select onValueChange={(value) => form.setValue('companyId', value)} defaultValue={form.watch('companyId')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Paciente Particular</SelectItem>
+                    {isLoadingCompanies ? (
+                      <SelectItem value="loading" disabled>Cargando...</SelectItem>
+                    ) : (
+                      companies.map((company) => (
+                        <SelectItem key={company.id} value={company.id}>
+                          {company.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Row 4: Doctor, Address (col-span-2) */}
+              <div className="space-y-2">
+                <Label htmlFor="assignedDoctorId">Médico Asignado</Label>
+                <Select onValueChange={(value) => form.setValue('assignedDoctorId', value)} defaultValue={form.watch('assignedDoctorId')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin asignar</SelectItem>
+                    {isLoadingCompanies ? (
+                      <SelectItem value="loading" disabled>Cargando...</SelectItem>
+                    ) : (
+                      doctors.map((doctor) => (
+                        <SelectItem key={doctor.id} value={doctor.id}>
+                          Dr. {doctor.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                {form.formState.errors.assignedDoctorId && (
+                  <p className="text-sm text-red-500">{form.formState.errors.assignedDoctorId.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2 col-span-2">
                 <Label htmlFor="direccion">Dirección</Label>
                 <Input
                   id="direccion"
@@ -570,77 +632,6 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
                   <p className="text-sm text-red-500">{form.formState.errors.direccion.message}</p>
                 )}
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="phone">Teléfono</Label>
-                <Input
-                  id="phone"
-                  {...form.register('phone')}
-                  placeholder="Ej: +58 412 123 4567"
-                />
-                {form.formState.errors.phone && (
-                  <p className="text-sm text-red-500">{form.formState.errors.phone.message}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  {...form.register('email')}
-                  placeholder="Ej: juan@email.com"
-                />
-                {form.formState.errors.email && (
-                  <p className="text-sm text-red-500">{form.formState.errors.email.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="companyId">Empresa Afiliada</Label>
-              <Select onValueChange={(value) => form.setValue('companyId', value)} defaultValue={form.watch('companyId')}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccione una empresa" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Paciente Particular</SelectItem>
-                  {isLoadingCompanies ? (
-                    <SelectItem value="loading" disabled>Cargando empresas...</SelectItem>
-                  ) : (
-                    companies.map((company) => (
-                      <SelectItem key={company.id} value={company.id}>
-                        {company.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="assignedDoctorId">Médico Asignado</Label>
-              <Select onValueChange={(value) => form.setValue('assignedDoctorId', value)} defaultValue={form.watch('assignedDoctorId')}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccione un médico" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin asignar</SelectItem>
-                  {isLoadingCompanies ? (
-                    <SelectItem value="loading" disabled>Cargando médicos...</SelectItem>
-                  ) : (
-                    doctors.map((doctor) => (
-                      <SelectItem key={doctor.id} value={doctor.id}>
-                        Dr. {doctor.name} - {doctor.specialty}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              {form.formState.errors.assignedDoctorId && (
-                <p className="text-sm text-red-500">{form.formState.errors.assignedDoctorId.message}</p>
-              )}
             </div>
 
             <DialogFooter>

@@ -22,7 +22,7 @@ const reportTypes = ["Ecografía", "Tomografía", "Resonancia Magnética", "Biop
 const formSchema = z.object({
   title: z.string().min(5, "El título debe tener al menos 5 caracteres."),
   date: z.date({ required_error: "Se requiere una fecha." }),
-  type: z.string({ required_error: "Selecciona un tipo de informe."}),
+  type: z.string({ required_error: "Selecciona un tipo de informe." }),
   notes: z.string().min(10, "Las notas deben tener al menos 10 caracteres."),
   attachments: z.array(z.union([
     z.instanceof(File),
@@ -84,14 +84,14 @@ export function NewReportForm({ onFormSubmit, isSubmitting = false }: NewReportF
       };
 
       const attachments = await processAttachments(values.attachments || []);
-      
+
       const formattedValues: NewReportFormValues = {
         ...values,
         date: values.date.toISOString(),
         notes: values.notes || '',
         attachments: attachments,
       };
-      
+
       await onFormSubmit(formattedValues);
       toast({
         title: "Informe Añadido",
@@ -127,90 +127,81 @@ export function NewReportForm({ onFormSubmit, isSubmitting = false }: NewReportF
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
-                <FormField
+            {/* Row 1: Title, Date, Type in 3 columns */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Título del Informe</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ej: Ecografía Renal" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
                 control={form.control}
                 name="date"
                 render={({ field }) => (
-                    <FormItem className="flex flex-col">
+                  <FormItem className="flex flex-col">
                     <FormLabel>Fecha del Informe</FormLabel>
                     <Popover>
-                        <PopoverTrigger asChild>
+                      <PopoverTrigger asChild>
                         <FormControl>
-                            <Button
+                          <Button
                             variant={"outline"}
                             className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
                             )}
-                            >
+                          >
                             {field.value ? format(field.value, "PPP") : <span>Elige una fecha</span>}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
+                          </Button>
                         </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                            initialFocus
-                            className="p-4"
-                            classNames={{
-                              months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-                              month: "space-y-4",
-                              caption: "flex justify-center pt-1 relative items-center",
-                              caption_label: "text-sm font-semibold",
-                              nav: "space-x-1 flex items-center",
-                              nav_button: "h-8 w-8 bg-transparent p-0 opacity-70 hover:opacity-100 hover:bg-accent transition-all rounded-md border border-input",
-                              nav_button_previous: "absolute left-1",
-                              nav_button_next: "absolute right-1",
-                              table: "w-full border-collapse space-y-1",
-                              head_row: "flex",
-                              head_cell: "text-muted-foreground rounded-md w-10 font-medium text-[0.85rem] uppercase",
-                              row: "flex w-full mt-2",
-                              cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md",
-                              day: "h-10 w-10 p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground transition-all rounded-lg",
-                              day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-lg shadow-sm",
-                              day_today: "bg-accent text-accent-foreground font-semibold",
-                              day_outside: "text-muted-foreground opacity-40",
-                              day_disabled: "text-muted-foreground opacity-30 cursor-not-allowed",
-                              day_range_middle: "aria-selected:bg-accent/50 aria-selected:text-accent-foreground",
-                            }}
-                            components={{
-                              IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" {...props} />,
-                              IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" {...props} />,
-                            }}
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                          initialFocus
+                          className="p-4"
                         />
-                        </PopoverContent>
+                      </PopoverContent>
                     </Popover>
                     <FormMessage />
-                    </FormItem>
+                  </FormItem>
                 )}
-                />
-                <FormField
+              />
+
+              <FormField
                 control={form.control}
                 name="type"
                 render={({ field }) => (
-                    <FormItem>
+                  <FormItem className="flex flex-col">
                     <FormLabel>Tipo de Informe</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
+                      <FormControl>
                         <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un tipo" />
+                          <SelectValue placeholder="Selecciona" />
                         </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            {reportTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
-                        </SelectContent>
+                      </FormControl>
+                      <SelectContent>
+                        {reportTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                      </SelectContent>
                     </Select>
                     <FormMessage />
-                    </FormItem>
+                  </FormItem>
                 )}
-                />
+              />
             </div>
-            
+
             <FormField
               control={form.control}
               name="notes"
@@ -224,7 +215,7 @@ export function NewReportForm({ onFormSubmit, isSubmitting = false }: NewReportF
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="attachments"
@@ -233,16 +224,16 @@ export function NewReportForm({ onFormSubmit, isSubmitting = false }: NewReportF
                   <FormLabel>Adjuntos</FormLabel>
                   <FormControl>
                     <FileInput
-                        value={field.value ? field.value.map((file: any) => 
-                          file instanceof File ? file : new File([], file.name || 'file', { type: file.type || 'application/octet-stream' })
-                        ) : []}
-                        onValueChange={(files) => {
-                          // Convert FileList to array of Files
-                          const fileArray = Array.from(files || []);
-                          field.onChange(fileArray);
-                        }}
-                        multiple
-                        accept="image/*,.pdf"
+                      value={field.value ? field.value.map((file: any) =>
+                        file instanceof File ? file : new File([], file.name || 'file', { type: file.type || 'application/octet-stream' })
+                      ) : []}
+                      onValueChange={(files) => {
+                        // Convert FileList to array of Files
+                        const fileArray = Array.from(files || []);
+                        field.onChange(fileArray);
+                      }}
+                      multiple
+                      accept="image/*,.pdf"
                     />
                   </FormControl>
                   <FormMessage />
@@ -252,8 +243,8 @@ export function NewReportForm({ onFormSubmit, isSubmitting = false }: NewReportF
           </div>
         </ScrollArea>
         <div className="pt-6 flex justify-end">
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             className="w-full"
             disabled={isSubmitting}
           >

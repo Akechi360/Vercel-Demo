@@ -519,65 +519,68 @@ export function AddAffiliationForm({ onSubmit, onCancel }: AddAffiliationFormPro
           )
         }
 
-        <FormField
-          control={form.control}
-          name="monto"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Monto</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={isNaN(field.value) ? "" : field.value}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    field.onChange(value === "" ? 0 : parseFloat(value));
-                  }}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="estado"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Estado</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+        {/* Monto and Estado in 2 columns */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="monto"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Monto</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un estado" />
-                  </SelectTrigger>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={isNaN(field.value) ? "" : field.value}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      field.onChange(value === "" ? 0 : parseFloat(value));
+                    }}
+                  />
                 </FormControl>
-                <SelectContent>
-                  {tipoPago === "credito" ? (
-                    <>
-                      <SelectItem value="INICIAL">Inicial</SelectItem>
-                      <SelectItem value="ABONO">Abono</SelectItem>
-                      <SelectItem value="ACTIVA">Activa</SelectItem>
-                      <SelectItem value="INACTIVA">Inactiva</SelectItem>
-                      <SelectItem value="SUSPENDIDA">Suspendida</SelectItem>
-                      <SelectItem value="VENCIDA">Vencida</SelectItem>
-                    </>
-                  ) : (
-                    <>
-                      <SelectItem value="ACTIVA">Activa</SelectItem>
-                      <SelectItem value="INACTIVA">Inactiva</SelectItem>
-                      <SelectItem value="SUSPENDIDA">Suspendida</SelectItem>
-                      <SelectItem value="VENCIDA">Vencida</SelectItem>
-                    </>
-                  )}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="estado"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Estado</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona un estado" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {tipoPago === "credito" ? (
+                      <>
+                        <SelectItem value="INICIAL">Inicial</SelectItem>
+                        <SelectItem value="ABONO">Abono</SelectItem>
+                        <SelectItem value="ACTIVA">Activa</SelectItem>
+                        <SelectItem value="INACTIVA">Inactiva</SelectItem>
+                        <SelectItem value="SUSPENDIDA">Suspendida</SelectItem>
+                        <SelectItem value="VENCIDA">Vencida</SelectItem>
+                      </>
+                    ) : (
+                      <>
+                        <SelectItem value="ACTIVA">Activa</SelectItem>
+                        <SelectItem value="INACTIVA">Inactiva</SelectItem>
+                        <SelectItem value="SUSPENDIDA">Suspendida</SelectItem>
+                        <SelectItem value="VENCIDA">Vencida</SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         <div className="flex justify-end gap-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancelar

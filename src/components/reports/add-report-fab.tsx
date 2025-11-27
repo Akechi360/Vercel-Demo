@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { NewReportForm, NewReportFormValues } from './new-report-form';
+import { createPortal } from 'react-dom';
 
 interface AddReportFabProps {
   onFormSubmit: (values: NewReportFormValues) => Promise<void>;
@@ -19,6 +20,12 @@ interface AddReportFabProps {
 
 export function AddReportFab({ onFormSubmit, isSubmitting = false }: AddReportFabProps) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   const handleFormSubmit = async (values: NewReportFormValues) => {
     try {
@@ -30,10 +37,10 @@ export function AddReportFab({ onFormSubmit, isSubmitting = false }: AddReportFa
     }
   };
 
-  return (
+  const dialogContent = (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button 
+        <Button
           className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-lg bg-gradient-to-r from-primary to-blue-400 hover:from-primary/90 hover:to-blue-400/90 transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-[0_0_20px_rgba(58,109,255,0.4),0_0_40px_rgba(186,85,211,0.3),0_0_60px_rgba(255,105,180,0.2)] animate-pulse-slow"
           disabled={isSubmitting}
         >
@@ -41,18 +48,20 @@ export function AddReportFab({ onFormSubmit, isSubmitting = false }: AddReportFa
           <span className="sr-only">Agregar Informe</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>Añadir Nuevo Informe</DialogTitle>
           <DialogDescription>
             Rellena los detalles para el nuevo informe médico.
           </DialogDescription>
         </DialogHeader>
-        <NewReportForm 
-          onFormSubmit={handleFormSubmit} 
-          isSubmitting={isSubmitting} 
+        <NewReportForm
+          onFormSubmit={handleFormSubmit}
+          isSubmitting={isSubmitting}
         />
       </DialogContent>
     </Dialog>
   );
+
+  return mounted ? createPortal(dialogContent, document.body) : null;
 }

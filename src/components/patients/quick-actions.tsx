@@ -35,10 +35,10 @@ export function QuickActions({ patient, upcomingAppointments, latestConsultation
             });
 
             // Ensure date is properly formatted as ISO string
-            const formattedDate = values.date instanceof Date ? values.date.toISOString() : 
-                               typeof values.date === 'string' ? values.date : 
-                               new Date().toISOString();
-            
+            const formattedDate = values.date instanceof Date ? values.date.toISOString() :
+                typeof values.date === 'string' ? values.date :
+                    new Date().toISOString();
+
             const submissionValues = {
                 ...values,
                 date: formattedDate,
@@ -58,7 +58,7 @@ export function QuickActions({ patient, upcomingAppointments, latestConsultation
                 // Mapear cada attachment a un reporte separado
                 return report.attachments.map(attachment => {
                     const extendedAttachment = attachment as any; // Usamos any para evitar problemas de tipos
-                    
+
                     console.log('📎 QuickActions - Procesando reporte:', {
                         title: report.title,
                         hasAttachment: true,
@@ -66,7 +66,7 @@ export function QuickActions({ patient, upcomingAppointments, latestConsultation
                         hasBase64: !!extendedAttachment.base64Content,
                         base64Length: extendedAttachment.base64Content?.length || 0
                     });
-                    
+
                     return {
                         title: report.title || 'Sin título',
                         notes: (report as any).notes || '',
@@ -90,14 +90,14 @@ export function QuickActions({ patient, upcomingAppointments, latestConsultation
                 ...submissionValues,
                 reports: reports, // ⭐ Usar reportes mapeados
             });
-            
+
             console.log('✅ Consulta guardada exitosamente desde QuickActions');
-            
+
             toast({
                 title: "Consulta Guardada",
                 description: `Nueva consulta de tipo "${values.type}" ha sido guardada exitosamente.`,
             });
-            
+
             setIsHistoryModalOpen(false);
         } catch (error) {
             console.error('Error saving consultation:', error);
@@ -108,7 +108,7 @@ export function QuickActions({ patient, upcomingAppointments, latestConsultation
             });
         }
     }
-    
+
     const handleAddAppointment = () => {
         toast({
             title: "Acción Simulada: Agendar Cita",
@@ -143,20 +143,20 @@ export function QuickActions({ patient, upcomingAppointments, latestConsultation
         y += 8;
 
         const formatBloodType = (bloodType: string) => {
-      const bloodTypeMap: Record<string, string> = {
-        'A_POSITIVE': 'A+',
-        'A_NEGATIVE': 'A-',
-        'B_POSITIVE': 'B+',
-        'B_NEGATIVE': 'B-',
-        'AB_POSITIVE': 'AB+',
-        'AB_NEGATIVE': 'AB-',
-        'O_POSITIVE': 'O+',
-        'O_NEGATIVE': 'O-',
-      };
-      return bloodTypeMap[bloodType] || bloodType;
-    };
+            const bloodTypeMap: Record<string, string> = {
+                'A_POSITIVE': 'A+',
+                'A_NEGATIVE': 'A-',
+                'B_POSITIVE': 'B+',
+                'B_NEGATIVE': 'B-',
+                'AB_POSITIVE': 'AB+',
+                'AB_NEGATIVE': 'AB-',
+                'O_POSITIVE': 'O+',
+                'O_NEGATIVE': 'O-',
+            };
+            return bloodTypeMap[bloodType] || bloodType;
+        };
 
-    autoTable(doc, {
+        autoTable(doc, {
             startY: y,
             theme: 'plain',
             body: [
@@ -178,7 +178,7 @@ export function QuickActions({ patient, upcomingAppointments, latestConsultation
             }
         });
         y = (doc as any).lastAutoTable.finalY + 10;
-        
+
         // Indicadores Clave
         doc.setFontSize(14);
         doc.setFont("helvetica", "bold");
@@ -197,7 +197,7 @@ export function QuickActions({ patient, upcomingAppointments, latestConsultation
             headStyles: { fillColor: [58, 109, 255] },
         });
         y = (doc as any).lastAutoTable.finalY + 10;
-        
+
         // Historial Reciente
         doc.setFontSize(14);
         doc.setFont("helvetica", "bold");
@@ -223,7 +223,7 @@ export function QuickActions({ patient, upcomingAppointments, latestConsultation
 
         const filename = `resumen_${patient.name.replace(/\s/g, '_')}.pdf`;
         doc.save(filename);
-        
+
         toast({
             title: "Exportación Completada",
             description: `Se ha descargado el resumen de ${patient.name}.`,
@@ -234,7 +234,7 @@ export function QuickActions({ patient, upcomingAppointments, latestConsultation
     return (
         <>
             <div className="flex justify-end">
-                <Button 
+                <Button
                     onClick={() => setIsExportModalOpen(true)}
                     className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all"
                     size="lg"
@@ -246,7 +246,7 @@ export function QuickActions({ patient, upcomingAppointments, latestConsultation
 
             {/* Modals */}
             <Dialog open={isHistoryModalOpen} onOpenChange={setIsHistoryModalOpen}>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="max-w-4xl">
                     <DialogHeader>
                         <DialogTitle>Añadir Nueva Consulta</DialogTitle>
                         <DialogDescription>Rellena los detalles para el nuevo registro de consulta para {patient.name}.</DialogDescription>

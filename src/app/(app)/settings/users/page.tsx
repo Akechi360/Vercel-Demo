@@ -406,7 +406,6 @@ export default function UsersManagementPage() {
         try {
           await deleteUserAction(userId);
           setUsers(users.filter(user => user.id !== userId));
-          // Usuario eliminado exitosamente
         } catch (error) {
           console.error('Error deleting user:', error);
           const errorMessage = error instanceof Error ? error.message : 'Error al eliminar usuario';
@@ -421,8 +420,6 @@ export default function UsersManagementPage() {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
     });
   };
 
@@ -626,7 +623,7 @@ export default function UsersManagementPage() {
                           {user.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-1 text-muted-foreground">
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                         <Calendar className="h-3 w-3" />
                         <span className="text-xs">{formatDate(user.createdAt.toISOString())}</span>
                       </div>
@@ -838,14 +835,7 @@ export default function UsersManagementPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Dialog para editar usuario */}
-      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
-        setIsEditDialogOpen(open);
-        if (!open) {
-          clearUserDetails();
-        }
-      }}>
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[500px] max-h-[85vh] flex flex-col p-0 overflow-hidden gap-0">
           <DialogHeader className="p-6 pb-2">
             <DialogTitle>Editar Usuario</DialogTitle>

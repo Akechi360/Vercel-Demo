@@ -21,7 +21,7 @@ export function AnimatedCounter({
   const [displayValue, setDisplayValue] = useState(from)
   const count = useMotionValue(from)
   const ref = useRef<HTMLSpanElement>(null)
-  const isInView = useInView(ref, { once: true, margin: '-100px' })
+  const isInView = useInView(ref, { once: true, margin: '-10px' })
 
   useEffect(() => {
     if (isInView) {

@@ -265,7 +265,7 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
         <FormField
           control={form.control}
           name="userSelection"
@@ -335,7 +335,8 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
             )}
           />
         )}
-        <div className="grid grid-cols-2 gap-4">
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <FormField
             control={form.control}
             name="age"
@@ -371,9 +372,6 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
               </FormItem>
             )}
           />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="bloodType"
@@ -401,12 +399,15 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
               </FormItem>
             )}
           />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <FormField
             control={form.control}
             name="cedula"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Cédula de Identidad</FormLabel>
+                <FormLabel>Cédula</FormLabel>
                 <FormControl>
                   <Input placeholder="Ej: V-12345678" {...field} />
                 </FormControl>
@@ -414,93 +415,91 @@ export function AddPatientForm({ onSuccess }: AddPatientFormProps) {
               </FormItem>
             )}
           />
+          <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Teléfono</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ej: 555-123-4567" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input type="email" placeholder="Ej: juan@ejemplo.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
-        <FormField
-          control={form.control}
-          name="phone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Teléfono (Opcional)</FormLabel>
-              <FormControl>
-                <Input placeholder="Ej: 555-123-4567" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Correo Electrónico (Opcional)</FormLabel>
-              <FormControl>
-                <Input type="email" placeholder="Ej: juan@ejemplo.com" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="companyId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Empresa Afiliada (Opcional)</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccione una empresa..." />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="none">Ninguna</SelectItem>
-                  {companies.map(company => (
-                    <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <FormField
+            control={form.control}
+            name="companyId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Empresa Afiliada</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccione una empresa..." />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="none">Ninguna</SelectItem>
+                    {companies.map(company => (
+                      <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        {/* Doctor Assignment - REQUIRED */}
-        <FormField
-          control={form.control}
-          name="assignedDoctorId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="font-semibold">Médico Asignado *</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger className="border-primary bg-primary/5">
-                    <SelectValue placeholder="Seleccionar médico (requerido)" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {doctors.map((doctor) => (
-                    <SelectItem key={doctor.id} value={doctor.id}>
-                      <div className="flex flex-col text-left">
-                        <span className="font-medium">Dr. {doctor.name}</span>
-                        {(doctor as any).doctorInfo?.especialidad && (
-                          <span className="text-xs text-muted-foreground">
-                            {(doctor as any).doctorInfo.especialidad}
-                          </span>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormDescription>
-                El médico asignado podrá ver y gestionar este paciente
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="assignedDoctorId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="font-semibold">Médico Asignado *</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="border-primary bg-primary/5">
+                      <SelectValue placeholder="Seleccionar médico" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {doctors.map((doctor) => (
+                      <SelectItem key={doctor.id} value={doctor.id}>
+                        <div className="flex flex-col text-left">
+                          <span className="font-medium">Dr. {doctor.name}</span>
+                          {(doctor as any).doctorInfo?.especialidad && (
+                            <span className="text-xs text-muted-foreground">
+                              {(doctor as any).doctorInfo.especialidad}
+                            </span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <div className="flex justify-end gap-2 pt-4">
           <Button type="button" variant="secondary" onClick={onSuccess}>Cancelar</Button>

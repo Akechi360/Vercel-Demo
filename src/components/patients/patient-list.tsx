@@ -347,7 +347,7 @@ export default function PatientList() {
                                 Agregar Paciente
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-[480px]">
+                        <DialogContent className="sm:max-w-[800px]">
                             <DialogHeader>
                                 <DialogTitle>Agregar Nuevo Paciente</DialogTitle>
                                 <DialogDescription>

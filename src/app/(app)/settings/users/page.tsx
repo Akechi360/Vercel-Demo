@@ -38,7 +38,6 @@ import {
 import {
   Users,
   Search,
-  Plus,
   Edit,
   Trash2,
   Shield,
@@ -60,7 +59,6 @@ export default function UsersManagementPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<User & { specialty?: string; cedula?: string; telefono?: string } | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   // Estados de paginación
   const [currentPage, setCurrentPage] = useState(0);
@@ -144,13 +142,6 @@ export default function UsersManagementPage() {
     setCurrentPage(totalPages - 1);
   };
 
-  const [newUser, setNewUser] = useState({
-    name: '',
-    email: '',
-    role: 'secretaria' as 'admin' | 'doctor' | 'secretaria' | 'patient' | 'promotora',
-    phone: ''
-  });
-
   // Función para verificar si un usuario puede ser editado
   const canEditUser = (user: User): boolean => {
     if (isAdmin()) return true; // Admin puede editar a todos
@@ -160,11 +151,6 @@ export default function UsersManagementPage() {
       return false;
     }
     return false;
-  };
-
-  // Función para verificar si se puede crear un usuario
-  const canCreateUser = (): boolean => {
-    return isAdmin(); // Solo admin puede crear usuarios
   };
 
   // Función para verificar si se puede eliminar un usuario
@@ -361,31 +347,6 @@ export default function UsersManagementPage() {
     }
   };
 
-  const handleCreateUser = async () => {
-    try {
-      const userData = await createUser({
-        name: newUser.name,
-        email: newUser.email,
-        password: 'TempPassword123!', // Default password, should be changed on first login
-        role: newUser.role.toUpperCase() as UserRole,
-        status: 'ACTIVE',
-        phone: null,
-        lastLogin: null,
-        userId: `U${Date.now().toString().slice(-6)}`,
-        avatarUrl: null // Se usará el valor por defecto de Prisma
-      });
-
-      setUsers([...users, userData]);
-      setNewUser({ name: '', email: '', role: 'secretaria', phone: '' });
-      setIsCreateDialogOpen(false);
-      // Usuario creado exitosamente
-    } catch (error) {
-      console.error('Error creating user:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Error al crear usuario';
-      console.error('Error details:', errorMessage);
-    }
-  };
-
   const handleDeleteUser = (userId: string) => {
     const userToDelete = users.find(user => user.id === userId);
     const isDarkMode = document.documentElement.classList.contains('dark');
@@ -432,79 +393,6 @@ export default function UsersManagementPage() {
             Administra los usuarios del sistema y sus permisos.
           </p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          {canCreateUser() && (
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white border-0 shadow-lg shadow-blue-500/20">
-                <Plus className="h-4 w-4 mr-2" />
-                Nuevo Usuario
-              </Button>
-            </DialogTrigger>
-          )}
-          <DialogContent className="sm:max-w-[500px] max-h-[85vh] flex flex-col p-0 overflow-hidden gap-0">
-            <DialogHeader className="p-6 pb-2">
-              <DialogTitle>Crear Nuevo Usuario</DialogTitle>
-              <DialogDescription>
-                Agrega un nuevo usuario al sistema con los permisos correspondientes.
-              </DialogDescription>
-            </DialogHeader>
-            <ScrollArea className="h-[60vh] w-full p-6 py-4">
-              <div className="space-y-4 pr-4">
-                <div className="space-y-2">
-                  <Label htmlFor="newUserName">Nombre Completo</Label>
-                  <Input
-                    id="newUserName"
-                    value={newUser.name}
-                    onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                    placeholder="Ej: Dr. Juan Pérez"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="newUserEmail">Email</Label>
-                  <Input
-                    id="newUserEmail"
-                    type="email"
-                    value={newUser.email}
-                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                    placeholder="usuario@urovital.com"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="newUserPhone">Teléfono</Label>
-                  <Input
-                    id="newUserPhone"
-                    value={newUser.phone}
-                    onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
-                    placeholder="+58 412-1234567"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="newUserRole">Rol</Label>
-                  <Select value={newUser.role} onValueChange={(value: 'admin' | 'doctor' | 'secretaria' | 'patient' | 'promotora') => setNewUser({ ...newUser, role: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">Administrador</SelectItem>
-                      <SelectItem value="doctor">Doctor</SelectItem>
-                      <SelectItem value="secretaria">Secretaria</SelectItem>
-                      <SelectItem value="patient">Paciente</SelectItem>
-                      <SelectItem value="promotora">Promotora</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </ScrollArea>
-            <DialogFooter className="p-6 pt-2">
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleCreateUser}>
-                Crear Usuario
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
 
       {/* Estadísticas */}

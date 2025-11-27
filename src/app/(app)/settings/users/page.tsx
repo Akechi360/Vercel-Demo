@@ -552,7 +552,7 @@ export default function UsersManagementPage() {
               </div>
 
               {/* Desktop Table Layout */}
-              <div className="hidden md:block overflow-x-hidden">
+              <div className="hidden md:block overflow-x-auto">
                 <div className="w-full">
                   <Table className="table-fixed w-full">
                     <TableHeader>

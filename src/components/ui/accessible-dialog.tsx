@@ -39,7 +39,7 @@ const AccessibleDialogContent = React.forwardRef<
   AccessibleDialogContentProps
 >(({ className, children, onOpenChange, triggerRef, ...props }, ref) => {
   const [isOpen, setIsOpen] = React.useState(false);
-  
+
   const { contentRef, closeModal } = useFocusManagement({
     isOpen,
     onClose: () => {
@@ -66,7 +66,7 @@ const AccessibleDialogContent = React.forwardRef<
           handleOpenChange(isDialogOpen);
         }
       });
-      
+
       observer.observe(dialog, { attributes: true, attributeFilter: ['data-state'] });
       return () => observer.disconnect();
     }
@@ -91,11 +91,7 @@ const AccessibleDialogContent = React.forwardRef<
           className
         )}
         onOpenAutoFocus={(e) => {
-          // Prevenir auto focus si ya hay un elemento enfocado
-          const activeElement = document.activeElement;
-          if (activeElement && activeElement !== document.body) {
-            e.preventDefault();
-          }
+          // Permitir que Radix maneje el foco automáticamente
         }}
         onCloseAutoFocus={(e) => {
           // El hook se encarga del manejo del foco
@@ -104,7 +100,7 @@ const AccessibleDialogContent = React.forwardRef<
         {...props}
       >
         {children}
-        <DialogPrimitive.Close 
+        <DialogPrimitive.Close
           className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
           onClick={closeModal}
         >

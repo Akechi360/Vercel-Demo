@@ -19,12 +19,15 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { useAuth } from './auth-provider';
 import { ROLES } from '@/lib/types';
 import NotificationBell from '@/components/notifications/notification-bell';
+import { useState } from 'react';
+
 export default function AppHeader() {
   const router = useRouter();
   const pathname = usePathname();
   const { toggleSidebar, isMobile, state } = useSidebar();
   const { currentUser } = useAuth();
   const isCollapsed = state === 'collapsed';
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -50,13 +53,48 @@ export default function AppHeader() {
 
 
       {/* Search Bar */}
+      {/* Search Bar */}
       <div className="flex-1 flex items-center max-w-md">
-        <div className="relative w-full hidden md:block group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
-          <Input
-            placeholder="Buscar..."
-            className="pl-10 h-10 bg-background/50 border-border/50 focus:bg-background focus:border-primary/50 transition-all duration-300 rounded-full"
-          />
+        {/* Mobile Search Toggle */}
+        <div className="md:hidden">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsSearchOpen(!isSearchOpen)}
+            className="text-muted-foreground hover:text-primary"
+          >
+            <Search className="h-5 w-5" />
+          </Button>
+        </div>
+
+        {/* Search Input Container */}
+        <div className={`
+          transition-all duration-300 ease-in-out
+          ${isSearchOpen ? 'absolute inset-0 z-50 flex items-center px-4 bg-background/95 backdrop-blur-xl border-b' : 'hidden'}
+          md:static md:block md:bg-transparent md:p-0 md:border-none md:shadow-none
+        `}>
+          <div className="relative w-full group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
+            <Input
+              placeholder="Buscar..."
+              className="pl-10 h-10 bg-muted/50 border-transparent focus:bg-background focus:border-primary/50 transition-all duration-300 rounded-full w-full"
+              autoFocus={isSearchOpen}
+              onBlur={() => {
+                // Optional: close on blur if desired, but might be annoying if clicking search button
+                // setIsSearchOpen(false); 
+              }}
+            />
+            {/* Close button for mobile */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 md:hidden text-muted-foreground hover:text-foreground"
+              onClick={() => setIsSearchOpen(false)}
+            >
+              <span className="sr-only">Cerrar búsqueda</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+            </Button>
+          </div>
         </div>
       </div>
 

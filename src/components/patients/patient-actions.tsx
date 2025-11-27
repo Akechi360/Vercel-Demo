@@ -246,7 +246,7 @@ export default function PatientActions({ patient, onPatientUpdated, onPatientDel
 
       {/* Edit Modal */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Editar Datos del Paciente</DialogTitle>
             <DialogDescription>

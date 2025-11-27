@@ -375,59 +375,61 @@ export default function PatientList() {
                         initial="hidden"
                         animate="show"
                     >
-                        <Table className="border-separate border-spacing-y-2 -mt-2">
-                            <TableHeader>
-                                <TableRow className='bg-transparent hover:bg-transparent border-none'>
-                                    <TableHead className='text-muted-foreground'>Nombre</TableHead>
-                                    <TableHead className='text-muted-foreground'>Edad</TableHead>
-                                    <TableHead className='text-muted-foreground'>Género</TableHead>
-                                    <TableHead className='text-muted-foreground'>Última Visita</TableHead>
-                                    <TableHead className='text-muted-foreground'>Estado</TableHead>
-                                    <TableHead className="text-right text-muted-foreground">Acciones</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {paginatedPatients.map((patient) => (
-                                    <motion.tr
-                                        key={patient.id}
-                                        variants={itemVariants}
-                                        layout
-                                        className="group bg-card hover:bg-card/50 rounded-lg shadow-sm border border-border/50 hover:shadow-md transition-all overflow-hidden hover:border-l-4 hover:border-l-primary"
-                                    >
-                                        <TableCell onClick={() => handlePatientClick(patient)} className="cursor-pointer py-4 pl-4 rounded-l-lg">
-                                            <div className="flex items-center gap-3">
-                                                <Avatar className="h-9 w-9 border border-border">
-                                                    {patient.avatarUrl && <AvatarImage src={patient.avatarUrl} alt={patient.name} />}
-                                                    <AvatarFallback className="bg-primary/10 text-primary font-medium">{getInitials(patient.name)}</AvatarFallback>
-                                                </Avatar>
-                                                <span className="font-medium text-foreground">{patient.name}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell onClick={() => handlePatientClick(patient)} className="cursor-pointer py-4">{patient.age}</TableCell>
-                                        <TableCell onClick={() => handlePatientClick(patient)} className="cursor-pointer py-4">{patient.gender}</TableCell>
-                                        <TableCell onClick={() => handlePatientClick(patient)} className="cursor-pointer py-4 text-muted-foreground">{patient.lastVisit || 'N/A'}</TableCell>
-                                        <TableCell onClick={() => handlePatientClick(patient)} className="cursor-pointer py-4">
-                                            <Badge variant={patient.status === 'Activo' ? 'soft-success' : 'soft-destructive'} className="capitalize">
-                                                {patient.status}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right rounded-r-lg py-4 pr-4">
-                                            <PatientActions
-                                                patient={patient}
-                                                onPatientUpdated={(updatedPatient) => {
-                                                    // Update the patient in the store
-                                                    updatePatient(updatedPatient);
-                                                }}
-                                                onPatientDeleted={(patientId) => {
-                                                    // Remove the patient from the store
-                                                    removePatient(patientId);
-                                                }}
-                                            />
-                                        </TableCell>
-                                    </motion.tr>
-                                ))}
-                            </TableBody>
-                        </Table>
+                        <div className="overflow-x-auto">
+                            <Table className="border-separate border-spacing-y-2 -mt-2">
+                                <TableHeader>
+                                    <TableRow className='bg-transparent hover:bg-transparent border-none'>
+                                        <TableHead className='text-muted-foreground'>Nombre</TableHead>
+                                        <TableHead className='text-muted-foreground'>Edad</TableHead>
+                                        <TableHead className='text-muted-foreground'>Género</TableHead>
+                                        <TableHead className='text-muted-foreground'>Última Visita</TableHead>
+                                        <TableHead className='text-muted-foreground'>Estado</TableHead>
+                                        <TableHead className="text-right text-muted-foreground">Acciones</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {paginatedPatients.map((patient) => (
+                                        <motion.tr
+                                            key={patient.id}
+                                            variants={itemVariants}
+                                            layout
+                                            className="group bg-card hover:bg-card/50 rounded-lg shadow-sm border border-border/50 hover:shadow-md transition-all overflow-hidden hover:border-l-4 hover:border-l-primary"
+                                        >
+                                            <TableCell onClick={() => handlePatientClick(patient)} className="cursor-pointer py-4 pl-4 rounded-l-lg">
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar className="h-9 w-9 border border-border">
+                                                        {patient.avatarUrl && <AvatarImage src={patient.avatarUrl} alt={patient.name} />}
+                                                        <AvatarFallback className="bg-primary/10 text-primary font-medium">{getInitials(patient.name)}</AvatarFallback>
+                                                    </Avatar>
+                                                    <span className="font-medium text-foreground">{patient.name}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell onClick={() => handlePatientClick(patient)} className="cursor-pointer py-4">{patient.age}</TableCell>
+                                            <TableCell onClick={() => handlePatientClick(patient)} className="cursor-pointer py-4">{patient.gender}</TableCell>
+                                            <TableCell onClick={() => handlePatientClick(patient)} className="cursor-pointer py-4 text-muted-foreground">{patient.lastVisit || 'N/A'}</TableCell>
+                                            <TableCell onClick={() => handlePatientClick(patient)} className="cursor-pointer py-4">
+                                                <Badge variant={patient.status === 'Activo' ? 'soft-success' : 'soft-destructive'} className="capitalize">
+                                                    {patient.status}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right rounded-r-lg py-4 pr-4">
+                                                <PatientActions
+                                                    patient={patient}
+                                                    onPatientUpdated={(updatedPatient) => {
+                                                        // Update the patient in the store
+                                                        updatePatient(updatedPatient);
+                                                    }}
+                                                    onPatientDeleted={(patientId) => {
+                                                        // Remove the patient from the store
+                                                        removePatient(patientId);
+                                                    }}
+                                                />
+                                            </TableCell>
+                                        </motion.tr>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </motion.div>
 
                     {/* Mobile Cards */}

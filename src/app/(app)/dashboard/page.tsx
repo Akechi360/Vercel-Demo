@@ -254,15 +254,15 @@ export default function DashboardPage() {
 
                 {/* Gráficos - Solo para roles que pueden verlos */}
                 <RoleBasedContent allowedRoles={['ADMIN', 'DOCTOR', 'SECRETARIA']}>
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <FadeInSection delay={0.5}>
-                            <div className="bg-card/80 rounded-3xl shadow-lg border-l-4 border-l-primary p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FadeInSection delay={0.5} className="col-span-1">
+                            <div className="bg-card/80 rounded-3xl shadow-lg border-l-4 border-l-primary p-4 h-full">
                                 <h3 className="text-sm font-medium text-foreground mb-2">Citas</h3>
                                 <AppointmentsLineChart />
                             </div>
                         </FadeInSection>
-                        <FadeInSection delay={0.6}>
-                            <div className="bg-card/80 rounded-3xl shadow-lg border-l-4 border-l-primary p-4">
+                        <FadeInSection delay={0.6} className="col-span-1">
+                            <div className="bg-card/80 rounded-3xl shadow-lg border-l-4 border-l-primary p-4 h-full">
                                 <h3 className="text-sm font-medium text-foreground mb-2">Resultados de Laboratorio</h3>
                                 <LabResultsBarChart />
                             </div>

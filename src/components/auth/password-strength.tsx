@@ -27,12 +27,12 @@ const requirements: PasswordRequirement[] = [
   { label: 'Un carácter especial', test: (pwd) => /[!@#$%^&*(),.?":{}|<>]/.test(pwd) },
 ];
 
-export function PasswordStrength({ 
-  password, 
-  confirmPassword, 
-  showPassword, 
+export function PasswordStrength({
+  password,
+  confirmPassword,
+  showPassword,
   onTogglePassword,
-  className 
+  className
 }: PasswordStrengthProps) {
   const [strength, setStrength] = useState(0);
   const [strengthLabel, setStrengthLabel] = useState('');
@@ -41,7 +41,7 @@ export function PasswordStrength({
   useEffect(() => {
     const validRequirements = requirements.filter(req => req.test(password));
     const strengthPercentage = (validRequirements.length / requirements.length) * 100;
-    
+
     setStrength(strengthPercentage);
 
     if (strengthPercentage < 40) {
@@ -60,7 +60,7 @@ export function PasswordStrength({
   const isPasswordValid = password.length > 0 && strength >= 80;
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn('space-y-3', className)}>
       {/* Password Strength Bar */}
       {password && (
         <div className="space-y-2">
@@ -68,15 +68,15 @@ export function PasswordStrength({
             <span className="text-sm font-medium text-muted-foreground">
               Fortaleza de contraseña
             </span>
-            <Badge 
+            <Badge
               variant={strength >= 80 ? 'success' : strength >= 40 ? 'secondary' : 'destructive'}
               className="text-xs"
             >
               {strengthLabel}
             </Badge>
           </div>
-          <Progress 
-            value={strength} 
+          <Progress
+            value={strength}
             className="h-2"
             indicatorClassName={strengthColor}
           />
@@ -89,25 +89,25 @@ export function PasswordStrength({
           <h4 className="text-sm font-medium text-foreground">
             Requisitos de contraseña:
           </h4>
-          <div className="grid grid-cols-1 gap-2">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
             {requirements.map((req, index) => {
               const isValid = req.test(password);
               return (
                 <div key={index} className="flex items-center space-x-2">
                   <div className={cn(
-                    'flex h-4 w-4 items-center justify-center rounded-full transition-colors',
-                    isValid 
-                      ? 'bg-green-500 text-white' 
+                    'flex h-3 w-3 items-center justify-center rounded-full transition-colors',
+                    isValid
+                      ? 'bg-green-500 text-white'
                       : 'bg-muted text-muted-foreground'
                   )}>
                     {isValid ? (
-                      <Check className="h-3 w-3" />
+                      <Check className="h-2 w-2" />
                     ) : (
-                      <X className="h-3 w-3" />
+                      <X className="h-2 w-2" />
                     )}
                   </div>
                   <span className={cn(
-                    'text-sm transition-colors',
+                    'text-xs transition-colors',
                     isValid ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
                   )}>
                     {req.label}
@@ -125,10 +125,10 @@ export function PasswordStrength({
           <div className={cn(
             'flex h-4 w-4 items-center justify-center rounded-full transition-colors',
             passwordsMatch && confirmPassword.length > 0
-              ? 'bg-green-500 text-white' 
+              ? 'bg-green-500 text-white'
               : confirmPassword.length > 0
-              ? 'bg-red-500 text-white'
-              : 'bg-muted text-muted-foreground'
+                ? 'bg-red-500 text-white'
+                : 'bg-muted text-muted-foreground'
           )}>
             {passwordsMatch && confirmPassword.length > 0 ? (
               <Check className="h-3 w-3" />
@@ -141,14 +141,14 @@ export function PasswordStrength({
             passwordsMatch && confirmPassword.length > 0
               ? 'text-green-600 dark:text-green-400'
               : confirmPassword.length > 0
-              ? 'text-red-600 dark:text-red-400'
-              : 'text-muted-foreground'
+                ? 'text-red-600 dark:text-red-400'
+                : 'text-muted-foreground'
           )}>
             {passwordsMatch && confirmPassword.length > 0
               ? 'Las contraseñas coinciden'
               : confirmPassword.length > 0
-              ? 'Las contraseñas no coinciden'
-              : 'Confirma tu contraseña'
+                ? 'Las contraseñas no coinciden'
+                : 'Confirma tu contraseña'
             }
           </span>
         </div>

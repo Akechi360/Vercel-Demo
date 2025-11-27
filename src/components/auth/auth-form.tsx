@@ -9,6 +9,7 @@ import { Stethoscope, LogIn, Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { PasswordStrength } from './password-strength';
+import { cn } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -213,7 +214,10 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
   }
 
   return (
-    <div className="w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl">
+    <div className={cn(
+      "w-full mx-auto overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl transition-all duration-300",
+      mode === 'register' ? "max-w-3xl" : "max-w-md"
+    )}>
       <div className="p-8">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex justify-center">
@@ -236,123 +240,172 @@ export default function AuthForm({ mode: initialMode }: AuthFormProps) {
               key={mode}
               className="space-y-4"
             >
-              {mode === 'register' && (
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-blue-100">Nombre Completo</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Dr. Juan Pérez" {...field} className="bg-white/5 border-white/10 text-white placeholder:text-blue-100/30 focus-visible:ring-blue-500/50" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-              {(mode === 'login' || mode === 'register' || mode === 'forgot-password') && (
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-blue-100">Dirección de Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="doctor@uroflow.com" {...field} className="bg-white/5 border-white/10 text-white placeholder:text-blue-100/30 focus-visible:ring-blue-500/50" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-              {(mode === 'login' || mode === 'register') && (
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center justify-between">
-                        <FormLabel className="text-blue-100">Contraseña</FormLabel>
-                        {mode === 'login' && (
-                          <button type="button" onClick={() => handleModeChange('forgot-password')} className="text-sm font-medium text-blue-400 hover:text-blue-300 hover:underline transition-colors">
-                            ¿Olvidaste?
-                          </button>
-                        )}
-                      </div>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            type={showPassword ? 'text' : 'password'}
-                            placeholder="••••••••"
-                            {...field}
-                            className="pr-10 bg-white/5 border-white/10 text-white placeholder:text-blue-100/30 focus-visible:ring-blue-500/50"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-100/50 hover:text-white transition-colors"
-                            tabIndex={-1}
-                          >
-                            {showPassword ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-
-                      {/* Password Strength Component for Registration */}
-                      {mode === 'register' && (
-                        <PasswordStrength
-                          password={field.value}
-                          confirmPassword={form.watch('confirmPassword')}
-                          showPassword={showPassword}
-                          onTogglePassword={() => setShowPassword(!showPassword)}
-                          className="mt-4"
-                        />
+              {mode === 'register' ? (
+                <>
+                  {/* Name and Email in Grid */}
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-blue-100">Nombre Completo</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Dr. Juan Pérez" {...field} className="bg-white/5 border-white/10 text-white placeholder:text-blue-100/30 focus-visible:ring-blue-500/50" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
                       )}
-                    </FormItem>
-                  )}
-                />
-              )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-blue-100">Dirección de Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="doctor@uroflow.com" {...field} className="bg-white/5 border-white/10 text-white placeholder:text-blue-100/30 focus-visible:ring-blue-500/50" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-              {/* Confirm Password Field for Registration */}
-              {mode === 'register' && (
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-blue-100">Confirmar Contraseña</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            type={showConfirmPassword ? 'text' : 'password'}
-                            placeholder="••••••••"
-                            {...field}
-                            className="pr-10 bg-white/5 border-white/10 text-white placeholder:text-blue-100/30 focus-visible:ring-blue-500/50"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-100/50 hover:text-white transition-colors"
-                            tabIndex={-1}
-                          >
-                            {showConfirmPassword ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                  {/* Password and Confirm Password in Grid */}
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-blue-100">Contraseña</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                type={showPassword ? 'text' : 'password'}
+                                placeholder="••••••••"
+                                {...field}
+                                className="pr-10 bg-white/5 border-white/10 text-white placeholder:text-blue-100/30 focus-visible:ring-blue-500/50"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-100/50 hover:text-white transition-colors"
+                                tabIndex={-1}
+                              >
+                                {showPassword ? (
+                                  <EyeOff className="h-4 w-4" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
+                              </button>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-blue-100">Confirmar Contraseña</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                type={showConfirmPassword ? 'text' : 'password'}
+                                placeholder="••••••••"
+                                {...field}
+                                className="pr-10 bg-white/5 border-white/10 text-white placeholder:text-blue-100/30 focus-visible:ring-blue-500/50"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-100/50 hover:text-white transition-colors"
+                                tabIndex={-1}
+                              >
+                                {showConfirmPassword ? (
+                                  <EyeOff className="h-4 w-4" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
+                              </button>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Password Strength spanning full width */}
+                  <PasswordStrength
+                    password={form.watch('password')}
+                    confirmPassword={form.watch('confirmPassword')}
+                    showPassword={showPassword}
+                    onTogglePassword={() => setShowPassword(!showPassword)}
+                  />
+                </>
+              ) : (
+                <>
+                  {(mode === 'login' || mode === 'forgot-password') && (
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-blue-100">Dirección de Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="doctor@uroflow.com" {...field} className="bg-white/5 border-white/10 text-white placeholder:text-blue-100/30 focus-visible:ring-blue-500/50" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   )}
-                />
+                  {mode === 'login' && (
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center justify-between">
+                            <FormLabel className="text-blue-100">Contraseña</FormLabel>
+                            <button type="button" onClick={() => handleModeChange('forgot-password')} className="text-sm font-medium text-blue-400 hover:text-blue-300 hover:underline transition-colors">
+                              ¿Olvidaste?
+                            </button>
+                          </div>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                type={showPassword ? 'text' : 'password'}
+                                placeholder="••••••••"
+                                {...field}
+                                className="pr-10 bg-white/5 border-white/10 text-white placeholder:text-blue-100/30 focus-visible:ring-blue-500/50"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-100/50 hover:text-white transition-colors"
+                                tabIndex={-1}
+                              >
+                                {showPassword ? (
+                                  <EyeOff className="h-4 w-4" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
+                              </button>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </>
               )}
             </div>
 

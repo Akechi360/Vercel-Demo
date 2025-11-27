@@ -6,7 +6,7 @@ export default function LoginPage() {
     <main className="flex min-h-screen flex-col items-center justify-center p-4 relative overflow-hidden">
       <AnimatedBackground />
 
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 w-full max-w-6xl">
         <AuthForm mode="login" />
       </div>
     </main>
